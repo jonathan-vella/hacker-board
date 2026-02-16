@@ -13,7 +13,7 @@
 
 | Area | Link | Description |
 | ---- | ---- | ----------- |
-| 📋 | [Product Requirements](app-prd.md) | Features F1-F11, user stories, acceptance criteria |
+| 📋 | [Product Requirements](app-prd.md) | Features F1 through F11, user stories, acceptance criteria |
 | 🔌 | [API Specification](api-spec.md) | All 16 endpoint contracts |
 | 🎨 | [App Design](app-design.md) | UI/UX, component model, responsive strategy |
 | 🏗️ | [Scaffold Guide](app-scaffold.md) | Folder structure, dependencies, helpers |
@@ -44,9 +44,9 @@ graph TB
 | F6 — JSON score upload | ✅ Delivered | `src/components/ScoreSubmission.js`, `api/src/functions/upload.js` |
 | F7 — Attendee registration | ✅ Delivered | `src/components/Registration.js`, `api/src/functions/attendees.js` |
 | F8 — Team roster management | ✅ Delivered | `src/components/TeamRoster.js`, `api/src/functions/teams.js` |
-| F9 — Bulk attendee import | ✅ Delivered | `AttendeeBulkEntry.js`, `attendees-bulk.js` |
-| F10 — Team assignment | ✅ Delivered | `TeamAssignment.js`, `teams-assign.js` |
-| F11 — Rubric import + grading | ✅ Delivered | `RubricManager.js`, `rubrics.js` |
+| F9 — Bulk import | ✅ Delivered | `src/components/AttendeeBulkEntry.js`, `api/src/functions/attendees-bulk.js` |
+| F10 — Team assignment | ✅ Delivered | `src/components/TeamAssignment.js`, `api/src/functions/teams-assign.js` |
+| F11 — Rubric import + grading | ✅ Delivered | `src/components/RubricManager.js`, `api/src/functions/rubrics.js` |
 
 ## Tech Stack
 
