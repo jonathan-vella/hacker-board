@@ -1,6 +1,6 @@
 # App Handoff Checklist — HackerBoard
 
-![Type](https://img.shields.io/badge/Type-Handoff-blue)
+![Type](https://img.shields.io/badge/Type-Checklist-blue)
 ![Status](https://img.shields.io/badge/Status-Ready-brightgreen)
 ![Audience](https://img.shields.io/badge/Audience-Dev%20%2B%20Platform%20Team-green)
 
@@ -369,3 +369,6 @@ Requires a CNAME record pointing `leaderboard.yourdomain.com` → `purple-bush-0
 - [SWA GitHub Actions](https://learn.microsoft.com/azure/static-web-apps/build-configuration)
 - [SWA Role Management](https://learn.microsoft.com/azure/static-web-apps/authentication-authorization#role-management)
 - [Azure Table Storage SDK (JS)](https://learn.microsoft.com/javascript/api/@azure/data-tables/)
+
+---
+[← Back to Documentation](README.md)

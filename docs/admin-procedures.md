@@ -1,5 +1,12 @@
 # Admin Procedures
 
+![Type](https://img.shields.io/badge/Type-Procedures-blue)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth-181717)
+
+> Operational runbook for assigning admins, running event-day admin workflows,
+> and resetting application data between events.
+
 ## Admin Role Assignment
 
 Azure Static Web Apps uses [role-based access control](https://learn.microsoft.com/azure/static-web-apps/authentication-authorization) with role invitations.
@@ -11,10 +18,14 @@ Azure Static Web Apps uses [role-based access control](https://learn.microsoft.c
 3. Select **Role management** from the left menu
 4. Click **Invite**
 5. Set:
-   - **Authentication provider**: GitHub
-   - **Invitee**: GitHub username
-   - **Role**: `admin`
-   - **Expiration**: Set as appropriate (max 8 hours for one-time events)
+
+| Field | Value |
+| ----- | ----- |
+| **Authentication provider** | GitHub |
+| **Invitee** | GitHub username |
+| **Role** | `admin` |
+| **Expiration** | Set as appropriate (max 8 hours for one-time events) |
+
 6. Click **Generate** to create the invitation link
 7. Send the link to the new admin; they must click it while signed into GitHub
 
@@ -41,11 +52,14 @@ For hackathon events, follow this rotation schedule:
 1. Invite all event organizers as admins
 2. Verify each admin can access the admin panel
 3. Set initial feature flags:
-   - `REGISTRATION_OPEN`: ON
-   - `SUBMISSIONS_ENABLED`: OFF (enable at event start)
-   - `LEADERBOARD_LOCKED`: OFF
-   - `AWARDS_VISIBLE`: OFF (enable at award ceremony)
-   - `RUBRIC_UPLOAD_ENABLED`: ON
+
+| Flag | Initial Value | Notes |
+| ---- | ------------- | ----- |
+| `REGISTRATION_OPEN` | ON | Keep registration open before kickoff |
+| `SUBMISSIONS_ENABLED` | OFF | Enable at event start |
+| `LEADERBOARD_LOCKED` | OFF | Keep leaderboard writable during scoring |
+| `AWARDS_VISIBLE` | OFF | Enable at award ceremony |
+| `RUBRIC_UPLOAD_ENABLED` | ON | Required for rubric activation |
 
 ### During Event
 
@@ -86,3 +100,6 @@ node scripts/cleanup-app-data.js --confirm --tables scores,submissions
 | User shows as authenticated but not admin | Verify they accepted the invite link; check Role Management in Azure Portal                  |
 | Feature flags not saving                  | Check browser console for API errors; verify `AZURE_STORAGE_CONNECTION_STRING` is configured |
 | Scores not appearing on leaderboard       | Ensure submissions are approved in Review Queue; check that `LEADERBOARD_LOCKED` is OFF      |
+
+---
+[← Back to Documentation](README.md)

@@ -1,6 +1,7 @@
 # API Specification — HackerBoard
 
 ![Type](https://img.shields.io/badge/Type-API%20Spec-blue)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![Runtime](https://img.shields.io/badge/Runtime-Node.js%2020-green)
 ![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth-orange)
 
@@ -172,6 +173,9 @@ Retrieve scores. Supports optional query parameters for filtering.
 
 **Leaderboard Summary (when no filters):**
 
+<details>
+<summary>Sample leaderboard summary response</summary>
+
 ```json
 {
   "leaderboard": [
@@ -189,6 +193,8 @@ Retrieve scores. Supports optional query parameters for filtering.
   "lastUpdated": "2026-02-13T15:00:00Z"
 }
 ```
+
+</details>
 
 ---
 
@@ -570,6 +576,9 @@ Submit a `score-results.json` payload for admin validation.
 
 **Request Body:** The full JSON output from `Score-Team.ps1`:
 
+<details>
+<summary>Sample `score-results.json` payload</summary>
+
 ```json
 {
   "TeamName": "team-alpha",
@@ -615,6 +624,8 @@ Submit a `score-results.json` payload for admin validation.
   "Grade": "OUTSTANDING"
 }
 ```
+
+</details>
 
 **Behavior:**
 
@@ -740,6 +751,9 @@ Retrieve the currently active rubric configuration (full JSON).
 
 **Response `200 OK`:**
 
+<details>
+<summary>Sample active rubric response</summary>
+
 ```json
 {
   "rubricId": "a1b2c3d4-...",
@@ -785,6 +799,8 @@ Retrieve the currently active rubric configuration (full JSON).
   "createdAt": "2026-01-15T10:00:00Z"
 }
 ```
+
+</details>
 
 **Errors:**
 
@@ -858,3 +874,6 @@ All error responses follow a consistent JSON structure:
 - [SWA API Documentation](https://learn.microsoft.com/azure/static-web-apps/apis-functions)
 - [Azure Tables SDK for JS](https://learn.microsoft.com/javascript/api/@azure/data-tables/)
 - [SWA Authentication Context](https://learn.microsoft.com/azure/static-web-apps/user-information)
+
+---
+[← Back to Documentation](README.md)

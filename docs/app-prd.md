@@ -765,3 +765,6 @@ Then add the required workflow surfaces from PRD features:
 - [app-handoff-checklist.md](./app-handoff-checklist.md) — Infrastructure wiring instructions
 - [SWA Authentication Docs](https://learn.microsoft.com/azure/static-web-apps/authentication-authorization)
 - [Azure Table Storage API](https://learn.microsoft.com/rest/api/storageservices/table-service-rest-api)
+
+---
+[← Back to Documentation](README.md)

@@ -1,9 +1,20 @@
-![Type](https://img.shields.io/badge/Type-App%20Design-blue)
+# App Design — HackerBoard
+
+![Type](https://img.shields.io/badge/Type-Design-blue)
 ![Status](https://img.shields.io/badge/Status-Ready-brightgreen)
 ![Audience](https://img.shields.io/badge/Audience-App%20Dev%20Team-green)
 
 > Purpose: Define the UI and interaction design for the HackerBoard app implementation.
 > Scope: App UX and frontend architecture only; infrastructure design is out of scope.
+
+## Quick Links
+
+| Area | Link | Description |
+| ---- | ---- | ----------- |
+| 🔌 | [API Specification](api-spec.md) | Endpoint contracts and payloads |
+| 📋 | [Product Requirements](app-prd.md) | Feature requirements and acceptance criteria |
+| 🧱 | [Scaffold Guide](app-scaffold.md) | Recommended implementation structure |
+| 🚀 | [Handoff Checklist](app-handoff-checklist.md) | Deployment wiring and validation steps |
 
 ## Problem, Users, Value
 
@@ -72,23 +83,25 @@
 
 ## Component Model
 
-- `Navbar`: global controls, search, auth actions, theme toggle.
-- `ChampionCard`: top-team summary with role, verification, and score badge.
-- `StatCard`: compact metric indicators for dashboard highlights.
-- `LeaderboardTable`: ranked rows, expansion, responsive fallback on small screens.
-- `ScoreSubmissionForm`: member-only scoring editor with category subtotal checks.
-- `SubmissionStatusPanel`: member view of latest submission state.
-- `AdminReviewQueue`: admin-only pending submission triage.
-- `ManualScoreOverride`: admin-only score correction workflow.
-- `AwardsPanel`: admin-only award assignment controls.
-- `JsonUploadPanel`: member-only structured upload with pre-submit validation.
-- `AttendeeProfileForm`: self-service attendee registration/editing.
-- `AttendeeBulkEntry`: admin-only multi-line/CSV attendee import (F9).
-- `TeamAssignmentPanel`: admin-only random assignment with preview (F10).
-- `TeamRoster`: team ↔ attendee display grid for all authenticated users.
-- `RubricManager`: admin-only rubric list with active indicator and archive controls (F11).
-- `RubricUpload`: admin-only drag-and-drop zone for rubric Markdown upload (F11).
-- `RubricPreview`: parsed rubric preview with categories, criteria, points, and grading scale (F11).
+| Component | Purpose |
+| --------- | ------- |
+| `Navbar` | Global controls, search, auth actions, and theme toggle |
+| `ChampionCard` | Top-team summary with role, verification, and score badge |
+| `StatCard` | Compact metric indicators for dashboard highlights |
+| `LeaderboardTable` | Ranked rows, expansion, and responsive fallback on small screens |
+| `ScoreSubmissionForm` | Member-only scoring editor with category subtotal checks |
+| `SubmissionStatusPanel` | Member view of latest submission state |
+| `AdminReviewQueue` | Admin-only pending submission triage |
+| `ManualScoreOverride` | Admin-only score correction workflow |
+| `AwardsPanel` | Admin-only award assignment controls |
+| `JsonUploadPanel` | Member-only structured upload with pre-submit validation |
+| `AttendeeProfileForm` | Self-service attendee registration and editing |
+| `AttendeeBulkEntry` | Admin-only multi-line/CSV attendee import (F9) |
+| `TeamAssignmentPanel` | Admin-only random assignment with preview (F10) |
+| `TeamRoster` | Team ↔ attendee display grid for all authenticated users |
+| `RubricManager` | Admin-only rubric list with active indicator and archive controls (F11) |
+| `RubricUpload` | Admin-only drag-and-drop zone for rubric Markdown upload (F11) |
+| `RubricPreview` | Parsed rubric preview with categories, criteria, points, and grading scale (F11) |
 
 ## Responsive Strategy
 
@@ -137,3 +150,6 @@
 - [Handoff Checklist](./app-handoff-checklist.md)
 - [Scaffold Guide](./app-scaffold.md)
 - [Infrastructure README](../README.md)
+
+---
+[← Back to Documentation](README.md)

@@ -1,6 +1,7 @@
 # App Scaffolding Guide — HackerBoard
 
-![Type](https://img.shields.io/badge/Type-Scaffold-blue)
+![Type](https://img.shields.io/badge/Type-Guide-blue)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![Runtime](https://img.shields.io/badge/Runtime-Node.js%2020-green)
 ![Platform](https://img.shields.io/badge/Platform-Azure%20SWA-purple)
 
@@ -338,3 +339,6 @@ Pushes to `main` trigger automatic deployment via GitHub Actions.
 - [SWA CLI Documentation](https://azure.github.io/static-web-apps-cli/)
 - [Azure Functions Node.js Developer Guide](https://learn.microsoft.com/azure/azure-functions/functions-reference-node)
 - [Azure Tables SDK](https://learn.microsoft.com/javascript/api/@azure/data-tables/)
+
+---
+[← Back to Documentation](README.md)
