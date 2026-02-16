@@ -2,11 +2,20 @@
   "name": "hacker-board-api",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "engines": {
     "node": ">=20.0.0"
   },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "dependencies": {
     "@azure/data-tables": "^13.3.0",
+    "@azure/functions": "^4.11.2",
     "@azure/identity": "^4.9.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
   }
 }

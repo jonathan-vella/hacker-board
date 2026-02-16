@@ -31,10 +31,25 @@ Azure Static Web Apps (Standard)
 npm install
 cd api && npm install && cd ..
 
+# Copy environment variables
+cp .env.example .env
+
+# Start Azurite (Table Storage emulator) in a separate terminal
+azurite --silent --location /tmp/azurite
+
+# Seed demo data
+node scripts/seed-demo-data.js --reset
+
 # Start local dev server (emulates auth + routing)
 swa start src --api-location api
 
 # Open http://localhost:4280
+```
+
+### Run Tests
+
+```bash
+cd api && npm test
 ```
 
 ### Prerequisites
@@ -106,25 +121,25 @@ Full schemas in [docs/api-spec.md](docs/api-spec.md).
 
 ## Documentation
 
-| Document                                                   | Purpose                     |
-| ---------------------------------------------------------- | --------------------------- |
-| [docs/app-prd.md](docs/app-prd.md)                        | Product requirements (F1-11)|
-| [docs/api-spec.md](docs/api-spec.md)                      | Full API specification      |
-| [docs/app-design.md](docs/app-design.md)                  | UI/UX design + components   |
-| [docs/app-scaffold.md](docs/app-scaffold.md)              | Folder structure guide      |
-| [docs/app-handoff-checklist.md](docs/app-handoff-checklist.md) | Infrastructure wiring  |
-| [docs/backlog.md](docs/backlog.md)                        | Project backlog + milestones|
+| Document                                                       | Purpose                      |
+| -------------------------------------------------------------- | ---------------------------- |
+| [docs/app-prd.md](docs/app-prd.md)                             | Product requirements (F1-11) |
+| [docs/api-spec.md](docs/api-spec.md)                           | Full API specification       |
+| [docs/app-design.md](docs/app-design.md)                       | UI/UX design + components    |
+| [docs/app-scaffold.md](docs/app-scaffold.md)                   | Folder structure guide       |
+| [docs/app-handoff-checklist.md](docs/app-handoff-checklist.md) | Infrastructure wiring        |
+| [docs/backlog.md](docs/backlog.md)                             | Project backlog + milestones |
 
 ## Infrastructure
 
 Estimated cost: **~$9.05/month** (West Europe).
 
-| Resource         | SKU          | Purpose              |
-| ---------------- | ------------ | -------------------- |
-| Static Web App   | Standard     | Frontend + Functions |
-| Storage Account  | Standard_LRS | Table Storage        |
-| App Insights     | —            | Telemetry            |
-| Log Analytics    | PerGB2018    | Centralized logging  |
+| Resource        | SKU          | Purpose              |
+| --------------- | ------------ | -------------------- |
+| Static Web App  | Standard     | Frontend + Functions |
+| Storage Account | Standard_LRS | Table Storage        |
+| App Insights    | —            | Telemetry            |
+| Log Analytics   | PerGB2018    | Centralized logging  |
 
 ## License
 

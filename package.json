@@ -2,15 +2,21 @@
   "name": "hacker-board",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Serverless microhack scoring dashboard — Azure Static Web Apps + managed Functions + Table Storage",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "swa start src --api-location api",
     "build": "echo 'No build step for vanilla JS'",
-    "test": "echo 'No tests configured yet'",
+    "test": "cd api && npm test",
+    "test:e2e": "playwright test",
     "lint": "echo 'Add ESLint configuration'"
   },
   "devDependencies": {
-    "@azure/static-web-apps-cli": "^2.0.0"
+    "@azure/static-web-apps-cli": "^2.0.0",
+    "@playwright/test": "^1.58.2"
   },
   "overrides": {
     "cookie": "^1.1.0",

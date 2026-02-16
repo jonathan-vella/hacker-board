@@ -1,37 +1,110 @@
-name: Deploy to Azure Static Web Apps
+name: CI/CD
 
 on:
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "staticwebapp.config.json"
+      - ".github/workflows/deploy-swa.yml"
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "staticwebapp.config.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build_and_deploy:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+  build-and-test:
+    name: Build & Test
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
     runs-on: ubuntu-latest
-    name: Build and Deploy
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Build and Deploy
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            api/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install API dependencies
+        run: cd api && npm ci
+
+      - name: Run API tests
+        run: cd api && npm test
+
+      - name: Audit API dependencies
+        run: cd api && npm audit --audit-level=high
+
+  deploy:
+    name: Deploy to Azure Static Web Apps
+    needs: build-and-test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy to SWA
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: upload
-          app_location: /
-          api_location: api
-          output_location: dist
+          action: "upload"
+          app_location: "/src"
+          api_location: "/api"
+          output_location: ""
 
-  close_pull_request:
+  deploy-preview:
+    name: Deploy PR Preview
+    needs: build-and-test
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy preview environment
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "/src"
+          api_location: "/api"
+          output_location: ""
+
+  close-pull-request:
+    name: Close PR Environment
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
-    name: Close PR Environment
     steps:
       - name: Close Pull Request
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          action: close
+          action: "close"

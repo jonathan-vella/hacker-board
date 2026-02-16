@@ -10,6 +10,9 @@ RUN curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor >
     && apt-get install -y azure-functions-core-tools-4 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Playwright system dependencies (Chromium-only to keep image lean)
+RUN npx playwright install --with-deps chromium
+
 # Azurite (Azure Storage emulator) — pure JS, runs on any arch
 RUN su node -c "npm install -g azurite"
 

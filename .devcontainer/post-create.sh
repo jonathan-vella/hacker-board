@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install root-level dependencies (SWA CLI dev dep)
+# Install root-level dependencies (SWA CLI dev dep, Playwright)
 npm install
+
+# Install Playwright browsers (Chromium only)
+npx playwright install chromium
 
 # Install API dependencies
 cd api && npm install && cd ..
