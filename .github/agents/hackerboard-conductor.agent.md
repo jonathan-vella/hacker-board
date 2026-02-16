@@ -155,6 +155,8 @@ Skills are invoked at specific points during the workflow:
 
 ## Model Configuration
 
+Select models based on each agent's task complexity and reasoning needs:
+
 | Agent                  | Rationale                                |
 | ---------------------- | ---------------------------------------- |
 | Task Planner           | Deep codebase understanding required     |
