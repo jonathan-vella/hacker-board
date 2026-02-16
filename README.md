@@ -1,6 +1,14 @@
 # HackerBoard
 
+![HackerBoard hero banner](assets/readme-banner.svg)
+
 Serverless microhack scoring dashboard — Azure Static Web Apps + managed Functions + Azure Table Storage.
+
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Node](https://img.shields.io/badge/Node.js-20+-green)
+![Azure](https://img.shields.io/badge/Azure-Static%20Web%20Apps-blue)
+![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth-orange)
+![Docs](https://img.shields.io/badge/Docs-Polished-6f42c1)
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjonathan-vella%2Fhacker-board%2Fmain%2Finfra%2Fazuredeploy.json)
 
@@ -13,7 +21,7 @@ GitHub OAuth.
 
 ## Architecture
 
-```
+```text
 Azure Static Web Apps (Standard)
 ├── SPA Frontend (src/)
 ├── Managed Azure Functions (api/)
@@ -106,7 +114,7 @@ Full schemas in [docs/api-spec.md](docs/api-spec.md).
 
 ## Project Structure
 
-```
+```text
 ├── .github/workflows/deploy-swa.yml   # CI/CD to Azure SWA
 ├── api/                                # Managed Azure Functions (Node.js)
 ├── src/                                # SPA Frontend

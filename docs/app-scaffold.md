@@ -12,7 +12,7 @@
 
 ## Recommended Folder Structure
 
-```
+```text
 hacker-board-app/
 ├── .github/
 │   └── workflows/
@@ -249,7 +249,7 @@ Create `api/local.settings.json` (**do not commit**):
 
 Add to `.gitignore`:
 
-```
+```text
 api/local.settings.json
 node_modules/
 dist/
@@ -335,7 +335,7 @@ Pushes to `main` trigger automatic deployment via GitHub Actions.
 - [app-prd.md](./app-prd.md) — Product requirements
 - [api-spec.md](./api-spec.md) — Full API specification
 - [app-handoff-checklist.md](./app-handoff-checklist.md) — Infrastructure wiring steps
-- [staticwebapp.config.json](./staticwebapp.config.json) — Auth and route configuration
+- [staticwebapp.config.json](../staticwebapp.config.json) — Auth and route configuration
 - [SWA CLI Documentation](https://azure.github.io/static-web-apps-cli/)
 - [Azure Functions Node.js Developer Guide](https://learn.microsoft.com/azure/azure-functions/functions-reference-node)
 - [Azure Tables SDK](https://learn.microsoft.com/javascript/api/@azure/data-tables/)

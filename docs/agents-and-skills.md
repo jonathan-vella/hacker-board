@@ -1,5 +1,9 @@
 # Agents and Skills
 
+![Type](https://img.shields.io/badge/Type-Guide-blue)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Scope](https://img.shields.io/badge/Scope-Agents%20%26%20Skills-0ea5e9)
+
 > Reference guide for HackerBoard's AI agents, skills,
 > orchestration workflow, and prompt examples.
 
@@ -8,6 +12,14 @@ orchestrator, and 3 reusable skills to streamline development.
 Each agent handles a specific workflow phase, and the Conductor
 coordinates them in sequence with approval gates between steps.
 
+## Quick Links
+
+| Area | Link | Description |
+| ---- | ---- | ----------- |
+| 🏠 | [Documentation Hub](README.md) | Main docs landing page |
+| 📋 | [Execution Plan](backlog.md) | Current phase status and tracked work |
+| 📜 | [Docs Standards](../.github/instructions/docs.instructions.md) | Formatting and structure conventions |
+
 ---
 
 ## Agent Inventory
@@ -15,15 +27,15 @@ coordinates them in sequence with approval gates between steps.
 Agents are interactive AI assistants for specific workflow phases.
 Invoke them with `@agent-name` in GitHub Copilot Chat.
 
-| Agent                  | Emoji | Conductor Step    | Description                          | Invocation                  |
-| ---------------------- | ----- | ----------------- | ------------------------------------ | --------------------------- |
-| Task Planner           | 📋    | 1 — Plan          | Research and plan tasks              | `@task-planner`             |
-| Azure Architect        | 🏛️    | 2 — Architect     | WAF review and design                | `@azure-architect`          |
-| UX Designer            | 🎨    | 3 — Design        | User journeys, accessibility         | `@ux-designer`              |
-| Implementation Planner | 📐    | 4 — Plan          | Structured implementation plans      | `@implementation-planner`   |
-| Bicep AVM Expert       | ⚒️    | 5 — Implement     | Bicep IaC with Azure Verified Modules | `@bicep-avm`               |
-| Security Reviewer      | 🔍    | 6 — Review        | OWASP Top 10, Zero Trust code review | `@security-reviewer`        |
-| HackerBoard Conductor  | 🎼    | Orchestrator      | Coordinates all agents               | `@hackerboard-conductor`    |
+| Agent | Emoji | Conductor Step | Description | Invocation |
+| --- | --- | --- | --- | --- |
+| Task Planner | 📋 | 1 — Plan | Research and plan tasks | `@task-planner` |
+| Azure Architect | 🏛️ | 2 — Architect | WAF review and design | `@azure-architect` |
+| UX Designer | 🎨 | 3 — Design | User journeys, accessibility | `@ux-designer` |
+| Implementation Planner | 📐 | 4 — Plan | Structured implementation plans | `@implementation-planner` |
+| Bicep AVM Expert | ⚒️ | 5 — Implement | Bicep IaC with Azure Verified Modules | `@bicep-avm` |
+| Security Reviewer | 🔍 | 6 — Review | OWASP Top 10, Zero Trust code review | `@security-reviewer` |
+| HackerBoard Conductor | 🎼 | Orchestrator | Coordinates all agents | `@hackerboard-conductor` |
 
 ---
 

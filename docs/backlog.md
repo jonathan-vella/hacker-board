@@ -34,7 +34,7 @@
 | **Current Phase**       | Phase 11 — Ops Readiness (in progress) |
 | **Last Updated**        | 2026-02-16                             |
 | **Days Remaining**      | 5                                      |
-| **Tasks Done**          | 172 / 176                              |
+| **Tasks Done**          | 166 / 182                              |
 | **API Endpoints**       | 16 / 16                                |
 | **Frontend Components** | 17 / 17 + 2 services                   |
 | **Tests Passing**       | 65 (API unit) + 26 (frontend DOM)      |
@@ -496,8 +496,8 @@ Search filters correctly. Notifications appear and dismiss.
 - [ ] Add "Deploy to Azure" button to README for 1-click Azure Static Web Apps provisioning
   - Create ARM/Bicep template compatible with `azuredeploy.json` Deploy to Azure URL scheme
   - Wire `app_location: "/src"`, `api_location: "/api"`, `output_location: ""`
-  - Ref: https://learn.microsoft.com/en-us/azure/static-web-apps
-  - Ref: https://docs.github.com/en/actions/how-tos/deploy/deploy-to-third-party-platforms/azure-static-web-app
+  - Ref: [Azure Static Web Apps docs](https://learn.microsoft.com/en-us/azure/static-web-apps)
+  - Ref: [GitHub Actions Azure deploy docs](https://docs.github.com/en/actions/how-tos/deploy/deploy-to-third-party-platforms/azure-static-web-app)
 - [ ] Deploy to `purple-bush-029df9903.4.azurestaticapps.net`
 - [ ] Smoke test: login → leaderboard loads → submit score → approve
 - [ ] Verify SWA role invitations work for admin users
@@ -523,18 +523,18 @@ monitoring shows data, feature flags toggle correctly.
 
 > **Priority**: Do this FIRST — all subsequent work uses the orchestrated workflow.
 
-- [ ] Introduce a HackerBoard Conductor (orchestrator) agent — `Task Planner`
+- [x] Introduce a HackerBoard Conductor (orchestrator) agent — `Task Planner`
   - Master orchestrator that coordinates all existing agents with defined handoff points
   - Mandatory human approval gates at key decision points
-  - Ref: https://github.com/jonathan-vella/azure-agentic-infraops (Conductor pattern)
-- [ ] Update existing agents to support orchestrated handoffs — `Implementation Planner`
+  - Ref: [Azure Agentic InfraOps Conductor pattern](https://github.com/jonathan-vella/azure-agentic-infraops)
+- [x] Update existing agents to support orchestrated handoffs — `Implementation Planner`
   - Define input/output contracts for each agent (what it receives, what it produces)
   - Add `agents` list and model fallback frontmatter to agent definitions
   - Standardize agent output format for downstream consumption
-- [ ] Update custom instructions (`.github/instructions/`) for orchestration awareness — `Implementation Planner`
+- [x] Update custom instructions (`.github/instructions/`) for orchestration awareness — `Implementation Planner`
   - Add orchestration-aware guidance (when to defer to conductor, how to report status)
   - Ensure instructions reference handoff checkpoints
-- [ ] Update skills (`.github/skills/`) for conductor integration — `Implementation Planner`
+- [x] Update skills (`.github/skills/`) for conductor integration — `Implementation Planner`
   - Skills should be invokable by both agents and conductor
   - Add skill discovery metadata (trigger keywords, categories)
 - [x] Create agent/skill documentation in `docs/` — `docs-writer`
@@ -558,21 +558,21 @@ monitoring shows data, feature flags toggle correctly.
 
 ### 12.2 — Documentation Overhaul
 
-- [ ] Create/update `.github/instructions/docs.instructions.md` with prettier documentation standards — `Implementation Planner`
+- [x] Create/update `.github/instructions/docs.instructions.md` with prettier documentation standards — `Implementation Planner`
   - Consistent badge usage (shields.io) for status, version, license
   - Quick Links table pattern (icon | link | description)
   - Collapsible sections with `<details>` for long content
   - Mermaid diagrams for architecture and workflows
   - Structured tables for feature/component inventories
-  - Ref: https://github.com/jonathan-vella/azure-agentic-infraops/blob/main/docs/README.md
-- [ ] Redesign `docs/README.md` as a polished documentation hub — `docs-writer`
+  - Ref: [Azure Agentic InfraOps docs README](https://github.com/jonathan-vella/azure-agentic-infraops/blob/main/docs/README.md)
+- [x] Redesign `docs/README.md` as a polished documentation hub — `docs-writer`
   - Hero section with badges (build status, license, Azure SWA, Node version)
   - Quick Links table to all docs
   - Architecture overview with Mermaid diagram
   - Feature inventory table
   - Project structure tree
   - Getting Help section (issues, discussions)
-- [ ] Prettify existing docs (`api-spec.md`, `app-design.md`, `app-prd.md`, etc.) — `docs-writer`
+- [x] Prettify existing docs (`api-spec.md`, `app-design.md`, `app-prd.md`, etc.) — `docs-writer`
   - Add consistent headers, badges, and navigation links
   - Use tables instead of bullet lists where appropriate
   - Add "Back to docs" navigation links between pages
@@ -668,6 +668,35 @@ monitoring shows data, feature flags toggle correctly.
 **Known issues**:
 
 - Existing CI deploy failure is unrelated to this change (`deployment_token was not provided` in SWA deploy job).
+
+---
+
+### Session: 2026-02-16 — Issue Sync + Docs Prettification (3-pass)
+
+**What was done**:
+
+- Synced backlog Phase 12.1 and 12.2 checkboxes with closed GitHub issues #1 through #5 and verified repository state.
+- Confirmed OpenAPI/Swagger work from issue #6 remains complete in Phase 12.3.
+- Executed documentation polish in three passes across root `README.md`, `docs/`, and `templates/`.
+- Added a static hero banner and badge strip treatment to the top of root `README.md`.
+
+**Three-pass approach**:
+
+- Pass 1: Baseline normalization (headers, badges, description blocks, footer consistency).
+- Pass 2: Visual polish (navigation readability, table consistency, and top-level doc flow).
+- Pass 3: QA sweep (relative link checks, rendering checks, and final cleanup).
+
+**What's next**:
+
+- Keep docs styling and navigation patterns consistent for any newly added documentation files.
+
+**Open questions**:
+
+- None.
+
+**Known issues**:
+
+- None.
 
 ---
 
@@ -796,7 +825,7 @@ Rubric Templatization:
 
 **Inventory of files created/modified this session**:
 
-```
+```text
 MODIFIED:
   .devcontainer/Dockerfile           — Added Playwright system deps
   .devcontainer/post-create.sh       — Added Playwright browser install
@@ -939,7 +968,7 @@ CSS additions:
 
 **Files created/modified this session**:
 
-```
+```text
 CREATED:
   api/shared/featureFlags.js       — Feature flag persistence + caching
   api/shared/logger.js             — Structured JSON request logger
@@ -1041,7 +1070,7 @@ Phase 11 (Operational Readiness):
 
 **Files created/modified this session**:
 
-```
+```text
 CREATED:
   docs/admin-procedures.md            — Admin invitation, rotation, cleanup docs
   e2e/attendee-flow.spec.js           — E2E: bulk import → assign → roster
@@ -1103,7 +1132,7 @@ MODIFIED:
 
 **Files modified this session**:
 
-```
+```text
 MODIFIED:
   playwright.config.js         — Changed webServer to python3 static server
   e2e/leaderboard.spec.js      — Added full API mock setup (auth, scores, rubrics, etc.)
@@ -1186,7 +1215,7 @@ MODIFIED:
 
 **Files modified this session**:
 
-```
+```text
 CREATED:
   vitest.config.js                       — Root Vitest config for frontend DOM tests
   src/components/Leaderboard.test.js     — Leaderboard component tests

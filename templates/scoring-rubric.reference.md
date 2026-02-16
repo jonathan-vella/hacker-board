@@ -1,5 +1,11 @@
 # Scoring Rubric — Reference Implementation
 
+![Type](https://img.shields.io/badge/Type-Rubric%20Reference-blue)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Purpose](https://img.shields.io/badge/Purpose-Parser%20Reference-0284c7)
+
+> Canonical scoring rubric example used as the structural baseline for generated variants.
+
 > [!IMPORTANT]
 > This file is the **single source of truth** for all scoring values.
 > The app PRD, challenge files, scripts, and all other docs MUST derive their
@@ -170,3 +176,6 @@ Bonus points are additive to the total but do not affect the grade tier.
 | 💰 Cost Optimizer    | Best efficiency  |
 | 📐 Best Architecture | Most WAF-aligned |
 | 🚀 Speed Demon       | First to deploy  |
+
+---
+[← Back to Repository](../README.md)

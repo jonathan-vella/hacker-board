@@ -1,5 +1,11 @@
 # Generate Scoring Rubric for a New Hackathon
 
+![Type](https://img.shields.io/badge/Type-Template%20Guide-blue)
+![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Use](https://img.shields.io/badge/Use-Rubric%20Generation-0ea5e9)
+
+> Prompt-driven guide for generating HackerBoard-compatible rubric files.
+
 Use this prompt with GitHub Copilot (or any LLM) to generate a HackerBoard-compatible
 scoring rubric for a new hackathon event. The output will be a Markdown file that can
 be uploaded directly to HackerBoard's Rubric Manager.
@@ -125,3 +131,6 @@ After generating, verify:
 - [ ] All criteria tables follow `| Name | Points |` format
 - [ ] All bonus items follow `| Name | +Points | Verification |` format
 - [ ] Category headings follow `### N. Name (XX pts)` format
+
+---
+[← Back to Repository](../README.md)

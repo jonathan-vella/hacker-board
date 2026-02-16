@@ -1,5 +1,7 @@
 # API Specification — HackerBoard
 
+<!-- markdownlint-disable MD033 MD060 -->
+
 ![Type](https://img.shields.io/badge/Type-API%20Spec-blue)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![Runtime](https://img.shields.io/badge/Runtime-Node.js%2020-green)
@@ -870,7 +872,7 @@ All error responses follow a consistent JSON structure:
 ## References
 
 - [app-prd.md](./app-prd.md) — Product requirements with full feature descriptions
-- [staticwebapp.config.json](./staticwebapp.config.json) — Route and auth configuration
+- [staticwebapp.config.json](../staticwebapp.config.json) — Route and auth configuration
 - [SWA API Documentation](https://learn.microsoft.com/azure/static-web-apps/apis-functions)
 - [Azure Tables SDK for JS](https://learn.microsoft.com/javascript/api/@azure/data-tables/)
 - [SWA Authentication Context](https://learn.microsoft.com/azure/static-web-apps/user-information)

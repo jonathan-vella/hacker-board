@@ -1,5 +1,7 @@
 # Product Requirements Document — HackerBoard App
 
+<!-- markdownlint-disable MD060 -->
+
 ![Type](https://img.shields.io/badge/Type-PRD-blue)
 ![Status](https://img.shields.io/badge/Status-Ready-brightgreen)
 ![Audience](https://img.shields.io/badge/Audience-App%20Dev%20Team-green)
@@ -39,7 +41,7 @@ scoring with a browser-based submission and review workflow.
 
 The app runs on **Azure Static Web Apps (Standard)** with **managed Azure Functions** (Node.js) for the API layer and **Azure Table Storage** for persistence. All infrastructure is already deployed. The app team only needs to build the SPA frontend and API functions.
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │          Azure Static Web Apps (Standard)        │
 │                                                   │
@@ -185,7 +187,7 @@ The app runs on **Azure Static Web Apps (Standard)** with **managed Azure Functi
 
 **SWA Auth Flow:**
 
-```
+```text
 User → SWA → /.auth/login/github → GitHub OAuth → callback → /.auth/me → App
 ```
 
@@ -532,7 +534,7 @@ All endpoints are under `/api/` and require authentication. See [api-spec.md](./
 
 ### Home / Leaderboard View
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │  🏆 HackerBoard               [User] [Logout]   │
 ├─────────────────────────────────────────────────┤
@@ -550,7 +552,7 @@ All endpoints are under `/api/` and require authentication. See [api-spec.md](./
 
 ### Score Submission Form (Team Member)
 
-```
+```text
 ┌─────────────────────────────────────────────────┐
 │  📝 Score Entry                                   │
 │                                                   │
@@ -757,11 +759,11 @@ Then add the required workflow surfaces from PRD features:
 ## References
 
 - [Scoring Rubric Source](../../../microhack/facilitator/scoring-rubric.md) — Definitive scoring criteria
-- [01-requirements.md](../01-requirements.md) — Infrastructure requirements (source material)
-- [02-architecture-assessment.md](../02-architecture-assessment.md) — Architecture decisions
-- [06-deployment-summary.md](../06-deployment-summary.md) — Deployed resource details
+- `01-requirements.md` (source material from workshop assets, not committed in this repo)
+- `02-architecture-assessment.md` (source material from workshop assets, not committed in this repo)
+- `06-deployment-summary.md` (deployment output artifact, environment-specific)
 - [api-spec.md](./api-spec.md) — Full API specification
-- [staticwebapp.config.json](./staticwebapp.config.json) — Auth and route configuration
+- [staticwebapp.config.json](../staticwebapp.config.json) — Auth and route configuration
 - [app-handoff-checklist.md](./app-handoff-checklist.md) — Infrastructure wiring instructions
 - [SWA Authentication Docs](https://learn.microsoft.com/azure/static-web-apps/authentication-authorization)
 - [Azure Table Storage API](https://learn.microsoft.com/rest/api/storageservices/table-service-rest-api)

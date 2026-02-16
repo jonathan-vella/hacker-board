@@ -1,5 +1,7 @@
 # App Handoff Checklist — HackerBoard
 
+<!-- markdownlint-disable MD060 -->
+
 ![Type](https://img.shields.io/badge/Type-Checklist-blue)
 ![Status](https://img.shields.io/badge/Status-Ready-brightgreen)
 ![Audience](https://img.shields.io/badge/Audience-Dev%20%2B%20Platform%20Team-green)
@@ -19,7 +21,7 @@
 ## Prerequisites
 
 > [!NOTE]
-> Subscription IDs, storage account names, and SWA hostnames below are **deployment-specific examples**. Replace them with values from your own deployment (see `06-deployment-summary.md`).
+> Subscription IDs, storage account names, and SWA hostnames below are **deployment-specific examples**. Replace them with values from your own deployment artifacts.
 
 - [ ] Azure CLI installed and authenticated (`az login`)
 - [ ] GitHub CLI installed and authenticated (`gh auth login`)
@@ -53,7 +55,7 @@ cd hacker-board-app
 
 See [app-scaffold.md](./app-scaffold.md) for the recommended folder layout. At minimum:
 
-```
+```text
 ├── src/                  # SPA frontend (React, Svelte, or vanilla)
 ├── api/                  # Azure Functions (Node.js, managed by SWA)
 │   ├── teams/
@@ -149,7 +151,7 @@ jobs:
 
 ### 3.1 — Deploy `staticwebapp.config.json`
 
-The [staticwebapp.config.json](./staticwebapp.config.json) file in this folder defines:
+The [staticwebapp.config.json](../staticwebapp.config.json) file in the repository root defines:
 
 - GitHub as the only auth provider (Google/Twitter disabled)
 - All routes require authentication (no anonymous access)
@@ -363,7 +365,7 @@ Requires a CNAME record pointing `leaderboard.yourdomain.com` → `purple-bush-0
 
 - [app-prd.md](./app-prd.md) — Product requirements
 - [api-spec.md](./api-spec.md) — API specification
-- [staticwebapp.config.json](./staticwebapp.config.json) — Auth and route config
+- [staticwebapp.config.json](../staticwebapp.config.json) — Auth and route config
 - [app-scaffold.md](./app-scaffold.md) — Recommended project structure
 - [SWA Deployment Docs](https://learn.microsoft.com/azure/static-web-apps/getting-started)
 - [SWA GitHub Actions](https://learn.microsoft.com/azure/static-web-apps/build-configuration)
