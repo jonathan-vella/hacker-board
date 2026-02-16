@@ -1,0 +1,46 @@
+{
+  "name": "HackerBoard",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "installBicep": true
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "forwardPorts": [4280, 7071],
+  "portsAttributes": {
+    "4280": { "label": "SWA Emulator", "onAutoForward": "notify" },
+    "7071": { "label": "Azure Functions", "onAutoForward": "silent" }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "ms-azuretools.vscode-azurefunctions",
+        "ms-azuretools.vscode-azurestaticwebapps",
+        "ms-vscode.azurecli",
+        "Azurite.azurite",
+        "ms-azuretools.vscode-bicep",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "EditorConfig.EditorConfig"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "azurite.location": "${containerWorkspaceFolder}/.azurite",
+        "azureFunctions.projectLanguage": "JavaScript",
+        "azureFunctions.projectRuntime": "~4"
+      }
+    }
+  },
+  "remoteEnv": {
+    "AZURE_FUNCTIONS_ENVIRONMENT": "Development",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true"
+  }
+}
