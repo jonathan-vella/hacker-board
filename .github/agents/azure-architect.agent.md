@@ -47,3 +47,45 @@ For each recommendation:
 - GitHub OAuth integration via SWA built-in auth
 - Cost optimization (target < $10/mo)
 - Security headers and CSP configuration
+
+## Input Contract
+
+When invoked by the Conductor (Step 2), this agent expects:
+
+- **Task plan**: Phased task plan from Task Planner (Step 1)
+- **Requirements**: Feature requirements from `docs/app-prd.md`
+- **Current infrastructure**: Existing Bicep files in `infra/`
+
+## Output Contract
+
+This agent produces for the next step (UX Designer, Step 3):
+
+- **WAF assessment**: Evaluation against all 5 WAF pillars
+- **Service recommendations**: Specific Azure services and configurations
+- **Trade-off analysis**: Explicit trade-offs between WAF pillars
+- **Cost estimate**: Projected monthly cost impact
+
+## Handoff Format
+
+```markdown
+## Architecture Handoff
+
+**Primary WAF Pillar**: [pillar]
+**Cost Impact**: [estimate]
+
+### Service Recommendations
+| Service | Configuration | Rationale |
+|---------|--------------|-----------|
+| ...     | ...          | ...       |
+
+### Trade-offs
+- [pillar A] vs [pillar B]: [description]
+
+### Implementation Guidance
+- [actionable next steps]
+
+### Ready for Review
+- [ ] All 5 WAF pillars assessed
+- [ ] Cost estimate within target (< $10/mo)
+- [ ] Trade-offs explicitly documented
+```

@@ -57,3 +57,45 @@ After every review, create a report:
 ## Recommended Changes
 [code examples]
 ```
+
+## Input Contract
+
+When invoked by the Conductor (Step 5), this agent expects:
+
+- **Implementation artifacts**: Code changes from Implementation Planner
+  (Step 4)
+- **Architecture context**: Service decisions from Azure Architect (Step 2)
+- **Scope**: Specific files or components to review
+
+## Output Contract
+
+This agent produces for the next step (Bicep AVM Expert, Step 6):
+
+- **Security report**: Structured review with priority-ranked findings
+- **Production readiness**: Yes/No decision with justification
+- **Required fixes**: Specific code changes that must be applied
+
+## Handoff Format
+
+```markdown
+## Security Review Handoff
+
+**Component**: [component name]
+**Ready for Production**: [Yes/No]
+**Critical Issues**: [count]
+**Total Issues**: [count]
+
+### Findings Summary
+| Priority | Category | Count |
+|----------|----------|-------|
+| P1       | ...      | ...   |
+| P2       | ...      | ...   |
+
+### Required Fixes Before Deployment
+- [ ] [specific fix with file path]
+
+### Approved for Next Step
+- [ ] No P1 issues remain
+- [ ] All auth checks verified
+- [ ] Input validation confirmed
+```

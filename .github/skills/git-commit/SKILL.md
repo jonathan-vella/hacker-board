@@ -124,3 +124,15 @@ EOF
 - NEVER skip hooks (--no-verify) unless user asks
 - NEVER force push to main/master
 - If commit fails due to hooks, fix and create NEW commit (don't amend)
+
+## Conductor Integration
+
+The Conductor invokes this skill after each workflow step that produces
+artifacts to commit. Trigger keywords:
+
+- `commit` — create a conventional commit for current changes
+- `commit changes` — analyze diff and generate commit message
+
+When invoked by the Conductor, this skill receives a description of the
+completed step and generates an appropriate conventional commit message
+with the correct type and scope (e.g., `feat(api)`, `docs(agents)`).

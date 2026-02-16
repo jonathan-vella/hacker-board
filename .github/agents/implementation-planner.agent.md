@@ -62,3 +62,45 @@ Purpose prefixes: `feature`, `refactor`, `upgrade`, `infrastructure`, `bugfix`
 - Include specific file paths and function names
 - Define validation criteria that can be verified
 - Reference existing project patterns from `api/shared/` and `src/`
+
+## Input Contract
+
+When invoked by the Conductor (Step 4), this agent expects:
+
+- **Architecture assessment**: WAF decisions from Azure Architect (Step 2)
+- **UX design artifacts**: User journey and accessibility requirements
+  from UX Designer (Step 3), if applicable
+- **Backlog context**: Current status from `docs/backlog.md`
+
+## Output Contract
+
+This agent produces for the next step (Security Reviewer, Step 5):
+
+- **Implementation plan**: Structured plan file in `docs/plans/`
+- **Files affected**: List of files to be created or modified
+- **Test plan**: Corresponding test tasks for each feature task
+- **Risk assessment**: Identified risks and assumptions
+
+## Handoff Format
+
+```markdown
+## Implementation Plan Handoff
+
+**Plan**: [plan file path]
+**Status**: Planned
+**Phases**: [count]
+
+### Files Affected
+- [file path]: [what changes]
+
+### Test Coverage
+- [test description]: [test file path]
+
+### Risks
+- [risk description]
+
+### Ready for Review
+- [ ] All phases defined with measurable criteria
+- [ ] File paths and function signatures specified
+- [ ] Test tasks included for each feature task
+```

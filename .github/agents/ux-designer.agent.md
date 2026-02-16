@@ -56,3 +56,47 @@ All designs must meet WCAG 2.2 Level AA:
 2. **Clear Progress**: Users always know where they are (form steps, submission status)
 3. **Contextual Help**: Inline hints, not separate docs
 4. **Real-time Feedback**: Immediate validation, live leaderboard updates
+
+## Input Contract
+
+When invoked by the Conductor (Step 3), this agent expects:
+
+- **Architecture decisions**: Service and UI surface decisions from
+  Azure Architect (Step 2)
+- **Feature requirements**: User-facing features from `docs/app-prd.md`
+- **Backlog context**: Current status from `docs/backlog.md`
+
+## Output Contract
+
+This agent produces for the next step (Implementation Planner, Step 4):
+
+- **User journeys**: Mapped flows for each user role
+- **Accessibility requirements**: WCAG 2.2 AA compliance checklist
+- **UI component specifications**: Layout, interaction, and feedback patterns
+- **JTBD statements**: Jobs-to-be-Done for each feature
+
+## Handoff Format
+
+```markdown
+## UX Design Handoff
+
+**Feature**: [feature name]
+**User Roles**: [roles affected]
+
+### User Journeys
+| Role | Flow | Steps | Pain Points |
+|------|------|-------|-------------|
+| ...  | ...  | ...   | ...         |
+
+### Accessibility Checklist
+- [ ] Keyboard navigation for all interactive elements
+- [ ] Color contrast meets 4.5:1 minimum
+- [ ] Screen reader compatible
+- [ ] Semantic HTML structure defined
+
+### UI Components
+- [component]: [specification]
+
+### JTBD Statements
+- When [situation], I want to [motivation], so I can [outcome]
+```

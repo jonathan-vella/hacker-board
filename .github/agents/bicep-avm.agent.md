@@ -43,3 +43,43 @@ HackerBoard uses Bicep for infrastructure deployment. Key resources:
 
 - MCR Endpoint: `https://mcr.microsoft.com/v2/bicep/avm/res/{service}/{resource}/tags/list`
 - Always pin to specific version tags
+
+## Input Contract
+
+When invoked by the Conductor (Step 6), this agent expects:
+
+- **Architecture assessment**: Service recommendations from Azure Architect
+  (Step 2)
+- **Security review**: Approved security posture from Security Reviewer
+  (Step 5)
+- **Implementation plan**: File paths and resource definitions from
+  Implementation Planner (Step 4)
+
+## Output Contract
+
+This agent produces for the next step (docs-writer skill, Step 7):
+
+- **Bicep templates**: IaC files in `infra/` using AVM modules
+- **Parameter files**: Environment-specific configurations
+- **Deployment validation**: Results of `bicep lint` and `bicep build`
+
+## Handoff Format
+
+```markdown
+## Bicep Deployment Handoff
+
+**Templates**: infra/[files]
+**AVM Modules Used**: [count]
+**Lint Status**: [pass/fail]
+
+### Resources Defined
+| Resource | AVM Module | Version |
+|----------|-----------|---------|
+| ...      | ...       | ...     |
+
+### Validation
+- [ ] `bicep build` passes
+- [ ] `bicep lint` passes
+- [ ] No secrets in outputs
+- [ ] Unique naming with `uniqueString()`
+```
