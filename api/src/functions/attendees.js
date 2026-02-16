@@ -1,7 +1,7 @@
 import { app } from "@azure/functions";
-import { getTableClient } from "../shared/tables.js";
-import { getClientPrincipal } from "../shared/auth.js";
-import { errorResponse } from "../shared/errors.js";
+import { getTableClient } from "../../shared/tables.js";
+import { getClientPrincipal } from "../../shared/auth.js";
+import { errorResponse } from "../../shared/errors.js";
 
 const TABLE_NAME = "Attendees";
 

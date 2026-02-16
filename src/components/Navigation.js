@@ -1,4 +1,7 @@
 import { isAdmin, getUsername, loginUrl, logoutUrl } from "../services/auth.js";
+import { api } from "../services/api.js";
+
+let searchDebounceTimer;
 
 export function renderNavigation(container, user) {
   const admin = isAdmin(user);
@@ -16,9 +19,22 @@ export function renderNavigation(container, user) {
           <li><a href="#/awards">Awards</a></li>
           ${admin ? `<li><a href="#/review">Review Queue</a></li>` : ""}
           ${admin ? `<li><a href="#/rubrics">Rubrics</a></li>` : ""}
+          ${admin ? `<li><a href="#/flags">Flags</a></li>` : ""}
         </ul>
       </nav>
       <div class="header-actions">
+        <div class="search-wrapper">
+          <label for="global-search" class="sr-only">Search teams or attendees</label>
+          <input
+            type="search"
+            id="global-search"
+            class="search-input"
+            placeholder="Search teams..."
+            aria-label="Search teams or attendees"
+            autocomplete="off"
+          />
+          <div id="search-results" class="search-results hidden" role="listbox" aria-label="Search results"></div>
+        </div>
         <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle theme">
           <span id="theme-icon">🌙</span>
         </button>
@@ -33,6 +49,7 @@ export function renderNavigation(container, user) {
   `;
 
   initThemeToggle();
+  initSearch();
 }
 
 function initThemeToggle() {
@@ -57,4 +74,93 @@ function initThemeToggle() {
 function updateThemeIcon(theme) {
   const icon = document.getElementById("theme-icon");
   if (icon) icon.textContent = theme === "dark" ? "☀️" : "🌙";
+}
+
+function initSearch() {
+  const input = document.getElementById("global-search");
+  const resultsEl = document.getElementById("search-results");
+  if (!input || !resultsEl) return;
+
+  input.addEventListener("input", () => {
+    clearTimeout(searchDebounceTimer);
+    const query = input.value.trim().toLowerCase();
+
+    if (query.length < 2) {
+      resultsEl.classList.add("hidden");
+      resultsEl.innerHTML = "";
+      return;
+    }
+
+    searchDebounceTimer = setTimeout(
+      () => performSearch(query, resultsEl),
+      300,
+    );
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      resultsEl.classList.add("hidden");
+      input.value = "";
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".search-wrapper")) {
+      resultsEl.classList.add("hidden");
+    }
+  });
+}
+
+async function performSearch(query, resultsEl) {
+  try {
+    const [teams, attendees] = await Promise.allSettled([
+      api.teams.list(),
+      api.attendees.list(),
+    ]);
+
+    const results = [];
+
+    if (teams.status === "fulfilled" && Array.isArray(teams.value)) {
+      teams.value
+        .filter((t) => t.teamName?.toLowerCase().includes(query))
+        .slice(0, 5)
+        .forEach((t) =>
+          results.push({ type: "Team", name: t.teamName, href: "#/teams" }),
+        );
+    }
+
+    if (attendees.status === "fulfilled" && Array.isArray(attendees.value)) {
+      attendees.value
+        .filter((a) =>
+          (a.name || a.displayName || "").toLowerCase().includes(query),
+        )
+        .slice(0, 5)
+        .forEach((a) =>
+          results.push({
+            type: "Attendee",
+            name: a.name || a.displayName,
+            href: "#/teams",
+          }),
+        );
+    }
+
+    if (results.length === 0) {
+      resultsEl.innerHTML = `<div class="search-item text-secondary">No results found</div>`;
+    } else {
+      resultsEl.innerHTML = results
+        .map(
+          (r) =>
+            `<a href="${r.href}" class="search-item" role="option">
+              <span class="search-type">${r.type}</span>
+              <span>${r.name}</span>
+            </a>`,
+        )
+        .join("");
+    }
+
+    resultsEl.classList.remove("hidden");
+  } catch {
+    resultsEl.innerHTML = `<div class="search-item text-secondary">Search unavailable</div>`;
+    resultsEl.classList.remove("hidden");
+  }
 }

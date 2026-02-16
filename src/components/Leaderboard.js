@@ -47,6 +47,21 @@ export async function renderLeaderboard(container, user) {
       )
       .join("");
 
+    const cardsHtml = leaderboard
+      .map(
+        (team, i) => `
+      <div class="leaderboard-card">
+        <div class="rank">${i + 1}</div>
+        <div class="team-info">
+          <div class="team-name">${escapeHtml(team.teamName)}${awardsMap.has(team.teamName) ? ` 🏆` : ""}</div>
+          <div class="team-score">${team.totalScore} pts · ${team.percentage}%</div>
+        </div>
+        <div class="team-grade ${getGradeClass(team.grade)}">${escapeHtml(team.grade)}</div>
+      </div>
+    `,
+      )
+      .join("");
+
     container.innerHTML = `
       <section aria-label="Champion teams">
         <div class="section-header">
@@ -77,6 +92,9 @@ export async function renderLeaderboard(container, user) {
               ${rowsHtml || '<tr><td colspan="7" class="text-center text-secondary" style="padding:2rem">No scores submitted yet</td></tr>'}
             </tbody>
           </table>
+        </div>
+        <div class="leaderboard-cards" aria-label="Team rankings (mobile)" style="display:none;">
+          ${cardsHtml || '<p class="text-secondary text-center">No scores submitted yet</p>'}
         </div>
       </section>
     `;

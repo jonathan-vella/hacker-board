@@ -17,6 +17,7 @@ import { renderTeamRoster } from "./components/TeamRoster.js";
 import { renderAttendeeBulkEntry } from "./components/AttendeeBulkEntry.js";
 import { renderTeamAssignment } from "./components/TeamAssignment.js";
 import { renderRubricManager } from "./components/RubricManager.js";
+import { renderFeatureFlags } from "./components/FeatureFlags.js";
 
 const routes = {
   "": renderLeaderboard,
@@ -31,6 +32,7 @@ const routes = {
   attendees: renderAttendeeBulkEntry,
   assign: renderTeamAssignment,
   rubrics: renderRubricManager,
+  flags: renderFeatureFlags,
 };
 
 let currentUser;

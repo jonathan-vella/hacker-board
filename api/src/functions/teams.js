@@ -1,7 +1,8 @@
 import { app } from "@azure/functions";
-import { getTableClient } from "../shared/tables.js";
-import { getClientPrincipal } from "../shared/auth.js";
-import { errorResponse } from "../shared/errors.js";
+import { getTableClient } from "../../shared/tables.js";
+import { getClientPrincipal } from "../../shared/auth.js";
+import { errorResponse } from "../../shared/errors.js";
+import { createRequestLogger } from "../../shared/logger.js";
 
 const TABLE_NAME = "Teams";
 
@@ -140,25 +141,39 @@ app.http("teams", {
   authLevel: "anonymous",
   route: "teams",
   handler: async (request, context) => {
-    switch (request.method) {
-      case "GET":
-        return getTeams(request, context);
-      case "POST":
-        return createTeam(request, context);
-      case "PUT":
-        return updateTeam(request, context);
-      case "DELETE":
-        return deleteTeam(request, context);
-      default:
-        return {
-          status: 405,
-          jsonBody: {
-            error: {
-              code: "METHOD_NOT_ALLOWED",
-              message: "Method not allowed",
+    const log = createRequestLogger(request);
+    log.info(`teams.${request.method}`);
+    try {
+      let result;
+      switch (request.method) {
+        case "GET":
+          result = await getTeams(request, context);
+          break;
+        case "POST":
+          result = await createTeam(request, context);
+          break;
+        case "PUT":
+          result = await updateTeam(request, context);
+          break;
+        case "DELETE":
+          result = await deleteTeam(request, context);
+          break;
+        default:
+          result = {
+            status: 405,
+            jsonBody: {
+              error: {
+                code: "METHOD_NOT_ALLOWED",
+                message: "Method not allowed",
+              },
             },
-          },
-        };
+          };
+      }
+      log.done(`teams.${request.method}`, { status: result.status || 200 });
+      return result;
+    } catch (err) {
+      log.error(`teams.${request.method}`, { error: err.message });
+      throw err;
     }
   },
 });

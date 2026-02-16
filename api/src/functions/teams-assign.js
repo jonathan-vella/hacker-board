@@ -1,6 +1,6 @@
 import { app } from "@azure/functions";
-import { getTableClient } from "../shared/tables.js";
-import { errorResponse } from "../shared/errors.js";
+import { getTableClient } from "../../shared/tables.js";
+import { errorResponse } from "../../shared/errors.js";
 import { randomInt } from "node:crypto";
 
 const TABLE_NAME = "Attendees";

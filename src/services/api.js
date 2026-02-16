@@ -91,4 +91,10 @@ export const api = {
     create: (data) =>
       apiFetch("/rubrics", { method: "POST", body: JSON.stringify(data) }),
   },
+
+  flags: {
+    get: () => apiFetch("/flags"),
+    update: (flags) =>
+      apiFetch("/flags", { method: "PUT", body: JSON.stringify(flags) }),
+  },
 };

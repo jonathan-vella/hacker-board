@@ -662,3 +662,155 @@ main {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
 }
+
+/* Search */
+.search-wrapper {
+  position: relative;
+}
+
+.search-input {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface-alt);
+  color: var(--color-text);
+  font-size: 0.8125rem;
+  width: 180px;
+  transition:
+    width var(--transition),
+    border-color var(--transition);
+}
+
+.search-input:focus {
+  width: 240px;
+  border-color: var(--color-accent);
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  min-width: 240px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 200;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition);
+}
+
+.search-item:last-child {
+  border-bottom: none;
+}
+
+.search-item:hover,
+.search-item:focus-visible {
+  background: var(--color-surface-alt);
+}
+
+.search-type {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  min-width: 60px;
+}
+
+/* Feature flag badges */
+.flag-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-width: 2.5rem;
+  text-align: center;
+}
+
+.flag-on {
+  background: var(--color-success);
+  color: #fff;
+}
+
+.flag-off {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+/* Responsive: leaderboard card fallback */
+@media (max-width: 640px) {
+  .leaderboard-table {
+    display: none;
+  }
+
+  .leaderboard-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .leaderboard-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .leaderboard-card .rank {
+    font-size: 1.25rem;
+    font-weight: 700;
+    min-width: 2rem;
+    text-align: center;
+    color: var(--color-accent);
+  }
+
+  .leaderboard-card .team-info {
+    flex: 1;
+  }
+
+  .leaderboard-card .team-name {
+    font-weight: 600;
+  }
+
+  .leaderboard-card .team-score {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+  }
+
+  .leaderboard-card .team-grade {
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius);
+    background: var(--color-surface-alt);
+  }
+
+  .search-input {
+    width: 120px;
+  }
+
+  .search-input:focus {
+    width: 160px;
+  }
+}

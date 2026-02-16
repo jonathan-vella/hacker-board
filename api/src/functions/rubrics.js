@@ -1,11 +1,12 @@
 import { app } from "@azure/functions";
-import { getTableClient } from "../shared/tables.js";
-import { getClientPrincipal } from "../shared/auth.js";
-import { errorResponse } from "../shared/errors.js";
+import { getTableClient } from "../../shared/tables.js";
+import { getClientPrincipal } from "../../shared/auth.js";
+import { errorResponse } from "../../shared/errors.js";
+import { getFlags, requireFeature } from "../../shared/featureFlags.js";
 import {
   parseRubricMarkdown,
   RubricParseError,
-} from "../shared/rubricParser.js";
+} from "../../shared/rubricParser.js";
 import { randomUUID } from "node:crypto";
 
 const TABLE_NAME = "Rubrics";
@@ -63,6 +64,11 @@ async function getActiveRubric(request, context) {
 }
 
 async function createRubric(request, context) {
+  const flagsClient = getTableClient("Config");
+  const flags = await getFlags(flagsClient);
+  const disabled = requireFeature(flags, "RUBRIC_UPLOAD_ENABLED");
+  if (disabled) return disabled;
+
   const principal = getClientPrincipal(request);
   const contentType = request.headers.get("content-type") || "";
   let name, sourceMarkdown, activate, parsedRubric;

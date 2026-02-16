@@ -1,10 +1,22 @@
 import { app } from "@azure/functions";
-import { getTableClient } from "../shared/tables.js";
-import { getClientPrincipal } from "../shared/auth.js";
-import { errorResponse } from "../shared/errors.js";
+import { getTableClient } from "../../shared/tables.js";
+import { getClientPrincipal } from "../../shared/auth.js";
+import { errorResponse } from "../../shared/errors.js";
+import { getFlags, requireFeature } from "../../shared/featureFlags.js";
+import { createRequestLogger } from "../../shared/logger.js";
 import { randomUUID } from "node:crypto";
 
 async function postUpload(request, context) {
+  const log = createRequestLogger(request);
+  log.info("upload.POST");
+
+  const flags = await getFlags(getTableClient("Config"));
+  const disabled = requireFeature(flags, "SUBMISSIONS_ENABLED");
+  if (disabled) {
+    log.warn("upload.POST", { blocked: "SUBMISSIONS_ENABLED" });
+    return disabled;
+  }
+
   const principal = getClientPrincipal(request);
   if (!principal) {
     return errorResponse("UNAUTHORIZED", "Authentication required", 401);
@@ -57,6 +69,8 @@ async function postUpload(request, context) {
     payload: JSON.stringify(body),
     calculatedTotal: body.Total?.Grand || 0,
   });
+
+  log.done("upload.POST", { submissionId, teamName: body.TeamName });
 
   return {
     status: 202,
