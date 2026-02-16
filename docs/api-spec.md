@@ -6,6 +6,7 @@
 
 > All endpoints are managed Azure Functions behind the SWA reverse proxy.
 > Base URL: `https://purple-bush-029df9903.4.azurestaticapps.net/api`
+> Machine-readable spec: [openapi.yaml](openapi.yaml) · [Swagger UI](swagger-ui.html)
 
 ---
 
