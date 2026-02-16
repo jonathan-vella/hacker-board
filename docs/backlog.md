@@ -1,12 +1,15 @@
-# HackerBoard App — Project Plan
+# HackerBoard — Execution Plan
 
-![Type](https://img.shields.io/badge/Type-Project%20Plan-blue)
+![Type](https://img.shields.io/badge/Type-Execution%20Plan-blue)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
+![Sprint](https://img.shields.io/badge/Sprint-7%20Days-orange)
 
-> Living project plan, roadmap, and task tracker for the HackerBoard application.
-> Phases are ordered by dependency — each phase builds on the previous.
-> Check off tasks as they are completed; add new items at the end of the
-> relevant phase.
+> **MANDATORY**: Copilot MUST read this file before starting ANY implementation work.
+> This is the single source of truth for project status, decisions, and problems.
+>
+> **How to update**: Check off tasks with `[x]`, mark blockers with `[!]`,
+> add problems to the Problem Log, record decisions in the Decision Log,
+> and update Session Handoff Notes at the end of each session.
 
 ---
 
@@ -24,476 +27,628 @@
 
 ---
 
-## Project Gantt Chart
+## Current Status
 
-```mermaid
-gantt
-      title HackerBoard — Project Plan
-    dateFormat  YYYY-MM-DD
-    axisFormat  %b %d
-    todayMarker off
-
-    section Phase 1: Foundation
-    Dependency audit & cleanup        :p1a, 2026-01-06, 3d
-    Security hardening                :p1b, after p1a, 3d
-
-    section Phase 2: DevOps & Environment
-    CI/CD pipeline                    :p2a, after p1b, 2d
-    Environment & secrets management  :p2b, after p1b, 2d
-    Mock data & local dev mode        :p2c, after p2a, 2d
-    Data seeding scripts              :p2d, after p2c, 1d
-
-    section Phase 3: API Core
-    Auth helpers & Teams CRUD         :p3a, after p2b, 3d
-    Scores & Submissions endpoints    :p3b, after p3a, 3d
-    Upload endpoint                   :p3c, after p3b, 1d
-
-    section Phase 4: Attendee & Team Mgmt API
-    Attendees endpoints               :p4a, after p3c, 2d
-    Bulk import & team assignment     :p4b, after p4a, 2d
-    Awards endpoints                  :p4c, after p4a, 1d
-
-    section Phase 5: Rubric Engine API
-    Rubric parser (MD → JSON)         :p5a, after p4b, 2d
-    Rubric CRUD & activation          :p5b, after p5a, 2d
-    Default rubric bootstrap          :p5c, after p5b, 1d
-
-    section Phase 6: Frontend Shell
-    Dashboard & leaderboard           :p6a, after p5c, 3d
-    Grading display & theme           :p6b, after p6a, 2d
-
-    section Phase 7: Frontend Workflows
-    Score submission form             :p7a, after p6b, 2d
-    JSON upload panel                 :p7b, after p7a, 1d
-    Admin review & override           :p7c, after p7b, 2d
-    Registration & awards             :p7d, after p7c, 2d
-
-    section Phase 8: Team & Attendee UI
-    Team Roster page                  :p8a, after p7d, 2d
-    Attendee management page          :p8b, after p8a, 1d
-    Team assignment UI                :p8c, after p8b, 1d
-
-    section Phase 9: Rubric Management UI
-    Rubric upload & preview           :p9a, after p8c, 2d
-    Rubric activation & archive       :p9b, after p9a, 1d
-
-    section Phase 10: Integration & Polish
-    E2E tests (Playwright)            :p10a, after p9b, 3d
-    Performance & accessibility       :p10b, after p10a, 2d
-    Search & notifications            :p10c, after p10a, 2d
-
-    section Phase 11: Operational Readiness
-    SWA role invitations              :p11a, after p10b, 1d
-    Monitoring & observability        :p11b, after p11a, 2d
-    OpenAPI documentation             :p11c, after p11a, 2d
-    Feature flags                     :p11d, after p11b, 2d
-    Post-event cleanup scripts        :p11e, after p11d, 1d
-```
+| Metric                  | Value                |
+| ----------------------- | -------------------- |
+| **Current Phase**       | Phase 1 — Foundation |
+| **Last Updated**        | 2026-02-16           |
+| **Days Remaining**      | 7                    |
+| **Tasks Done**          | 0 / 120              |
+| **API Endpoints**       | 0 / 15               |
+| **Frontend Components** | 0 / 16               |
+| **Tests Passing**       | 0                    |
+| **Open Problems**       | 0                    |
+| **Open Decisions**      | 1                    |
 
 ---
 
-## Phase 1 — Foundation (Dependency Hygiene & Security) 🔴
+## Dependency Map
 
-> **Goal**: Zero deprecated dependencies; all known security findings
-> resolved before feature work begins.
-> **Depends on**: Nothing — this is the starting point.
+```mermaid
+graph LR
+    P1[Phase 1: Foundation] --> P2[Phase 2: DevOps]
+    P2 --> P3[Phase 3: API Core]
+    P3 --> P4[Phase 4: Attendee API]
+    P3 --> P5[Phase 5: Rubric API]
+    P5 --> P6[Phase 6: Frontend Shell]
+    P6 --> P7[Phase 7: Frontend Workflows]
+    P4 --> P8[Phase 8: Team UI]
+    P7 --> P8
+    P5 --> P9[Phase 9: Rubric UI]
+    P6 --> P9
+    P8 --> P10[Phase 10: Polish]
+    P9 --> P10
+    P10 --> P11[Phase 11: Ops Readiness]
+```
+
+**Critical path**: P1 → P2 → P3 → P5 → P6 → P7 → P10 → P11
+
+**Parallel tracks** (after P3):
+
+- Track A: P4 (Attendee API) — can run alongside P5
+- Track B: P5 (Rubric API) → P6 (Shell) → P7 (Workflows)
+- P8 and P9 can start once their dependencies complete
+
+---
+
+## 7-Day Schedule
+
+| Day | Focus               | Phases    | Target                                                       |
+| --- | ------------------- | --------- | ------------------------------------------------------------ |
+| 1   | Foundation + DevOps | P1 + P2   | ESM migration, Vitest, CI/CD, security headers, seed scripts |
+| 2   | API Core            | P3        | Teams CRUD, Scores, Upload, Submissions (6 endpoints)        |
+| 3   | Remaining API       | P4 + P5   | Attendees, Awards, Rubric parser + CRUD (9 endpoints)        |
+| 4   | Frontend Shell      | P6        | SPA router, leaderboard, grading, theme, CSS                 |
+| 5   | Core UI Workflows   | P7        | Score form, upload, admin review, awards, registration       |
+| 6   | Management UI       | P8 + P9   | Team roster, attendee mgmt, team assign, rubric UI           |
+| 7   | Polish + Ship       | P10 + P11 | Integration test, a11y, search, flags, prod deploy           |
+
+---
+
+## Phase 1 — Foundation 🔴
+
+> **Goal**: Zero deprecated deps, secure baseline, ESM migration.
+> **Depends on**: Nothing.
+> **Definition of Done**: `npm audit` clean, all shared helpers use ESM,
+> security headers in `staticwebapp.config.json`, `engines` pinned.
 
 ### 1.1 — Dependency Audit & Cleanup
 
-- [ ] Audit `api/package.json` — flag packages with npm deprecation
-      notices or beyond maintenance LTS
-- [ ] Audit `package.json` (frontend) — same check
-- [ ] Replace deprecated packages with supported alternatives
-- [ ] Pin `"engines"` in both `package.json` files to Node.js 20 LTS
+- [x] Audit root `package.json` — flag deprecated transitive deps
+- [x] Audit `api/package.json` — flag deprecated packages
+- [x] Add npm `overrides` to force non-deprecated transitive deps
+- [x] Run `npm audit` on both root and `api/` — resolve all findings
+- [ ] Pin `"engines": { "node": ">=20.0.0" }` in root `package.json`
 - [ ] Verify Azure Functions Extension Bundle range (`[4.*, 5.0.0)`)
-      is current; update if a new stable range is available
-- [ ] Confirm `@azure/data-tables` SDK version is latest stable
-- [ ] Run `npm audit` on both `api/` and root; resolve all
-      high/critical advisories
+- [ ] Confirm `@azure/data-tables` SDK is latest stable
 
-### 1.2 — Security Hardening
+### 1.2 — ESM Migration
 
-- [ ] Audit `staticwebapp.config.json` — confirm only GitHub provider
-      is enabled (Google/Twitter/AAD blocked with 404)
-- [ ] Add `Content-Security-Policy` header in `globalHeaders`
+- [ ] Add `"type": "module"` to `api/package.json`
+- [ ] Convert `api/shared/auth.js` from CommonJS to ESM
+- [ ] Convert `api/shared/tables.js` from CommonJS to ESM
+- [ ] Convert `api/shared/errors.js` from CommonJS to ESM
+- [ ] Verify all imports work with `swa start`
+
+### 1.3 — Security Hardening
+
+- [ ] Add `Content-Security-Policy` header in `staticwebapp.config.json`
 - [ ] Add `Strict-Transport-Security` header (HSTS) in `globalHeaders`
-- [ ] Validate all API functions enforce authentication before any
-      data access (no anonymous fallback paths)
-- [ ] Verify managed identity is used for Table Storage access
-      (no shared-key or connection-string patterns)
-- [ ] Add input validation/sanitization on all user-supplied fields
-- [ ] Ensure JSON upload endpoint validates payload size (max 256 KB)
-- [ ] Add rate limiting guidance or SWA-native throttling config
-- [ ] Review CORS settings — ensure no wildcard origins
-- [ ] Confirm all error responses use the standard error envelope
-      (no stack traces or internal details leak)
+- [ ] Confirm only GitHub auth provider enabled (Google/Twitter/AAD = 404)
+- [ ] Confirm all error responses use standard error envelope (no stack leaks)
+
+**Validation**: `npm audit` returns 0 high/critical. `swa start` launches
+without errors. All `api/shared/*.js` files use `import`/`export`.
 
 ---
 
-## Phase 2 — DevOps & Environment Setup 🔴
+## Phase 2 — DevOps & Environment 🔴
 
-> **Goal**: CI/CD pipeline, local dev environment, mock data, and secrets
-> management — the development foundation.
-> **Depends on**: Phase 1 (clean dependencies, secure baseline).
+> **Goal**: CI/CD, test infrastructure, local dev, seed data.
+> **Depends on**: Phase 1.
+> **Definition of Done**: `npm test` runs Vitest, GitHub Actions deploys on push,
+> seed script populates local Azurite, `.env.example` documents all vars.
 
-### 2.1 — CI/CD Pipeline
+### 2.1 — Test Infrastructure
 
-- [ ] Create `.github/workflows/deploy-swa.yml` GitHub Actions workflow
-- [ ] Workflow stages: install → lint → test → build → deploy
+- [ ] Install Vitest as dev dependency in `api/`
+- [ ] Create `api/vitest.config.js`
+- [ ] Add `"test"` script to `api/package.json`
+- [ ] Write smoke test that imports shared helpers
+
+**Validation**: `cd api && npm test` passes.
+
+### 2.2 — CI/CD Pipeline
+
+- [ ] Create `.github/workflows/deploy-swa.yml`
+- [ ] Stages: install → lint → test → deploy
 - [ ] Use `Azure/static-web-apps-deploy@v1` action
-- [ ] Configure deployment token as repository secret
-- [ ] Add PR preview environment (SWA staging environments)
-- [ ] Add post-deploy smoke test step (curl health endpoint)
+- [ ] Pin all actions to `@v4` (upload/download-artifact)
+- [ ] Add PR preview environment (SWA staging)
 
-### 2.2 — Environment & Secrets Management
+**Validation**: Push to branch triggers workflow; PR gets preview URL.
 
-- [ ] Document all required secrets: `GITHUB_CLIENT_ID`,
-      `GITHUB_CLIENT_SECRET`, Storage account connection info
-- [ ] Add `.env.example` file listing all environment variables
-- [ ] Configure SWA application settings via Azure Portal or CLI
-- [ ] Verify local dev uses `swa start` with `--api-location api`
-      and Azurite for local Table Storage emulation
-- [ ] Add secrets rotation guidance for post-event cleanup
+### 2.3 — Environment & Secrets
 
-### 2.3 — Mock Data & Local Dev Mode
+- [ ] Create `.env.example` listing all required variables
+- [ ] Document local dev setup in README.md (SWA CLI + Azurite)
+- [ ] Verify `swa start` works with `--api-location api`
 
-- [ ] Create `src/data/leaderboard.mock.ts` with realistic sample data
-- [ ] Create mock data files for teams, attendees, scores, submissions,
-      awards, rubrics
-- [ ] Add `USE_MOCK_DATA` environment flag to bypass API calls
-- [ ] Implement `services/mockApiClient.ts` that returns mock data
-- [ ] Document local dev setup in README.md (SWA CLI + mock mode)
+### 2.4 — Data Seeding
 
-### 2.4 — Data Seeding Scripts
+- [ ] Create `scripts/seed-demo-data.js` (populates Table Storage)
+- [ ] Support `--reset` flag to clear tables first
+- [ ] Support `--teams N --attendees M` parameters
+- [ ] Include default 105+25 rubric in seed data
 
-- [ ] Create `scripts/seed-demo-data.js` that populates Table Storage
-      with sample teams, attendees, scores, and the default rubric
-- [ ] Support `--reset` flag to clear tables before seeding
-- [ ] Support `--teams N --attendees M` parameters for variable sizes
-- [ ] Document seed script usage in README.md
+**Validation**: `node scripts/seed-demo-data.js --reset` populates
+Azurite tables; data visible in Storage Explorer.
 
 ---
 
-## Phase 3 — API Core (Auth, Teams, Scores, Submissions) 🔴
+## Phase 3 — API Core (Teams, Scores, Submissions) 🔴
 
-> **Goal**: Core API layer — authentication helpers, Teams CRUD, scoring,
-> and submission pipeline. All test-first.
-> **Depends on**: Phase 2 (CI/CD, test infrastructure, mock data).
+> **Goal**: Core API — auth, Teams CRUD, scoring, submissions.
+> **Depends on**: Phase 2.
+> **Definition of Done**: All 6 endpoints return correct responses,
+> tests pass, auth enforced on protected routes.
 
-### 3.1 — Auth Helpers & Teams CRUD
+### 3.1 — Auth Helpers
 
-- [ ] **Test first**: Write tests for `getClientPrincipal()` and
-      `requireRole()` helpers
-- [ ] Implement `api/shared/auth.js`
-- [ ] **Test first**: Write tests for `GET /api/teams`, `POST /api/teams`
-- [ ] Implement Teams CRUD functions
-- [ ] **Test first**: Write tests for `PUT /api/teams`, `DELETE /api/teams`
-- [ ] Implement remaining Teams endpoints
-- [ ] All tests green before proceeding
+- [ ] Write tests for `getClientPrincipal()` and `requireRole()`
+- [ ] Update `api/shared/auth.js` if tests reveal issues
+- [ ] Tests green
 
-### 3.2 — Scores & Submissions
+### 3.2 — Teams CRUD
 
-- [ ] **Test first**: `GET /api/scores` with and without filters
-- [ ] Implement Scores endpoints
-- [ ] **Test first**: `POST /api/upload` with valid/invalid payloads,
-      team scope violation
-- [ ] Implement Upload endpoint
-- [ ] **Test first**: `GET /api/submissions`, `POST /api/submissions/validate`
-- [ ] Implement Submissions + Validate endpoints
-- [ ] All tests green
+- [ ] Write tests for `GET /api/teams`
+- [ ] Write tests for `POST /api/teams` (admin only)
+- [ ] Write tests for `PUT /api/teams` (admin only)
+- [ ] Write tests for `DELETE /api/teams` (admin only)
+- [ ] Implement `api/src/functions/teams.js` (Azure Functions v4)
+- [ ] Tests green
+
+### 3.3 — Scores
+
+- [ ] Write tests for `GET /api/scores` (with/without team filter)
+- [ ] Write tests for `POST /api/scores` (admin override)
+- [ ] Implement `api/src/functions/scores.js`
+- [ ] Tests green
+
+### 3.4 — Upload & Submissions
+
+- [ ] Write tests for `POST /api/upload` (valid, invalid, wrong team)
+- [ ] Write tests for `GET /api/submissions` (admin only)
+- [ ] Write tests for `POST /api/submissions/validate` (approve/reject)
+- [ ] Implement `api/src/functions/upload.js`
+- [ ] Implement `api/src/functions/submissions.js`
+- [ ] Validate payload size limit (max 256 KB)
+- [ ] Tests green
+
+**Validation**: `npm test` in `api/` — all tests pass.
+Manual test with `curl` against `swa start` confirms auth enforcement.
 
 ---
 
 ## Phase 4 — Attendee & Team Management API 🔴
 
-> **Goal**: Attendees, bulk import, random team assignment, and awards
-> endpoints.
-> **Depends on**: Phase 3 (Teams CRUD and auth helpers).
+> **Goal**: Attendees, bulk import, team assignment, awards.
+> **Depends on**: Phase 3.
+> **Definition of Done**: All endpoints return correct responses, tests pass.
 
-### 4.1 — Attendees & Awards
+### 4.1 — Attendees
 
-- [ ] **Test first**: `GET/POST /api/attendees/me`, `GET /api/attendees`
-- [ ] Implement Attendees endpoints
-- [ ] **Test first**: `POST/GET /api/awards`
-- [ ] Implement Awards endpoints
-- [ ] All tests green
+- [ ] Write tests for `GET/POST/PUT /api/attendees/me`
+- [ ] Write tests for `GET /api/attendees` (admin only)
+- [ ] Implement `api/src/functions/attendees.js`
+- [ ] Tests green
 
-### 4.2 — Bulk Import & Team Assignment
+### 4.2 — Bulk Import (F9)
 
-- [ ] **Test first**: `POST /api/attendees/bulk` with valid/invalid payloads
-- [ ] Implement bulk attendee import endpoint (F9)
-- [ ] **Test first**: `POST /api/teams/assign` (Fisher-Yates shuffle,
-      boundary cases)
-- [ ] Implement random team assignment endpoint (F10)
-- [ ] All tests green
+- [ ] Write tests for `POST /api/attendees/bulk` (valid CSV, duplicates)
+- [ ] Implement `api/src/functions/attendees-bulk.js`
+- [ ] Tests green
 
-### 4.3 — GitHub Username ↔ Attendee Mapping 🟡
+### 4.3 — Team Assignment (F10)
 
-> **Decision required**: Finalize mapping approach (self-service claim,
-> admin pre-fill, or hybrid). See PRD F10 for options.
+- [ ] Write tests for `POST /api/teams/assign` (Fisher-Yates, edge cases)
+- [ ] Implement `api/src/functions/teams-assign.js`
+- [ ] Tests green
 
-- [ ] Finalize mapping approach (A / B / C)
-- [ ] Update `POST /api/attendees/me` to support "claim" flow if
-      Option A or C is chosen
-- [ ] Add admin override endpoint to reassign GitHub ↔ Attendee links
-- [ ] Update F7 acceptance criteria in app-prd.md once decided
+### 4.4 — Awards (F4)
+
+- [ ] Write tests for `GET/POST/PUT /api/awards`
+- [ ] Implement `api/src/functions/awards.js`
+- [ ] Tests green
+
+**Validation**: `npm test` — all Phase 3+4 tests pass.
 
 ---
 
 ## Phase 5 — Rubric Engine API (F11) 🔴
 
-> **Goal**: Markdown rubric parser, CRUD endpoints, activation logic, and
-> default rubric bootstrap.
-> **Depends on**: Phase 3 (Table Storage patterns, auth helpers).
+> **Goal**: Markdown parser, CRUD, activation, default bootstrap.
+> **Depends on**: Phase 3.
+> **Definition of Done**: Parser handles well-formed and malformed markdown,
+> CRUD works, activation swaps rubrics, default seeds on first use.
 
 ### 5.1 — Rubric Markdown Parser
 
-- [ ] **Test first**: Parser extracts categories, criteria, points from
-      well-formed rubric Markdown
-- [ ] **Test first**: Parser extracts bonus items with points and type
-- [ ] **Test first**: Parser extracts grading scale with thresholds
-- [ ] **Test first**: Parser returns errors for malformed/incomplete Markdown
+- [ ] Write tests: extract categories + criteria + points
+- [ ] Write tests: extract bonus items with points
+- [ ] Write tests: extract grading scale with thresholds
+- [ ] Write tests: error on malformed/incomplete markdown
 - [ ] Implement `api/shared/rubricParser.js`
-- [ ] Validate computed `baseTotal` matches sum of category max points
-- [ ] All parser tests green
+- [ ] Validate `baseTotal` matches sum of category max points
+- [ ] Tests green
 
 ### 5.2 — Rubric CRUD & Activation
 
-- [ ] **Test first**: `GET /api/rubrics` returns list of rubrics
-- [ ] **Test first**: `POST /api/rubrics` creates rubric from Markdown
-- [ ] **Test first**: `GET /api/rubrics/active` returns active rubric
-- [ ] **Test first**: Activation deactivates the previous rubric
-- [ ] Implement rubric API functions
-- [ ] All tests green
+- [ ] Write tests for `GET /api/rubrics`
+- [ ] Write tests for `POST /api/rubrics` (create from markdown)
+- [ ] Write tests for `GET /api/rubrics/active`
+- [ ] Write tests: activation deactivates previous rubric
+- [ ] Implement `api/src/functions/rubrics.js`
+- [ ] Tests green
 
 ### 5.3 — Default Rubric Bootstrap
 
-- [ ] Create `src/data/defaultRubric.js` with the 105+25 model from
-      `microhack/facilitator/scoring-rubric.md`
-- [ ] On first API call to `/api/rubrics/active`, if no rubric exists,
-      seed the default rubric to the Rubrics table
-- [ ] Include default rubric in data seeding script (Phase 2.4)
+- [ ] Create `src/data/defaultRubric.js` (105+25 model)
+- [ ] Auto-seed default on first `/api/rubrics/active` if none exists
+- [ ] Include in seed script (Phase 2.4)
+
+**Validation**: `npm test` — all rubric tests pass. `GET /api/rubrics/active`
+returns the default rubric on a fresh database.
 
 ---
 
 ## Phase 6 — Frontend Shell & Leaderboard 🔴
 
-> **Goal**: Dashboard, leaderboard table, grading display, theme system.
-> All rubric-driven.
-> **Depends on**: Phase 5 (active rubric API for dynamic grading).
+> **Goal**: SPA router, dashboard, leaderboard, grading, theme.
+> **Depends on**: Phase 5 (rubric API for dynamic grading).
+> **Definition of Done**: Dashboard loads, leaderboard renders with live data,
+> theme toggle works, responsive across breakpoints.
 
-### 6.1 — Dashboard & Leaderboard (F2)
+### 6.1 — SPA Infrastructure
 
-- [ ] **Test first**: Render `LeaderboardTable` with mock data
-- [ ] Implement Dashboard page with leaderboard table
-- [ ] **Test first**: ChampionCard renders top-3 correctly
-- [ ] Implement ChampionCard and StatCard components
-- [ ] Fetch active rubric on app initialization (RubricContext)
-- [ ] All tests green
+- [ ] Implement `src/app.js` — hash-based SPA router
+- [ ] Implement `src/services/api.js` — fetch wrappers for all endpoints
+- [ ] Implement `src/services/auth.js` — `/.auth/me` client helper
+- [ ] Implement `src/services/rubric.js` — fetch/cache active rubric
+- [ ] Create `src/styles/main.css` — CSS custom properties, responsive grid
 
-### 6.2 — Grading Display & Theme (F3)
+### 6.2 — Navigation & Theme
 
-- [ ] **Test first**: Grade badge renders correct tier and color from
-      active rubric's grading scale
-- [ ] Implement grading display logic (rubric-driven, not hardcoded)
-- [ ] **Test first**: Theme toggle persists to localStorage
-- [ ] Implement theme system (light/dark)
-- [ ] All tests green
+- [ ] Implement `src/components/Navigation.js` — role-aware nav, theme toggle
+- [ ] Implement theme system (light/dark, localStorage persist)
+- [ ] Keyboard-operable with visible focus indicators
+
+### 6.3 — Dashboard & Leaderboard (F2, F3)
+
+- [ ] Implement `src/components/Leaderboard.js` — ranked table, expandable rows
+- [ ] Implement champion spotlight — top-3 cards with grade badges
+- [ ] Implement grading logic — rubric-driven grade calculation + tier badges
+- [ ] Auto-refresh every 30 seconds
+- [ ] Responsive: table on lg+, card fallback on sm
+
+**Validation**: Open in browser — leaderboard renders seeded data,
+theme toggle works, responsive at all breakpoints, keyboard navigable.
 
 ---
 
 ## Phase 7 — Frontend Workflows (F1, F4, F6, F7, F8) 🔴
 
-> **Goal**: Score submission form, JSON upload, admin review queue,
-> registration, and awards panel.
-> **Depends on**: Phase 6 (frontend shell, rubric context).
+> **Goal**: Score submission, upload, admin review, registration, awards.
+> **Depends on**: Phase 6.
+> **Definition of Done**: All workflows functional, form validation works,
+> admin-only controls hidden from members.
 
 ### 7.1 — Score Submission Form (F1)
 
-- [ ] **Test first**: ScoreEntryForm dynamically renders categories and
-      criteria from active rubric
-- [ ] **Test first**: Form validates category subtotals against rubric max
-- [ ] Implement F1 score submission form
-- [ ] All tests green
+- [ ] Implement `src/components/ScoreSubmission.js`
+- [ ] Dynamic categories/criteria from active rubric
+- [ ] Category subtotal validation against rubric max
+- [ ] Bonus toggles with auto-calculated points
+- [ ] Submit creates pending submission via `/api/upload`
 
 ### 7.2 — JSON Upload (F6)
 
-- [ ] **Test first**: JsonUploadPanel validates schema against active rubric
-- [ ] Implement F6 JSON upload panel with drag-and-drop
-- [ ] All tests green
+- [ ] Implement `src/components/UploadScores.js`
+- [ ] Drag-and-drop + file browse
+- [ ] Schema validation + preview before submit
+- [ ] Team scope enforcement (own team only)
 
-### 7.3 — Admin Review & Override (F8)
+### 7.3 — Submission Status
 
-- [ ] **Test first**: AdminReviewQueue renders pending items
-- [ ] Implement F8 admin queue and manual override
-- [ ] All tests green
+- [ ] Implement `src/components/SubmissionStatus.js`
+- [ ] Show pending/approved/rejected state for member's submissions
 
-### 7.4 — Registration & Awards (F7, F4)
+### 7.4 — Admin Review & Override (F8)
 
-- [ ] **Test first**: AttendeeProfileForm pre-fills GitHub username
-- [ ] Implement F7 registration form
-- [ ] **Test first**: AwardsPanel assignment and display using rubric awards
-- [ ] Implement F4 awards panel (rubric-driven award categories)
-- [ ] All tests green
+- [ ] Implement `src/components/AdminReviewQueue.js`
+- [ ] Pending submissions with approve/reject + reason
+- [ ] Implement `src/components/ManualOverride.js`
+- [ ] Admin score correction workflow
+
+### 7.5 — Registration (F7)
+
+- [ ] Implement `src/components/Registration.js`
+- [ ] Pre-fill GitHub username from `/.auth/me`
+- [ ] Self-service profile update
+
+### 7.6 — Awards (F4)
+
+- [ ] Implement `src/components/Awards.js`
+- [ ] Five award categories with team dropdown (admin assign)
+- [ ] Award badges on leaderboard
+
+**Validation**: Submit score as member → appears in admin queue →
+approve → leaderboard updates. Upload JSON → preview → submit.
+Awards assigned appear on leaderboard.
 
 ---
 
 ## Phase 8 — Team & Attendee Management UI 🔴
 
-> **Goal**: Team Roster, attendee management, and team assignment UI.
-> **Depends on**: Phase 7 (core frontend workflows complete), Phase 4
-> (attendee and team assignment API).
+> **Goal**: Team rosters, attendee management, random assignment.
+> **Depends on**: Phase 4 (API), Phase 7 (frontend shell).
+> **Definition of Done**: Admin can bulk-import attendees, assign to teams,
+> all users see team roster.
 
-### 8.1 — Team Roster Page
+### 8.1 — Team Roster (F10)
 
-- [ ] **Test first**: TeamRoster page renders team grid
-- [ ] Implement Team Roster page
-- [ ] Admin edit controls for attendee moves between teams
-- [ ] Member read-only view with own-team highlight
-- [ ] All tests green
+- [ ] Implement `src/components/TeamRoster.js`
+- [ ] Card/table grid of all teams + members
+- [ ] Admin edit (move attendees between teams)
+- [ ] Member read-only with own-team highlight
 
-### 8.2 — Attendee Management Page (F9)
+### 8.2 — Attendee Management (F9)
 
-- [ ] **Test first**: Admin attendee entry form creates records
-- [ ] Implement Attendee Management page with multi-line/CSV paste
-- [ ] Duplicate detection by name with merge prompt
-- [ ] All tests green
+- [ ] Implement `src/components/AttendeeBulkEntry.js`
+- [ ] Multi-line/CSV paste for name import
+- [ ] Duplicate detection with merge prompt
 
-### 8.3 — Team Assignment UI (F10)
+### 8.3 — Team Assignment (F10)
 
-- [ ] **Test first**: Random assignment produces balanced teams
-- [ ] Implement team assignment UI with shuffle preview
-- [ ] Implement confirm/re-shuffle with confirmation dialog
-- [ ] All tests green
+- [ ] Implement `src/components/TeamAssignment.js`
+- [ ] Team count input, Fisher-Yates shuffle preview
+- [ ] Confirm/re-shuffle with confirmation dialog
+
+**Validation**: Bulk import 20 attendees → assign to 4 teams →
+roster shows balanced distribution → admin can reassign.
 
 ---
 
 ## Phase 9 — Rubric Management UI (F11) 🔴
 
-> **Goal**: Admin rubric upload, preview, and activation interface.
-> **Depends on**: Phase 5 (rubric API), Phase 6 (frontend shell).
+> **Goal**: Admin rubric upload, preview, activation.
+> **Depends on**: Phase 5 (API), Phase 6 (shell).
+> **Definition of Done**: Admin uploads `.md` rubric, previews parsed
+> result, activates it, score form + leaderboard update dynamically.
 
 ### 9.1 — Rubric Upload & Preview
 
-- [ ] **Test first**: RubricUpload accepts `.md` file drag-and-drop
-- [ ] **Test first**: RubricPreview renders parsed categories, criteria,
-      points, and grading scale
-- [ ] Implement drag-and-drop upload zone
-- [ ] Implement preview panel with category/criteria/points breakdown
-- [ ] All tests green
+- [ ] Implement `src/components/RubricUpload.js` — drag-and-drop `.md`
+- [ ] Implement `src/components/RubricPreview.js` — parsed categories/criteria/points
 
 ### 9.2 — Rubric Activation & Archive
 
-- [ ] **Test first**: RubricManager lists rubrics with active indicator
-- [ ] Implement activate/archive controls with confirmation dialog
-- [ ] Implement rubric history list (name, event, date, active status)
-- [ ] Verify score entry form (F1) and leaderboard (F2) update when
-      rubric is switched
-- [ ] All tests green
+- [ ] Implement `src/components/RubricManager.js` — list + active indicator
+- [ ] Activate/archive with confirmation dialog
+- [ ] Verify F1 form and F2 leaderboard update on rubric switch
+
+**Validation**: Upload rubric → preview → activate → score form
+adapts to new categories/criteria. Old rubric archived.
 
 ---
 
-## Phase 10 — Integration, E2E & Polish 🟡
+## Phase 10 — Integration & Polish 🟡
 
-> **Goal**: End-to-end testing, performance validation, accessibility
-> audit, and remaining UI polish.
-> **Depends on**: Phases 6–9 (all frontend features complete).
+> **Goal**: E2E tests, accessibility, search, notifications.
+> **Depends on**: Phases 6–9.
+> **Definition of Done**: Critical flows tested end-to-end, WCAG 2.2 AA
+> audit passes, search works, notifications functional.
 
-### 10.1 — End-to-End Tests
+### 10.1 — Integration Tests
 
-- [ ] Write E2E tests (Playwright or Cypress) for critical flows:
-      login → submit score → admin approve → leaderboard updates
-- [ ] Write E2E test for rubric upload → activate → score form updates
-- [ ] Write E2E test for attendee bulk entry → team assignment → roster
-- [ ] All E2E tests green
+- [ ] Test flow: login → submit score → admin approve → leaderboard
+- [ ] Test flow: rubric upload → activate → score form adapts
+- [ ] Test flow: bulk import → team assignment → roster display
 
-### 10.2 — Performance & Accessibility
+### 10.2 — Accessibility Audit
 
-- [ ] Performance test: confirm < 2s page load, < 500ms API response
-- [ ] Accessibility audit (axe-core automated + manual keyboard check)
-- [ ] Responsive check across sm/md/lg/xl breakpoints
-- [ ] Final security scan (`npm audit`, dependency review)
+- [ ] Run axe-core on all pages
+- [ ] Manual keyboard navigation check
+- [ ] Verify ARIA labels on icon-only controls
+- [ ] Verify contrast in both themes
 
-### 10.3 — Search & Notifications UI
+### 10.3 — Responsive Check
 
-- [ ] Implement search bar in navbar (filter teams/attendees by name)
-- [ ] Implement notification area (submission status, award announcements)
-- [ ] Add notification badge count for admin (pending submissions)
+- [ ] Verify sm/md/lg/xl breakpoints
+- [ ] Touch target sizes on mobile
+
+### 10.4 — Search & Notifications
+
+- [ ] Search bar in navbar (filter teams/attendees)
+- [ ] Notification area (submission status, award alerts)
+- [ ] Admin pending count badge
 - [ ] Persist dismissed notifications in localStorage
+
+**Validation**: All integration tests pass. axe-core reports 0 violations.
+Search filters correctly. Notifications appear and dismiss.
 
 ---
 
 ## Phase 11 — Operational Readiness 🟡
 
-> **Goal**: Monitoring, documentation, feature flags, and cleanup —
-> everything for running the app at a live event.
-> **Depends on**: Phase 10 (app is functionally complete and tested).
+> **Goal**: Production-ready for live event.
+> **Depends on**: Phase 10.
+> **Definition of Done**: Deployed to production SWA, monitoring active,
+> feature flags work, cleanup scripts ready.
 
-### 11.1 — SWA Role Invitation Workflow
+### 11.1 — Feature Flags
 
-- [ ] Document how to invite admins via Azure Portal
-      (SWA → Role Management → Invite)
-- [ ] Create a pre-event checklist for facilitator role setup
-- [ ] Add `scripts/invite-admins.sh` helper or document manual steps
-- [ ] Test that invited users receive the `admin` role after login
-
-### 11.2 — Monitoring & Observability
-
-- [ ] Enable Application Insights for managed Functions
-- [ ] Add client-side telemetry (page views, errors)
-- [ ] Add structured logging in API functions (request ID, user,
-      operation, duration)
-- [ ] Create Azure Monitor alert for API error rate > 5%
-- [ ] Create dashboard: active users, submissions/hour, API latency
-
-### 11.3 — OpenAPI / Swagger Documentation
-
-- [ ] Generate OpenAPI 3.0 spec from API endpoint definitions
-- [ ] Add `/api/docs` route serving Swagger UI
-- [ ] Include request/response examples from `api-spec.md`
-- [ ] Add schema validation middleware based on OpenAPI spec
-
-### 11.4 — Feature Flags
-
-- [ ] Add `featureFlags` section to SWA app settings or a config table
 - [ ] Implement flags: `SUBMISSIONS_ENABLED`, `LEADERBOARD_LOCKED`,
       `REGISTRATION_OPEN`, `AWARDS_VISIBLE`, `RUBRIC_UPLOAD_ENABLED`
-- [ ] Admin panel toggle for each flag
-- [ ] API respects flags (returns 503 when feature is disabled)
-- [ ] Frontend hides/disables UI surfaces based on flag state
-- [ ] Facilitator can lock leaderboard during curveball challenge
+- [ ] API returns 503 when feature disabled
+- [ ] Frontend hides/disables UI based on flag state
+- [ ] Admin toggle for each flag
 
-### 11.5 — Post-Event Cleanup
+### 11.2 — Monitoring
 
-- [ ] Create `scripts/cleanup-app-data.js` to purge all 6 tables
+- [ ] Enable Application Insights for managed Functions
+- [ ] Add structured logging (request ID, user, operation, duration)
+- [ ] Client-side telemetry (page views, errors)
+
+### 11.3 — Production Deploy & Smoke Test
+
+- [ ] Deploy to `purple-bush-029df9903.4.azurestaticapps.net`
+- [ ] Smoke test: login → leaderboard loads → submit score → approve
+- [ ] Verify SWA role invitations work for admin users
+
+### 11.4 — Post-Event Prep
+
+- [ ] Create `scripts/cleanup-app-data.js` (purge tables)
 - [ ] Support `--confirm` flag for safety
-- [ ] Remove PII (attendee names, GitHub usernames) from Table Storage
-- [ ] Revoke SWA role invitations for event-specific admins
-- [ ] Rotate `GITHUB_CLIENT_SECRET` after event
-- [ ] Document retention policy (event + 30 days per PRD NFR)
+- [ ] Document admin invitation + rotation procedures
+
+**Validation**: Production app accessible, all features work,
+monitoring shows data, feature flags toggle correctly.
 
 ---
 
 ## Phase 12 — Future Enhancements 🟢
 
-> Nice-to-have items for post-MVP iterations.
+> Nice-to-have items for post-sprint iterations.
 
-- [ ] Real-time leaderboard updates via WebSocket or Server-Sent Events
+- [ ] Real-time updates via WebSocket or Server-Sent Events
 - [ ] Export leaderboard to CSV/PDF
-- [ ] Rubric template marketplace / gallery (share rubrics between events)
+- [ ] Rubric template gallery (share between events)
 - [ ] Rubric versioning with diff view
-- [ ] Attendee photo upload (GitHub avatar fallback)
 - [ ] Historical score comparison across events
 - [ ] Multi-language / i18n support
 - [ ] Custom domain with SSL certificate
+- [ ] OpenAPI / Swagger documentation
+- [ ] Comprehensive Playwright E2E suite
+
+---
+
+## Decision Log
+
+> Record architectural and design decisions here.
+> Format: `| ID | Date | Decision | Rationale | Status |`
+
+| ID  | Date       | Decision                            | Rationale                                                                        | Status                   |
+| --- | ---------- | ----------------------------------- | -------------------------------------------------------------------------------- | ------------------------ |
+| D1  | 2026-02-16 | Use ESM modules throughout          | `copilot-instructions.md` mandates ESM; Functions v4 supports it; fresh codebase | **Approved**             |
+| D2  | 2026-02-16 | Use Vitest for all testing          | Per `copilot-instructions.md`; fast, ESM-native, no config overhead              | **Approved**             |
+| D3  | 2026-02-16 | Vanilla JS SPA with hash router     | Per PRD — no framework; single `index.html`; minimal build tooling               | **Approved**             |
+| D4  | 2026-02-16 | GitHub username ↔ Attendee mapping  | Self-service claim (Option A from PRD F7/F10) — user claims on first login       | **Pending confirmation** |
+| D5  | 2026-02-16 | Defer Playwright E2E to post-sprint | 7-day sprint prioritizes unit + integration tests; E2E in week 2                 | **Approved**             |
+
+<!-- TEMPLATE for new decisions:
+| D{N} | YYYY-MM-DD | {decision} | {rationale} | **{status}** |
+-->
+
+---
+
+## Problem Log
+
+> Track issues, blockers, and their resolution.
+> Format: `| ID | Date | Phase | Problem | Impact | Status | Resolution |`
+
+| ID  | Date | Phase | Problem                | Impact | Status | Resolution |
+| --- | ---- | ----- | ---------------------- | ------ | ------ | ---------- |
+| —   | —    | —     | No problems logged yet | —      | —      | —          |
+
+<!-- TEMPLATE for new problems:
+| P{N} | YYYY-MM-DD | P{phase} | {description} | {High/Med/Low} | {Open/Resolved/Mitigated} | {what fixed it} |
+-->
+
+---
+
+## Risk Register
+
+| ID  | Risk                                             | Likelihood | Impact | Mitigation                                                                          |
+| --- | ------------------------------------------------ | ---------- | ------ | ----------------------------------------------------------------------------------- |
+| R1  | 7-day timeline too tight for full F1-F11         | Medium     | High   | Scope cut: defer P10.4 (search/notifications) and P11.4 (cleanup scripts) if behind |
+| R2  | Rubric parser edge cases cause scoring bugs      | Medium     | High   | Extensive test cases for malformed markdown; validate `baseTotal` matches sum       |
+| R3  | SWA managed Functions cold start affects UX      | Low        | Medium | Lightweight functions; keep-alive ping from frontend                                |
+| R4  | CommonJS → ESM migration breaks shared helpers   | Low        | Medium | Phase 1 migration with immediate `swa start` validation                             |
+| R5  | Table Storage query limitations for leaderboard  | Low        | Medium | Denormalize scores for fast reads; avoid cross-table joins                          |
+| R6  | Auth flow differences between local dev and prod | Medium     | Medium | Test auth helpers with mocked headers; deploy early to catch issues                 |
+
+---
+
+## Session Handoff Notes
+
+> Each Copilot session MUST update this section before ending.
+> This ensures the next session has full context.
+
+### Session: 2026-02-16 — Planning
+
+**What was done**:
+
+- Researched and ported 8 instructions + 3 skills from azure-agentic-infraops
+- Eliminated all npm deprecation warnings (0 warnings, 0 vulnerabilities)
+- Analyzed full codebase state: infra deployed, no app code, detailed PRD/API spec
+- Created this execution plan replacing the old backlog
+
+**What's next**:
+
+- Start Phase 1.1: Pin `engines` in root `package.json`
+- Start Phase 1.2: ESM migration of `api/shared/*.js`
+- Start Phase 1.3: Add CSP and HSTS headers
+
+**Open questions**:
+
+- Decision D4: Confirm attendee mapping approach (self-service claim vs admin pre-fill)
+
+**Known issues**:
+
+- `api/shared/*.js` files use CommonJS — must convert before any new API work
+
+<!-- TEMPLATE for new session entries:
+
+### Session: YYYY-MM-DD — {Focus Area}
+
+**What was done**:
+
+- {bullet list of completed work}
+
+**What's next**:
+
+- {bullet list of immediate next tasks}
+
+**Open questions**:
+
+- {any unresolved items}
+
+**Known issues**:
+
+- {any problems discovered}
+
+-->
+
+---
+
+## Test & Validation Matrix
+
+> Every phase has validation criteria. This matrix tracks pass/fail.
+
+| Phase | Validation                                                   | Status     |
+| ----- | ------------------------------------------------------------ | ---------- |
+| P1    | `npm audit` returns 0 high/critical                          | **Passed** |
+| P1    | `swa start` launches without errors after ESM migration      | Not run    |
+| P1    | All `api/shared/*.js` use `import`/`export`                  | Not done   |
+| P2    | `cd api && npm test` passes (Vitest)                         | Not run    |
+| P2    | GitHub Actions workflow triggers on push                     | Not run    |
+| P2    | `node scripts/seed-demo-data.js --reset` populates Azurite   | Not run    |
+| P3    | All API core tests pass (`npm test`)                         | Not run    |
+| P3    | `curl` confirms auth enforcement on protected routes         | Not run    |
+| P4    | All attendee/team/awards tests pass                          | Not run    |
+| P5    | Rubric parser handles well-formed + malformed markdown       | Not run    |
+| P5    | `GET /api/rubrics/active` returns default rubric on fresh DB | Not run    |
+| P6    | Leaderboard renders seeded data in browser                   | Not run    |
+| P6    | Theme toggle works + persists across reload                  | Not run    |
+| P6    | Responsive at sm/md/lg/xl breakpoints                        | Not run    |
+| P7    | Submit score → admin approve → leaderboard updates           | Not run    |
+| P7    | Upload JSON → preview → submit works                         | Not run    |
+| P8    | Bulk import → team assignment → roster displays              | Not run    |
+| P9    | Upload rubric → preview → activate → form adapts             | Not run    |
+| P10   | axe-core reports 0 violations                                | Not run    |
+| P10   | All integration tests pass                                   | Not run    |
+| P11   | Production deploy + smoke test passes                        | Not run    |
+| P11   | Feature flags toggle correctly                               | Not run    |
 
 ---
 
 ## References
 
-- [Product Requirements (PRD)](./app-prd.md)
-- [API Specification](./api-spec.md)
-- [App Design](./app-design.md)
-- [Scaffold Guide](./app-scaffold.md)
-- [Handoff Checklist](./app-handoff-checklist.md)
-- [Scoring Rubric](../../../microhack/facilitator/scoring-rubric.md)
+- [Product Requirements (PRD)](./app-prd.md) — F1-F11 feature definitions
+- [API Specification](./api-spec.md) — All endpoint contracts
+- [App Design](./app-design.md) — UI/UX, component model, responsive strategy
+- [Scaffold Guide](./app-scaffold.md) — Folder structure, dependencies, helpers
+- [Handoff Checklist](./app-handoff-checklist.md) — Infra wiring steps
+- [Copilot Instructions](../.github/copilot-instructions.md) — Coding standards
