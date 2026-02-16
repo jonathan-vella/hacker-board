@@ -1,5 +1,6 @@
 import { isAdmin, getUsername, loginUrl, logoutUrl } from "../services/auth.js";
 import { api } from "../services/api.js";
+import { updatePendingBadge } from "../services/notifications.js";
 
 let searchDebounceTimer;
 
@@ -10,14 +11,17 @@ export function renderNavigation(container, user) {
   container.innerHTML = `
     <div class="header-inner">
       <a href="#/leaderboard" class="app-logo" aria-label="HackerBoard home">HackerBoard</a>
+      <button class="mobile-menu-btn" id="mobile-menu-btn" type="button" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="main-nav-list">
+        <span aria-hidden="true">☰</span>
+      </button>
       <nav aria-label="Main navigation">
-        <ul class="nav-links">
+        <ul class="nav-links" id="main-nav-list">
           <li><a href="#/leaderboard">Leaderboard</a></li>
           ${user ? `<li><a href="#/submit">Submit Score</a></li>` : ""}
           ${user ? `<li><a href="#/upload">Upload</a></li>` : ""}
           ${user ? `<li><a href="#/teams">Teams</a></li>` : ""}
           <li><a href="#/awards">Awards</a></li>
-          ${admin ? `<li><a href="#/review">Review Queue</a></li>` : ""}
+          ${admin ? `<li><a href="#/review">Review Queue <span id="pending-count-badge" class="pending-badge" style="display:none" aria-live="polite"></span></a></li>` : ""}
           ${admin ? `<li><a href="#/rubrics">Rubrics</a></li>` : ""}
           ${admin ? `<li><a href="#/flags">Flags</a></li>` : ""}
         </ul>
@@ -50,6 +54,26 @@ export function renderNavigation(container, user) {
 
   initThemeToggle();
   initSearch();
+  initMobileMenu();
+  if (admin) updatePendingBadge(api);
+}
+
+function initMobileMenu() {
+  const btn = document.getElementById("mobile-menu-btn");
+  const navList = document.getElementById("main-nav-list");
+  if (!btn || !navList) return;
+
+  btn.addEventListener("click", () => {
+    const isOpen = navList.classList.toggle("open");
+    btn.setAttribute("aria-expanded", String(isOpen));
+  });
+
+  navList.addEventListener("click", (e) => {
+    if (e.target.closest("a")) {
+      navList.classList.remove("open");
+      btn.setAttribute("aria-expanded", "false");
+    }
+  });
 }
 
 function initThemeToggle() {

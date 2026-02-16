@@ -5,6 +5,7 @@ import {
   loginUrl,
   logoutUrl,
 } from "./services/auth.js";
+import { initTelemetry, trackPageView } from "./services/telemetry.js";
 import { renderNavigation } from "./components/Navigation.js";
 import { renderLeaderboard } from "./components/Leaderboard.js";
 import { renderScoreSubmission } from "./components/ScoreSubmission.js";
@@ -38,6 +39,7 @@ const routes = {
 let currentUser;
 
 async function init() {
+  initTelemetry();
   currentUser = await getCurrentUser();
   renderNavigation(document.getElementById("app-nav"), currentUser);
   handleRoute();

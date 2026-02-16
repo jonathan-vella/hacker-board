@@ -1,5 +1,6 @@
 import { api } from "../services/api.js";
 import { isAdmin } from "../services/auth.js";
+import { showToast } from "../services/notifications.js";
 
 export async function renderAdminReviewQueue(container, user) {
   if (!isAdmin(user)) {
@@ -80,6 +81,7 @@ function attachReviewListeners() {
         });
         card.style.opacity = "0.5";
         feedback.innerHTML = `<p style="color:var(--success)">Approved — scores written to leaderboard.</p>`;
+        showToast(`Submission for ${btn.dataset.team} approved`, "success");
         btn.disabled = true;
         card.querySelector(".action-reject").disabled = true;
       } catch (err) {
@@ -116,6 +118,7 @@ function attachReviewListeners() {
         });
         card.style.opacity = "0.5";
         feedback.innerHTML = `<p style="color:var(--warning)">Rejected.</p>`;
+        showToast(`Submission for ${btn.dataset.team} rejected`, "info");
         btn.disabled = true;
         card.querySelector(".action-approve").disabled = true;
       } catch (err) {

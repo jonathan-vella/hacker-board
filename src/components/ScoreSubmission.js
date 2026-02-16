@@ -1,6 +1,7 @@
 import { api } from "../services/api.js";
 import { getActiveRubric, getGradeClass } from "../services/rubric.js";
 import { isAdmin, getUsername } from "../services/auth.js";
+import { showToast } from "../services/notifications.js";
 
 export async function renderScoreSubmission(container, user) {
   if (!user) {
@@ -146,6 +147,7 @@ function attachScoreListeners(rubric) {
       feedback.innerHTML = `<div class="loading"><div class="spinner"></div> Submitting...</div>`;
       await api.upload({ teamName, scores, bonusItems });
       feedback.innerHTML = `<p style="color:var(--success)">Score submitted for review.</p>`;
+      showToast("Score submitted for review", "success");
       form.reset();
       updateTotals(rubric);
     } catch (err) {

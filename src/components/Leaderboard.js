@@ -93,7 +93,7 @@ export async function renderLeaderboard(container, user) {
             </tbody>
           </table>
         </div>
-        <div class="leaderboard-cards" aria-label="Team rankings (mobile)" style="display:none;">
+        <div class="leaderboard-cards" aria-label="Team rankings (mobile)">
           ${cardsHtml || '<p class="text-secondary text-center">No scores submitted yet</p>'}
         </div>
       </section>

@@ -1,5 +1,6 @@
 import { api } from "../services/api.js";
 import { isAdmin } from "../services/auth.js";
+import { clearRubricCache } from "../services/rubric.js";
 
 export async function renderRubricManager(container, user) {
   if (!isAdmin(user)) {
@@ -141,6 +142,7 @@ function attachRubricListeners(container, user) {
     try {
       feedback.innerHTML = `<div class="loading"><div class="spinner"></div> Uploading...</div>`;
       await api.rubrics.create({ name, markdown: markdownContent, activate });
+      if (activate) clearRubricCache();
       feedback.innerHTML = `<p style="color:var(--success)">Rubric uploaded${activate ? " and activated" : ""}!</p>`;
       setTimeout(() => renderRubricManager(container, user), 1500);
     } catch (err) {
