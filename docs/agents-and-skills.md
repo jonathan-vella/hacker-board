@@ -3,10 +3,10 @@
 > Reference guide for HackerBoard's AI agents, skills,
 > orchestration workflow, and prompt examples.
 
-HackerBoard uses 6 specialized AI agents and 3 reusable skills
-to streamline development. Each agent handles a specific workflow
-phase, and the Conductor orchestrator coordinates them in sequence
-with approval gates between steps.
+HackerBoard uses 6 specialized AI agents, 1 Conductor
+orchestrator, and 3 reusable skills to streamline development.
+Each agent handles a specific workflow phase, and the Conductor
+coordinates them in sequence with approval gates between steps.
 
 ---
 
