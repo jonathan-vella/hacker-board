@@ -34,7 +34,7 @@
 | **Current Phase**       | Phase 11 — Ops Readiness (in progress) |
 | **Last Updated**        | 2026-02-16                             |
 | **Days Remaining**      | 5                                      |
-| **Tasks Done**          | 171 / 176                              |
+| **Tasks Done**          | 172 / 176                              |
 | **API Endpoints**       | 16 / 16                                |
 | **Frontend Components** | 17 / 17 + 2 services                   |
 | **Tests Passing**       | 65 (API unit) + 26 (frontend DOM)      |
@@ -586,7 +586,7 @@ monitoring shows data, feature flags toggle correctly.
 - [ ] Historical score comparison across events — `UX Designer` → `Implementation Planner`
 - [ ] Multi-language / i18n support — `Implementation Planner`
 - [ ] Custom domain with SSL certificate — `Bicep AVM Expert`
-- [ ] OpenAPI / Swagger documentation — `Implementation Planner` → `docs-writer`
+- [x] OpenAPI / Swagger documentation — `Implementation Planner` → `docs-writer`
 - [ ] ManualOverride component (admin score correction UI) — `UX Designer` → `Security Reviewer`
 - [ ] Admin drag-and-drop attendee reassignment between teams — `UX Designer` → `Implementation Planner`
 
@@ -645,6 +645,31 @@ monitoring shows data, feature flags toggle correctly.
 
 > Each Copilot session MUST update this section before ending.
 > This ensures the next session has full context.
+
+### Session: 2026-02-16 — OpenAPI + Swagger docs
+
+**What was done**:
+
+- Added `docs/openapi.yaml` with OpenAPI 3.0.3 definitions for all currently documented API routes.
+- Added SWA auth header security scheme (`x-ms-client-principal`) and shared component schemas.
+- Added `docs/swagger-ui.html` to render the spec in Swagger UI from the docs folder.
+- Added OpenAPI/Swagger links to `docs/api-spec.md`.
+- Marked Phase 12.3 OpenAPI/Swagger backlog item as complete.
+
+**What's next**:
+
+- Keep `docs/openapi.yaml` in sync whenever API contracts change.
+- Decide whether to surface Swagger UI directly from the deployed app experience.
+
+**Open questions**:
+
+- None.
+
+**Known issues**:
+
+- Existing CI deploy failure is unrelated to this change (`deployment_token was not provided` in SWA deploy job).
+
+---
 
 ### Session: 2026-02-16 — Planning
 
@@ -1116,6 +1141,7 @@ MODIFIED:
 | P10   | Frontend DOM tests pass (Vitest + happy-dom)                 | **Passed** |
 | P11   | Production deploy + smoke test passes                        | Not run    |
 | P11   | Feature flags toggle correctly                               | **Passed** |
+| P12   | OpenAPI spec exists and validates as OpenAPI 3.0             | **Passed** |
 
 ---
 
