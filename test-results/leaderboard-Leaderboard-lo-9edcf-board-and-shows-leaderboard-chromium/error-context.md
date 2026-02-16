@@ -1,5 +1,75 @@
 # Page snapshot
 
 ```yaml
-- generic [ref=e2]: GITHUB_CLIENT_ID not found in env for 'github' provider
+- generic [active] [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#maincontent"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link "HackerBoard home" [ref=e5] [cursor=pointer]:
+        - /url: "#/leaderboard"
+        - text: HackerBoard
+      - navigation "Main navigation" [ref=e6]:
+        - list [ref=e7]:
+          - listitem [ref=e8]:
+            - link "Leaderboard" [ref=e9] [cursor=pointer]:
+              - /url: "#/leaderboard"
+          - listitem [ref=e10]:
+            - link "Submit Score" [ref=e11] [cursor=pointer]:
+              - /url: "#/submit"
+          - listitem [ref=e12]:
+            - link "Upload" [ref=e13] [cursor=pointer]:
+              - /url: "#/upload"
+          - listitem [ref=e14]:
+            - link "Teams" [ref=e15] [cursor=pointer]:
+              - /url: "#/teams"
+          - listitem [ref=e16]:
+            - link "Awards" [ref=e17] [cursor=pointer]:
+              - /url: "#/awards"
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - generic [ref=e20]: Search teams or attendees
+          - searchbox "Search teams or attendees" [ref=e21]
+        - button "Toggle dark mode" [ref=e22] [cursor=pointer]:
+          - generic [ref=e23]: 🌙
+        - generic [ref=e24]: testuser
+        - link "Sign Out" [ref=e25] [cursor=pointer]:
+          - /url: /.auth/logout
+  - main [ref=e26]:
+    - region "Champion teams" [ref=e27]:
+      - generic [ref=e28]:
+        - heading "Champions Spotlight" [level=2] [ref=e29]
+        - generic [ref=e30]: "Updated: 5:13:39 PM"
+      - generic [ref=e32]:
+        - generic "Rank 1" [ref=e33]: "1"
+        - generic [ref=e34]: Team Alpha
+        - generic [ref=e35]: "95"
+        - generic [ref=e36]: EXCELLENT
+        - generic [ref=e37]: 86%
+    - region "Leaderboard" [ref=e38]:
+      - heading "Leaderboard" [level=2] [ref=e40]
+      - table "Team rankings" [ref=e42]:
+        - rowgroup [ref=e43]:
+          - row "Rank Team Base Bonus Total Percentage Grade" [ref=e44]:
+            - columnheader "Rank" [ref=e45]
+            - columnheader "Team" [ref=e46]
+            - columnheader "Base" [ref=e47]
+            - columnheader "Bonus" [ref=e48]
+            - columnheader "Total" [ref=e49]
+            - columnheader "Percentage" [ref=e50]
+            - columnheader "Grade" [ref=e51]
+        - rowgroup [ref=e52]:
+          - row "1 Team Alpha 85 10 95 86% EXCELLENT" [ref=e53]:
+            - cell "1" [ref=e54]
+            - cell "Team Alpha" [ref=e55]:
+              - strong [ref=e56]: Team Alpha
+            - cell "85" [ref=e57]
+            - cell "10" [ref=e58]
+            - cell "95" [ref=e59]:
+              - strong [ref=e60]: "95"
+            - cell "86%" [ref=e61]
+            - cell "EXCELLENT" [ref=e62]:
+              - generic [ref=e63]: EXCELLENT
+  - contentinfo [ref=e64]: HackerBoard — Microhack Scoring Dashboard
+  - generic [ref=e65]: Navigated to leaderboard page
 ```

@@ -1,0 +1,59 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - link "Skip to main content" [ref=e2] [cursor=pointer]:
+    - /url: "#maincontent"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link "HackerBoard home" [ref=e5] [cursor=pointer]:
+        - /url: "#/leaderboard"
+        - text: HackerBoard
+      - navigation "Main navigation" [ref=e6]:
+        - list [ref=e7]:
+          - listitem [ref=e8]:
+            - link "Leaderboard" [ref=e9] [cursor=pointer]:
+              - /url: "#/leaderboard"
+          - listitem [ref=e10]:
+            - link "Submit Score" [ref=e11] [cursor=pointer]:
+              - /url: "#/submit"
+          - listitem [ref=e12]:
+            - link "Upload" [ref=e13] [cursor=pointer]:
+              - /url: "#/upload"
+          - listitem [ref=e14]:
+            - link "Teams" [ref=e15] [cursor=pointer]:
+              - /url: "#/teams"
+          - listitem [ref=e16]:
+            - link "Awards" [ref=e17] [cursor=pointer]:
+              - /url: "#/awards"
+          - listitem [ref=e18]:
+            - link "Review Queue" [ref=e19] [cursor=pointer]:
+              - /url: "#/review"
+          - listitem [ref=e20]:
+            - link "Rubrics" [ref=e21] [cursor=pointer]:
+              - /url: "#/rubrics"
+          - listitem [ref=e22]:
+            - link "Flags" [ref=e23] [cursor=pointer]:
+              - /url: "#/flags"
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - generic [ref=e26]: Search teams or attendees
+          - searchbox "Search teams or attendees" [ref=e27]
+        - button "Toggle dark mode" [ref=e28] [cursor=pointer]:
+          - generic [ref=e29]: 🌙
+        - generic [ref=e30]: adminuser
+        - link "Sign Out" [ref=e31] [cursor=pointer]:
+          - /url: /.auth/logout
+  - main [ref=e32]:
+    - generic [ref=e33]:
+      - heading "Team Assignment" [level=2] [ref=e35]
+      - generic [ref=e36]:
+        - paragraph [ref=e37]: Randomly assign unassigned attendees to teams using a Fisher-Yates shuffle.
+        - generic [ref=e38]:
+          - strong [ref=e40]: Number of Teams
+          - spinbutton "Number of teams to create" [active] [ref=e41]: "2"
+        - button "Assign Teams" [ref=e42] [cursor=pointer]
+        - alert
+  - contentinfo [ref=e43]: HackerBoard — Microhack Scoring Dashboard
+  - generic [ref=e44]: Navigated to assign page
+```

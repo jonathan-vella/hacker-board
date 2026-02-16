@@ -22,9 +22,9 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "npm start",
+    command: "python3 -m http.server 4280 --directory src",
     url: "http://localhost:4280",
     reuseExistingServer: !process.env.CI,
-    timeout: 60000,
+    timeout: 10000,
   },
 });
