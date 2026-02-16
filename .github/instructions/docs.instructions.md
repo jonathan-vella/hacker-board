@@ -42,6 +42,7 @@ other sections.
 | `docs/app-prd.md`               | Product requirements document       |
 | `docs/app-scaffold.md`          | Project scaffolding guide           |
 | `docs/app-handoff-checklist.md` | Handoff and review checklist        |
+| `docs/agents-and-skills.md`    | Agent/skill inventory, prompt guide |
 | `docs/backlog.md`               | Feature backlog and task tracking   |
 | `README.md`                     | Repo root README                    |
 
