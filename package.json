@@ -11,5 +11,13 @@
   },
   "devDependencies": {
     "@azure/static-web-apps-cli": "^2.0.0"
+  },
+  "overrides": {
+    "cookie": "^1.1.0",
+    "glob": "^13.0.0",
+    "inflight": "npm:@npmcli/fs@4.0.0",
+    "rimraf": "^6.0.0",
+    "sudo-prompt": "npm:@vscode/sudo-prompt@^9.3.1",
+    "tmp": "^0.2.5"
   }
 }
