@@ -160,3 +160,17 @@ technical accuracy.
 | --------------------- | --------------------------------------------------------- |
 | Link validation fails | Check relative paths resolve; use standard markdown links |
 | Count mismatch        | List `.github/agents/` and `.github/skills/` directories  |
+
+## Conductor Integration
+
+The Conductor invokes this skill during **Step 7 (Document)** and after
+any step that produces code changes. Trigger keywords:
+
+- `update docs` — update existing documentation
+- `check staleness` — freshness audit with auto-fix
+- `generate changelog` — changelog from git history
+
+When invoked by the Conductor, this skill receives a summary of changes
+from the preceding step and updates all affected documentation files.
+The Conductor may also invoke this skill between steps when code changes
+require immediate documentation updates.

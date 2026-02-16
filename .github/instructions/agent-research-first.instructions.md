@@ -88,9 +88,23 @@ and return findings.
 
 | Agent                      | Primary Research Focus                                  |
 | -------------------------- | ------------------------------------------------------- |
+| **HackerBoard Conductor**  | Backlog status, workflow step sequencing, gate readiness |
 | **Implementation Planner** | Existing code, patterns, dependency analysis            |
 | **Azure Architect**        | Azure services, WAF pillars, SKU recommendations        |
 | **Bicep AVM Expert**       | AVM availability, naming conventions, security defaults |
 | **Security Reviewer**      | OWASP patterns, auth flows, input validation            |
 | **UX Designer**            | Accessibility, user journeys, existing UI patterns      |
 | **Task Planner**           | Backlog, dependencies, phased execution planning        |
+
+## Conductor Workflow Awareness
+
+When operating within the Conductor's 7-step workflow, agents receive
+structured handoff inputs from the preceding step. Research requirements
+still apply — agents must validate handoff inputs and cross-reference
+with the codebase before producing output.
+
+**Before accepting a handoff**: Verify the Input Contract is satisfied
+by checking that all expected artifacts and context exist.
+
+**Before producing a handoff**: Verify the Output Contract is satisfied
+by confirming all required deliverables are complete and validated.

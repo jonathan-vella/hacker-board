@@ -52,3 +52,44 @@ For each task, create a plan with:
 - `api/shared/` — Shared utilities (auth, errors, tables)
 - `src/index.html` — SPA entry point
 - `staticwebapp.config.json` — SWA routing and auth config
+
+## Input Contract
+
+When invoked by the Conductor (Step 1), this agent expects:
+
+- **Task description**: Natural language description of the feature or change
+- **Backlog context**: Current status from `docs/backlog.md`
+- **Constraints**: Any deadlines, dependencies, or scope limits
+
+## Output Contract
+
+This agent produces for the next step (Azure Architect, Step 2):
+
+- **Phased task plan**: Ordered list of tasks with dependencies
+- **File paths**: Specific files to be created or modified
+- **Success criteria**: Measurable validation steps per task
+- **Dependency list**: Package, service, and task prerequisites
+
+## Handoff Format
+
+```markdown
+## Task Plan Handoff
+
+**Task**: [description]
+**Phases**: [count]
+**Estimated Complexity**: [low/medium/high]
+
+### Phase Summary
+| Phase | Goal | Tasks | Dependencies |
+|-------|------|-------|--------------|
+| 1     | ...  | ...   | ...          |
+
+### Key Files Affected
+- [file path]: [what changes]
+
+### Prerequisites
+- [list of prerequisites]
+
+### Success Criteria
+- [measurable criteria]
+```

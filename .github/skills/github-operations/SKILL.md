@@ -298,3 +298,17 @@ gh search issues "label:bug is:open" --repo owner/repo
 - GitHub CLI Manual: https://cli.github.com/manual/
 - REST API: https://docs.github.com/en/rest
 - GraphQL API: https://docs.github.com/en/graphql
+
+## Conductor Integration
+
+The Conductor invokes this skill for issue and PR management between
+workflow steps and for CI status checks. Trigger keywords:
+
+- `create issue` — create a GitHub issue for a task
+- `create pr` — create a pull request for completed work
+- `check ci` — check CI/CD workflow status
+
+When invoked by the Conductor, this skill handles GitHub operations such
+as creating issues for discovered tasks (Step 1), opening PRs for code
+changes (Step 4), checking CI status after deployment (Step 6), and
+managing labels and milestones throughout the workflow.
