@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json.schemastore.org/staticwebapp.config.json",
+  "routes": [
+    {
+      "route": "/.auth/login/google",
+      "statusCode": 404
+    },
+    {
+      "route": "/.auth/login/twitter",
+      "statusCode": 404
+    },
+    {
+      "route": "/.auth/login/aad",
+      "statusCode": 404
+    },
+    {
+      "route": "/api/scores",
+      "methods": ["POST", "PUT", "DELETE"],
+      "allowedRoles": ["admin"]
+    },
+    {
+      "route": "/api/awards",
+      "methods": ["POST", "PUT", "DELETE"],
+      "allowedRoles": ["admin"]
+    },
+    {
+      "route": "/api/teams",
+      "methods": ["POST", "PUT", "DELETE"],
+      "allowedRoles": ["admin"]
+    },
+    {
+      "route": "/api/upload",
+      "methods": ["POST"],
+      "allowedRoles": ["member"]
+    },
+    {
+      "route": "/api/submissions",
+      "methods": ["GET"],
+      "allowedRoles": ["admin"]
+    },
+    {
+      "route": "/api/submissions/validate",
+      "methods": ["POST"],
+      "allowedRoles": ["admin"]
+    },
+    {
+      "route": "/api/attendees",
+      "methods": ["GET"],
+      "allowedRoles": ["admin"]
+    },
+    {
+      "route": "/api/attendees/bulk",
+      "methods": ["POST"],
+      "allowedRoles": ["admin"]
+    },
+    {
+      "route": "/api/teams/assign",
+      "methods": ["POST"],
+      "allowedRoles": ["admin"]
+    },
+    {
+      "route": "/api/rubrics",
+      "methods": ["POST"],
+      "allowedRoles": ["admin"]
+    },
+    {
+      "route": "/api/attendees/me",
+      "methods": ["GET", "POST", "PUT"],
+      "allowedRoles": ["authenticated"]
+    },
+    {
+      "route": "/api/*",
+      "methods": ["GET"],
+      "allowedRoles": ["authenticated"]
+    },
+    {
+      "route": "/*",
+      "allowedRoles": ["authenticated"]
+    }
+  ],
+  "responseOverrides": {
+    "401": {
+      "redirect": "/.auth/login/github",
+      "statusCode": 302
+    },
+    "403": {
+      "rewrite": "/403.html",
+      "statusCode": 403
+    }
+  },
+  "auth": {
+    "identityProviders": {
+      "github": {
+        "registration": {
+          "clientIdSettingName": "GITHUB_CLIENT_ID",
+          "clientSecretSettingName": "GITHUB_CLIENT_SECRET"
+        }
+      }
+    }
+  },
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/api/*", "/images/*", "/*.{css,js,svg,png,ico,json}"]
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+  }
+}

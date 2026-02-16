@@ -1,0 +1,12 @@
+{
+  "name": "hacker-board-api",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@azure/data-tables": "^13.3.0",
+    "@azure/identity": "^4.9.0"
+  }
+}

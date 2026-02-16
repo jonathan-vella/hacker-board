@@ -1,0 +1,11 @@
+using 'main.bicep'
+
+param projectName = 'hacker-board'
+param environment = 'prod'
+param location = 'westeurope'
+param owner = 'agentic-infraops'
+param costCenter = 'microhack'
+param technicalContact = 'infraops-team@contoso.com'
+param repositoryUrl = ''
+param repositoryBranch = 'main'
+param phase = 'all'
