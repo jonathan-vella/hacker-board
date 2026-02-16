@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Install root-level dependencies (SWA CLI dev dep)
-npm ci
+npm install
 
 # Install API dependencies
-cd api && npm ci && cd ..
+cd api && npm install && cd ..
 
 # Create Azurite data directory
 mkdir -p .azurite
