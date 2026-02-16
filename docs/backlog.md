@@ -537,7 +537,7 @@ monitoring shows data, feature flags toggle correctly.
 - [ ] Update skills (`.github/skills/`) for conductor integration — `Implementation Planner`
   - Skills should be invokable by both agents and conductor
   - Add skill discovery metadata (trigger keywords, categories)
-- [ ] Create agent/skill documentation in `docs/` — `docs-writer`
+- [x] Create agent/skill documentation in `docs/` — `docs-writer`
   - Agent inventory table (name, role, step, description)
   - Workflow diagram (Mermaid) showing orchestration flow and handoff points
   - Prompt guide with examples for each agent and skill
