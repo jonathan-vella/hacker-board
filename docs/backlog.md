@@ -34,10 +34,10 @@
 | **Current Phase**       | Phase 11 — Ops Readiness (deploy pending) |
 | **Last Updated**        | 2026-02-17                                |
 | **Days Remaining**      | 5                                         |
-| **Tasks Done**          | 178 / 193                                 |
-| **API Endpoints**       | 10 files / 16 routes                      |
+| **Tasks Done**          | 186 / 201                                 |
+| **API Endpoints**       | 11 files / 17 routes                      |
 | **Frontend Components** | 13 components + 5 services                |
-| **Tests Passing**       | 65 (API unit) + 70 (frontend DOM)         |
+| **Tests Passing**       | 69 (API unit) + 70 (frontend DOM)         |
 | **Open Problems**       | 0                                         |
 | **Open Decisions**      | 0                                         |
 
@@ -161,6 +161,7 @@ without errors. All `api/shared/*.js` files use `import`/`export`.
 - [x] Support `--reset` flag to clear tables first
 - [x] Support `--teams N --attendees M` parameters
 - [x] Include default 105+25 rubric in seed data
+- [x] Include Config table with default feature flags in seed data
 
 **Validation**: `node scripts/seed-demo-data.js --reset` populates
 Azurite tables; data visible in Storage Explorer.
@@ -482,6 +483,7 @@ Search filters correctly. Notifications appear and dismiss.
 - [x] API returns 503 when feature disabled
 - [x] Frontend hides/disables UI based on flag state
 - [x] Admin toggle for each flag
+- [x] Auto-seed default feature flags to Config table on first API read
 
 ### 11.2 — Monitoring
 
@@ -495,6 +497,9 @@ Search filters correctly. Notifications appear and dismiss.
   - `infra/azuredeploy.json` ARM template deployed
   - Deploy button linked in `README.md`
 - [x] Create `Rubrics` table in Table Storage (missing from handoff Phase 4.3)
+- [x] Create `/api/health` endpoint (verifies all 7 table connections)
+- [x] Add anonymous route for `/api/health` in `staticwebapp.config.json`
+- [x] Add post-deploy smoke-test job to CI/CD workflow
 - [ ] Deploy to `purple-bush-029df9903.4.azurestaticapps.net`
 - [ ] Smoke test: login → leaderboard loads → submit score → approve
 - [ ] Smoke-test rubric endpoints (`GET/POST /api/rubrics`, `GET /api/rubrics/active`)
@@ -520,6 +525,15 @@ Search filters correctly. Notifications appear and dismiss.
 
 **Validation**: Production app accessible, all features work,
 monitoring shows data, feature flags toggle correctly.
+
+### 11.6 — Infrastructure Automation
+
+- [x] Enable system-assigned managed identity on SWA (Bicep)
+- [x] Automate Storage Table Data Contributor RBAC in Bicep
+- [x] Create `infra/modules/storage-rbac.bicep` module
+- [x] Recompile `azuredeploy.json` with identity + RBAC
+- [x] Write health endpoint tests (4 tests)
+- [x] Add health + API reachability checks to smoke-test job
 
 ---
 
@@ -1367,6 +1381,72 @@ MODIFIED:
   - `UploadScores.test.js` — 6 tests (sign-in gate, drop zone, keyboard a11y, hidden preview, buttons, live region)
 - All 135 tests pass: 65 API unit + 70 frontend DOM (was 26, now 70 with 44 new tests)
 - Updated backlog task count from 170/193 to 178/193
+
+### Session: 2026-02-17 — Health Endpoint, RBAC, Smoke Tests
+
+**What was done**:
+
+- Created `/api/health` endpoint — verifies connectivity to all 7 tables,
+  returns `healthy`/`degraded` status with per-table results.
+- Added anonymous route for `/api/health` in `staticwebapp.config.json`.
+- Enabled system-assigned managed identity on the SWA via Bicep AVM.
+- Created `infra/modules/storage-rbac.bicep` — assigns Storage Table Data
+  Contributor role to the SWA identity on the storage account.
+- Added `smoke-test` job to CI/CD workflow with health check + API reachability.
+- Recompiled `azuredeploy.json` (ARM template) with identity + RBAC.
+- All 139 tests pass: 69 API unit + 70 frontend DOM.
+
+**Files created/modified**:
+
+```text
+CREATED:
+  api/src/functions/health.js        — /api/health endpoint (GET, anonymous)
+  api/tests/health.test.js           — 4 tests
+  infra/modules/storage-rbac.bicep   — RBAC role assignment module
+
+MODIFIED:
+  staticwebapp.config.json           — anonymous /api/health route
+  infra/modules/static-web-app.bicep — managed identity + principalId output
+  infra/main.bicep                   — wired storage-rbac module
+  infra/azuredeploy.json             — recompiled ARM template
+  .github/workflows/deploy-swa.yml   — smoke-test job + deploy outputs
+  docs/backlog.md                    — progress update + session notes
+```
+
+**What's next**:
+
+- Deploy to production SWA (P11.3) — requires `AZURE_STATIC_WEB_APPS_API_TOKEN`.
+- Run manual smoke tests post-deploy.
+- Verify SWA role invitations for admin users.
+
+**Known issues**:
+
+- Production deploy still blocked on `AZURE_STATIC_WEB_APPS_API_TOKEN` repo secret.
+- BCP318 warnings in Bicep from conditional module references (harmless).
+
+### Session: 2026-02-17 — Config Table Seeding
+
+**What was done**:
+
+- Auto-seed `getFlags()`: on first 404, writes `DEFAULT_FLAGS` to Config table
+  so feature flags are immediately persisted (self-healing on fresh deploy).
+- Added Config table to `scripts/seed-demo-data.js` (7th table, default flags).
+- All 135 tests pass (65 API + 70 frontend DOM).
+
+**What's next**:
+
+- Deploy to production SWA (P11.3).
+- Add health check endpoint + post-deploy smoke test job.
+- Automate RBAC role assignment in Bicep.
+
+**Files modified**:
+
+```text
+MODIFIED:
+  api/shared/featureFlags.js      — auto-seed defaults on 404
+  scripts/seed-demo-data.js       — added Config table + feature flags
+  docs/backlog.md                 — progress update + session notes
+```
 
 **What's next**:
 

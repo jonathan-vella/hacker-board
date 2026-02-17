@@ -65,11 +65,14 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    outputs:
+      static_web_app_url: ${{ steps.deploy-swa.outputs.static_web_app_url }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Deploy to SWA
+        id: deploy-swa
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
@@ -78,6 +81,39 @@ jobs:
           app_location: "/src"
           api_location: "/api"
           output_location: ""
+
+  smoke-test:
+    name: Post-Deploy Smoke Test
+    needs: deploy
+    if: needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    env:
+      SWA_URL: ${{ needs.deploy.outputs.static_web_app_url || vars.SWA_HOSTNAME }}
+    steps:
+      - name: Wait for deployment to stabilize
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          URL="https://${SWA_URL}/api/health"
+          echo "Checking: $URL"
+          RESPONSE=$(curl -s -o /tmp/health.json -w "%{http_code}" "$URL")
+          cat /tmp/health.json | python3 -m json.tool || true
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "::error::Health check failed with status $RESPONSE"
+            exit 1
+          fi
+          echo "Health check passed"
+
+      - name: Verify API reachability
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${SWA_URL}/api/teams")
+          echo "GET /api/teams returned: $STATUS"
+          if [ "$STATUS" -eq 500 ] || [ "$STATUS" -eq 502 ] || [ "$STATUS" -eq 503 ]; then
+            echo "::error::API returned server error $STATUS"
+            exit 1
+          fi
+          echo "API reachability check passed"
 
   deploy-preview:
     name: Deploy PR Preview

@@ -32,6 +32,9 @@ module staticWebApp 'br/public:avm/res/web/static-site:0.9.3' = {
     sku: 'Standard'
     repositoryUrl: !empty(repositoryUrl) ? repositoryUrl : null
     branch: !empty(repositoryUrl) ? repositoryBranch : null
+    managedIdentities: {
+      systemAssigned: true
+    }
     appSettings: {
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsightsConnectionString
       AZURE_STORAGE_ACCOUNT_NAME: storageAccountName
@@ -51,3 +54,6 @@ output staticWebAppName string = staticWebApp.outputs.name
 
 @description('Resource ID of the Static Web App.')
 output staticWebAppId string = staticWebApp.outputs.resourceId
+
+@description('Principal ID of the system-assigned managed identity.')
+output principalId string = staticWebApp.outputs.?systemAssignedMIPrincipalId ?? ''

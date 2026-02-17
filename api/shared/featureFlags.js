@@ -39,6 +39,12 @@ export async function getFlags(tableClient) {
   } catch (err) {
     if (err.statusCode === 404) {
       flagCache = { ...DEFAULT_FLAGS };
+      // Persist defaults so they appear in the Config table immediately
+      await tableClient.upsertEntity({
+        partitionKey: "config",
+        rowKey: "featureFlags",
+        ...flagCache,
+      });
       return { ...flagCache };
     }
     throw err;

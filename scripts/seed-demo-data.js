@@ -28,6 +28,7 @@ const TABLE_NAMES = [
   "Submissions",
   "Awards",
   "Rubrics",
+  "Config",
 ];
 
 const { values: args } = parseArgs({
@@ -251,6 +252,18 @@ async function seed() {
   console.log("\nSeeding default rubric...");
   await clients.Rubrics.upsertEntity(DEFAULT_RUBRIC);
   console.log("  Created default rubric (105+25 model)");
+
+  console.log("\nSeeding default feature flags...");
+  await clients.Config.upsertEntity({
+    partitionKey: "config",
+    rowKey: "featureFlags",
+    SUBMISSIONS_ENABLED: true,
+    LEADERBOARD_LOCKED: false,
+    REGISTRATION_OPEN: true,
+    AWARDS_VISIBLE: true,
+    RUBRIC_UPLOAD_ENABLED: true,
+  });
+  console.log("  Created default feature flags (5 flags)");
 
   console.log("\nSeed complete!");
 }

@@ -111,6 +111,15 @@ module staticWebApp 'modules/static-web-app.bicep' = if (phase == 'all' || phase
   }
 }
 
+// RBAC: Grant the SWA managed identity "Storage Table Data Contributor" on the storage account
+module storageRbac 'modules/storage-rbac.bicep' = if (phase == 'all' || phase == 'application') {
+  name: 'storage-rbac-${deploymentTimestamp}'
+  params: {
+    storageAccountId: storage.outputs.storageAccountId!
+    principalId: staticWebApp.outputs.principalId!
+  }
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Outputs
 // ──────────────────────────────────────────────────────────────────────────────

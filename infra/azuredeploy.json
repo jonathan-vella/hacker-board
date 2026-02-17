@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "13601839861754863018"
+      "templateHash": "15170821895817066319"
     }
   },
   "parameters": {
@@ -12204,7 +12204,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "3957346593003116309"
+              "templateHash": "7312812500367949923"
             }
           },
           "parameters": {
@@ -12278,6 +12278,11 @@
                   },
                   "repositoryUrl": "[if(not(empty(parameters('repositoryUrl'))), createObject('value', parameters('repositoryUrl')), createObject('value', null()))]",
                   "branch": "[if(not(empty(parameters('repositoryUrl'))), createObject('value', parameters('repositoryBranch')), createObject('value', null()))]",
+                  "managedIdentities": {
+                    "value": {
+                      "systemAssigned": true
+                    }
+                  },
                   "appSettings": {
                     "value": {
                       "APPLICATIONINSIGHTS_CONNECTION_STRING": "[parameters('appInsightsConnectionString')]",
@@ -17471,12 +17476,84 @@
                 "description": "Resource ID of the Static Web App."
               },
               "value": "[reference(resourceId('Microsoft.Resources/deployments', 'static-web-app'), '2025-04-01').outputs.resourceId.value]"
+            },
+            "principalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Principal ID of the system-assigned managed identity."
+              },
+              "value": "[coalesce(tryGet(tryGet(reference(resourceId('Microsoft.Resources/deployments', 'static-web-app'), '2025-04-01').outputs, 'systemAssignedMIPrincipalId'), 'value'), '')]"
             }
           }
         }
       },
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments', format('app-insights-{0}', parameters('deploymentTimestamp')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('deploymentTimestamp')))]"
+      ]
+    },
+    {
+      "condition": "[or(equals(parameters('phase'), 'all'), equals(parameters('phase'), 'application'))]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('storage-rbac-{0}', parameters('deploymentTimestamp'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "storageAccountId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.storageAccountId.value]"
+          },
+          "principalId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('static-web-app-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.principalId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "8519508225546438071"
+            }
+          },
+          "parameters": {
+            "storageAccountId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the Storage Account to assign the role on."
+              }
+            },
+            "principalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Principal ID of the SWA managed identity."
+              }
+            }
+          },
+          "variables": {
+            "storageTableDataContributorRoleId": "0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', last(split(parameters('storageAccountId'), '/')))]",
+              "name": "[guid(parameters('storageAccountId'), parameters('principalId'), variables('storageTableDataContributorRoleId'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('storageTableDataContributorRoleId'))]",
+                "principalId": "[parameters('principalId')]",
+                "principalType": "ServicePrincipal"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('static-web-app-{0}', parameters('deploymentTimestamp')))]",
         "[resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('deploymentTimestamp')))]"
       ]
     }
