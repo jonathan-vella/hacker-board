@@ -60,17 +60,37 @@ concurrency:
 
 ## Deployment
 
-Azure Static Web Apps deployment uses the official action:
+Azure Static Web Apps deployment uses OIDC (identity token) authentication with the official action:
 
 ```yaml
-- uses: Azure/static-web-apps-deploy@v1
-  with:
-    azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-    repo_token: ${{ secrets.GITHUB_TOKEN }}
-    action: "upload"
-    app_location: "/src"
-    api_location: "/api"
-    output_location: ""
+permissions:
+  id-token: write
+  contents: read
+
+steps:
+  - uses: actions/checkout@v4
+
+  - name: Install OIDC Client
+    run: npm install @actions/core@1.6.0 @actions/http-client
+
+  - name: Get ID Token
+    uses: actions/github-script@v7
+    id: idtoken
+    with:
+      script: |
+        const core = require('@actions/core');
+        return await core.getIDToken();
+      result-encoding: string
+
+  - uses: Azure/static-web-apps-deploy@v1
+    with:
+      azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+      repo_token: ${{ secrets.GITHUB_TOKEN }}
+      action: "upload"
+      app_location: "/src"
+      api_location: "/api"
+      output_location: ""
+      github_id_token: ${{ steps.idtoken.outputs.result }}
 ```
 
 ## Security

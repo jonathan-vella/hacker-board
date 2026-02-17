@@ -94,7 +94,7 @@ module appInsights 'modules/app-insights.bicep' = if (phase == 'all' || phase ==
     name: appInsightsName
     location: location
     tags: tags
-    workspaceResourceId: logAnalytics.outputs.workspaceId!
+    workspaceResourceId: logAnalytics!.outputs.workspaceId
   }
 }
 
@@ -106,8 +106,8 @@ module staticWebApp 'modules/static-web-app.bicep' = if (phase == 'all' || phase
     tags: tags
     repositoryUrl: repositoryUrl
     repositoryBranch: repositoryBranch
-    appInsightsConnectionString: appInsights.outputs.connectionString!
-    storageAccountName: storage.outputs.storageAccountName!
+    appInsightsConnectionString: appInsights!.outputs.connectionString
+    storageAccountName: storage!.outputs.storageAccountName
   }
 }
 
@@ -115,8 +115,8 @@ module staticWebApp 'modules/static-web-app.bicep' = if (phase == 'all' || phase
 module storageRbac 'modules/storage-rbac.bicep' = if (phase == 'all' || phase == 'application') {
   name: 'storage-rbac-${deploymentTimestamp}'
   params: {
-    storageAccountId: storage.outputs.storageAccountId!
-    principalId: staticWebApp.outputs.principalId!
+    storageAccountId: storage!.outputs.storageAccountId
+    principalId: staticWebApp!.outputs.principalId
   }
 }
 
