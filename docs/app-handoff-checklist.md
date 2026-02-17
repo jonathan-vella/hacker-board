@@ -10,10 +10,10 @@
 
 ## Problem, Users, Value
 
-| Item        | Summary |
-| ----------- | ------- |
-| **Problem** | Manual JSON handling and script-only scoring are hard to operate consistently during a live microhack. |
-| **Users**   | **Team members** submit only their own team scores. **Admins** validate submissions and can manually adjust published scores. |
+| Item        | Summary                                                                                                                                              |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Problem** | Manual JSON handling and script-only scoring are hard to operate consistently during a live microhack.                                               |
+| **Users**   | **Team members** submit only their own team scores. **Admins** validate submissions and can manually adjust published scores.                        |
 | **Value**   | This handoff ensures the deployed app enforces role-safe submission and review, reducing facilitator overhead while keeping score changes auditable. |
 
 ---
@@ -251,6 +251,10 @@ az storage table create --name Awards \
 az storage table create --name Submissions \
   --account-name "stteamleadpromn2ksi" \
   --auth-mode login
+
+az storage table create --name Rubrics \
+  --account-name "stteamleadpromn2ksi" \
+  --auth-mode login
 ```
 
 ---
@@ -301,6 +305,11 @@ az staticwebapp appsettings list \
 - [ ] `POST /api/upload` accepts JSON file for own team (member role)
 - [ ] `GET /api/submissions?status=Pending` returns queue (admin role)
 - [ ] `POST /api/submissions/validate` approves or rejects (admin role)
+- [ ] `GET /api/rubrics` returns 200 (rubric listing)
+- [ ] `POST /api/rubrics` uploads a rubric (admin role)
+- [ ] `GET /api/rubrics/active` returns active rubric configuration
+- [ ] `GET /api/flags` returns feature flag states
+- [ ] `PUT /api/flags` updates feature flags (admin role)
 
 ### 6.3 — Role Enforcement
 
@@ -346,10 +355,10 @@ Requires a CNAME record pointing `leaderboard.yourdomain.com` → `purple-bush-0
 
 | #   | Task                                         | Owner         | Status |
 | --- | -------------------------------------------- | ------------- | ------ |
-| 1   | App repo created                             | Dev team      | ⬜     |
+| 1   | App repo created                             | Dev team      | ✅     |
 | 2   | SWA deployment token stored as GitHub secret | Dev team      | ⬜     |
-| 3   | GitHub Actions workflow created              | Dev team      | ⬜     |
-| 4   | `staticwebapp.config.json` deployed          | Dev team      | ⬜     |
+| 3   | GitHub Actions workflow created              | Dev team      | ✅     |
+| 4   | `staticwebapp.config.json` deployed          | Dev team      | ✅     |
 | 5   | User roles assigned (admin/member)           | Platform team | ⬜     |
 | 6   | Managed identity RBAC configured             | Platform team | ⬜     |
 | 7   | Table Storage tables created                 | Platform team | ⬜     |
@@ -373,4 +382,5 @@ Requires a CNAME record pointing `leaderboard.yourdomain.com` → `purple-bush-0
 - [Azure Table Storage SDK (JS)](https://learn.microsoft.com/javascript/api/@azure/data-tables/)
 
 ---
+
 [← Back to Documentation](README.md)

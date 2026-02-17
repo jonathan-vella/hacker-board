@@ -34,7 +34,7 @@
 | **Current Phase**       | Phase 11 — Ops Readiness (deploy pending) |
 | **Last Updated**        | 2026-02-17                                |
 | **Days Remaining**      | 5                                         |
-| **Tasks Done**          | 169 / 181                                 |
+| **Tasks Done**          | 170 / 193                                 |
 | **API Endpoints**       | 10 files / 16 routes                      |
 | **Frontend Components** | 13 components + 5 services                |
 | **Tests Passing**       | 65 (API unit) + 26 (frontend DOM)         |
@@ -494,8 +494,11 @@ Search filters correctly. Notifications appear and dismiss.
 - [x] Add "Deploy to Azure" button to README for 1-click Azure Static Web Apps provisioning
   - `infra/azuredeploy.json` ARM template deployed
   - Deploy button linked in `README.md`
+- [ ] Create `Rubrics` table in Table Storage (missing from handoff Phase 4.3)
 - [ ] Deploy to `purple-bush-029df9903.4.azurestaticapps.net`
 - [ ] Smoke test: login → leaderboard loads → submit score → approve
+- [ ] Smoke-test rubric endpoints (`GET/POST /api/rubrics`, `GET /api/rubrics/active`)
+- [ ] Smoke-test feature flags endpoint (`GET/PUT /api/flags`)
 - [ ] Verify SWA role invitations work for admin users
 
 ### 11.4 — Post-Event Prep
@@ -503,6 +506,17 @@ Search filters correctly. Notifications appear and dismiss.
 - [x] Create `scripts/cleanup-app-data.js` (purge tables)
 - [x] Support `--confirm` flag for safety
 - [x] Document admin invitation + rotation procedures
+
+### 11.5 — Frontend Component Test Coverage
+
+- [ ] Write tests for `Registration.js`
+- [ ] Write tests for `AdminReviewQueue.js`
+- [ ] Write tests for `FeatureFlags.js`
+- [ ] Write tests for `RubricManager.js`
+- [ ] Write tests for `SubmissionStatus.js`
+- [ ] Write tests for `AttendeeBulkEntry.js`
+- [ ] Write tests for `TeamAssignment.js`
+- [ ] Write tests for `UploadScores.js`
 
 **Validation**: Production app accessible, all features work,
 monitoring shows data, feature flags toggle correctly.
@@ -623,6 +637,7 @@ monitoring shows data, feature flags toggle correctly.
 | D5  | 2026-02-16 | Add Playwright for E2E testing             | Critical flows (submit→approve→leaderboard) need browser-level validation; Chromium-only to stay lean                              | **Superseded by D7** |
 | D6  | 2026-02-16 | Templatized scoring rubric                 | Rubric from azure-agentic-infraops-workshop is source of truth; template + prompt enables reuse across hackathons                  | **Approved**         |
 | D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere | **Approved**         |
+| D8  | 2026-02-17 | PRD Section 10 coding prompt superseded    | Section references React/TypeScript/Tailwind but D3 chose Vanilla JS SPA; marked as historical reference only                      | **Approved**         |
 
 <!-- TEMPLATE for new decisions:
 | D{N} | YYYY-MM-DD | {decision} | {rationale} | **{status}** |
@@ -635,9 +650,12 @@ monitoring shows data, feature flags toggle correctly.
 > Track issues, blockers, and their resolution.
 > Format: `| ID | Date | Phase | Problem | Impact | Status | Resolution |`
 
-| ID  | Date       | Phase | Problem                                        | Impact | Status       | Resolution                                                      |
-| --- | ---------- | ----- | ---------------------------------------------- | ------ | ------------ | --------------------------------------------------------------- |
-| P1  | 2026-02-16 | P3    | All API function files used wrong import paths | High   | **Resolved** | Changed `../shared/` to `../../shared/` in all 9 function files |
+| ID  | Date       | Phase | Problem                                                                      | Impact | Status        | Resolution                                                                 |
+| --- | ---------- | ----- | ---------------------------------------------------------------------------- | ------ | ------------- | -------------------------------------------------------------------------- |
+| P1  | 2026-02-16 | P3    | All API function files used wrong import paths                               | High   | **Resolved**  | Changed `../shared/` to `../../shared/` in all 9 function files            |
+| P2  | 2026-02-17 | P11   | Handoff checklist Phase 4.3 missing Rubrics table (only 5 of 6 tables)       | Med    | **Resolved**  | Added `Rubrics` table to handoff checklist Phase 4.3                       |
+| P3  | 2026-02-17 | P11   | Handoff checklist Phase 6.2 smoke tests missing rubric/flags API endpoints   | Med    | **Resolved**  | Added rubric + flags endpoints to handoff checklist Phase 6.2              |
+| P4  | 2026-02-17 | P11   | Handoff completion table shows all ⬜ despite dev-team steps being completed | Low    | **Mitigated** | Updated dev-team items to ✅; platform-team items need manual verification |
 
 <!-- TEMPLATE for new problems:
 | P{N} | YYYY-MM-DD | P{phase} | {description} | {High/Med/Low} | {Open/Resolved/Mitigated} | {what fixed it} |
@@ -655,6 +673,7 @@ monitoring shows data, feature flags toggle correctly.
 | R4  | CommonJS → ESM migration breaks shared helpers   | Low        | Medium | Phase 1 migration with immediate `swa start` validation                             |
 | R5  | Table Storage query limitations for leaderboard  | Low        | Medium | Denormalize scores for fast reads; avoid cross-table joins                          |
 | R6  | Auth flow differences between local dev and prod | Medium     | Medium | Test auth helpers with mocked headers; deploy early to catch issues                 |
+| R7  | Incomplete smoke test coverage at deploy time    | Medium     | High   | Added rubric + flags endpoints to P11.3 checklist and handoff Phase 6.2             |
 
 ---
 
@@ -687,6 +706,7 @@ monitoring shows data, feature flags toggle correctly.
 | P10   | Frontend DOM tests pass (Vitest + happy-dom)                 | **Passed** |
 | P11   | Production deploy + smoke test passes                        | Not run    |
 | P11   | Feature flags toggle correctly                               | **Passed** |
+| P11   | Frontend component test coverage (8 components)              | Not run    |
 | P12   | OpenAPI spec exists and validates as OpenAPI 3.0             | **Passed** |
 
 ---
@@ -1329,6 +1349,45 @@ MODIFIED:
   docs/app-prd.md           — Fixed broken scoring rubric reference link
   docs/backlog.md           — Added 12.2 second-pass sub-task, session handoff notes
 ```
+
+---
+
+### Session: 2026-02-17 — Cross-Document Audit & Backlog Reconciliation
+
+**What was done**:
+
+- Full cross-document audit of all 11 docs in `docs/` against codebase state.
+- Verified PRD features F1–F11 map to completed backlog tasks (all covered).
+- Verified all 16 API routes in `api-spec.md` map to function files (all present).
+- Verified all 13 components in `app-design.md` match `src/components/` (all present).
+- Recounted backlog tasks: confirmed 169 `[x]` + 12 `[ ]` = 181 (header was accurate).
+- Added 11 new tasks to Phase 11 (3 deploy/smoke-test gaps + 8 component tests).
+- Updated task count from 169/181 to 169/192.
+- Added Decision D8: PRD Section 10 coding prompt superseded by D3 (Vanilla JS).
+- Added Problems P2–P4: handoff checklist missing Rubrics table, incomplete smoke tests, stale completion table.
+- Added Risk R7: incomplete smoke test coverage at deploy time.
+- Fixed `docs/app-handoff-checklist.md`:
+  - Added `Rubrics` table to Phase 4.3 table creation commands.
+  - Added rubric + flags API endpoints to Phase 6.2 smoke tests.
+  - Updated completion table: dev-team items marked ✅.
+- Annotated PRD Section 10 (Coding Agent Prompt) as superseded by D3.
+- Verified `docs/README.md` Feature Inventory — all F1–F11 ✅ accurate.
+
+**What's next**:
+
+- Complete 8 frontend component tests (P11.5).
+- Deploy to production SWA (P11.3).
+- Run smoke tests including rubric + flags endpoints.
+- Verify SWA role invitations for admin users.
+
+**Open questions**:
+
+- None.
+
+**Known issues**:
+
+- Production deploy blocked on `AZURE_STATIC_WEB_APPS_API_TOKEN` repo secret.
+- Platform-team handoff items (roles, RBAC, tables, app settings) need manual verification.
 
 ---
 

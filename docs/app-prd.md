@@ -581,6 +581,12 @@ All endpoints are under `/api/` and require authentication. See [api-spec.md](./
 
 ## Coding Agent Prompt (Adapted for HackerBoard)
 
+> [!NOTE]
+> **Superseded by Decision D3** — This section was written before the team chose
+> Vanilla JS SPA (no framework). The React/TypeScript/Tailwind stack described
+> below is retained as historical reference only. See the
+> [backlog Decision Log](backlog.md) for details.
+
 Use this prompt when implementing the leaderboard UI so the generated app matches both the
 target visual style and this project's functional scope.
 
