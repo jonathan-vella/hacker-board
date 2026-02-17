@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "4636695249261656426"
+      "templateHash": "13601839861754863018"
     }
   },
   "parameters": {
@@ -3317,7 +3317,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "3512305679221188374"
+              "templateHash": "8960672829179633633"
             }
           },
           "parameters": {
@@ -3393,6 +3393,15 @@
                         },
                         {
                           "name": "Awards"
+                        },
+                        {
+                          "name": "Submissions"
+                        },
+                        {
+                          "name": "Rubrics"
+                        },
+                        {
+                          "name": "Config"
                         }
                       ]
                     }

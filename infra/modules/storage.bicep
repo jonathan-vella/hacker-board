@@ -30,6 +30,9 @@ module storageAccount 'br/public:avm/res/storage/storage-account:0.31.0' = {
         { name: 'Attendees' }
         { name: 'Scores' }
         { name: 'Awards' }
+        { name: 'Submissions' }
+        { name: 'Rubrics' }
+        { name: 'Config' }
       ]
     }
   }
