@@ -586,6 +586,17 @@ monitoring shows data, feature flags toggle correctly.
   - Add consistent headers, badges, and navigation links
   - Use tables instead of bullet lists where appropriate
   - Add "Back to docs" navigation links between pages
+- [x] Second-pass documentation refinements (Feb 2026)
+  - Add `agents-and-skills.md`, `openapi.yaml`, and `swagger-ui.html` to docs/README.md Quick Links
+  - Add `admin-procedures.md`, `agents-and-skills.md`, and OpenAPI docs to root README.md docs table
+  - Rewrite `app-scaffold.md` folder structure to match actual v4 functions layout
+  - Update `app-scaffold.md` code samples from CJS to ESM
+  - Remove outdated v3 `function.json` binding example; add v4 `app.http()` pattern
+  - Remove broken "Starter README" section from `app-scaffold.md`
+  - Update `app-design.md` component model table to match actual components
+  - Add Mermaid architecture diagram and scoring workflow diagram to `app-design.md`
+  - Fix broken `scoring-rubric.md` link in `app-prd.md` references
+  - Verify all internal doc links across all markdown files
 
 ### 12.3 — Feature Enhancements
 
@@ -1278,6 +1289,49 @@ DELETED:
   e2e/rubric-flow.spec.js
   e2e/attendee-flow.spec.js
   playwright.config.js
+```
+
+### Session — 2026-02-17 (Documentation Overhaul, continued)
+
+**Summary**: Second-pass documentation refinements for Phase 12.2. Fixed outdated
+content, broken links, and gaps found during audit against docs.instructions.md standards.
+
+**What was done**:
+
+- Added `agents-and-skills.md`, `openapi.yaml`, `swagger-ui.html` links to `docs/README.md` Quick Links
+- Added `admin-procedures.md`, `agents-and-skills.md`, OpenAPI docs to root `README.md` docs table
+- Rewrote `docs/app-scaffold.md` folder structure to match actual v4 Functions layout
+  - Updated code samples from CommonJS to ESM
+  - Replaced v3 `function.json` example with v4 `app.http()` pattern
+  - Added missing folders: `.github/agents/`, `.github/skills/`, `.github/instructions/`, `templates/`, `.vscode/`, `api/tests/`, `scripts/`, `.devcontainer/`
+  - Removed non-existent components (ManualOverride.js, RubricUpload.js, RubricPreview.js, TeamDetail.js)
+  - Added real components (FeatureFlags.js) and services (notifications.js, telemetry.js)
+  - Removed broken "Starter README" section with invalid links
+  - Added testing table and expanded references
+- Updated `docs/app-design.md`
+  - Added Mermaid application architecture diagram
+  - Added scoring workflow Mermaid diagram
+  - Updated component model table to list actual 13 components with file paths
+  - Added note about deferred `ManualOverride` component
+  - Fixed reference link style for consistency
+- Fixed broken link in `docs/app-prd.md` (scoring rubric → templates/ folder)
+- Verified all internal links across all doc files — zero broken links
+
+**What's next**:
+
+- Commit and push documentation changes
+- Phase 12.3 feature enhancements (if desired)
+
+**Files modified this session**:
+
+```text
+MODIFIED:
+  docs/README.md            — Added agents-and-skills, OpenAPI Quick Links
+  README.md                 — Added admin-procedures, agents-and-skills, OpenAPI to docs table
+  docs/app-scaffold.md      — Full rewrite: v4 structure, ESM code, actual components
+  docs/app-design.md        — Mermaid diagrams, updated component table, workflow diagram
+  docs/app-prd.md           — Fixed broken scoring rubric reference link
+  docs/backlog.md           — Added 12.2 second-pass sub-task, session handoff notes
 ```
 
 ---

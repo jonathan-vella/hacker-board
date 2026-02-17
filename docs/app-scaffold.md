@@ -10,83 +10,125 @@
 
 ---
 
-## Recommended Folder Structure
+## Folder Structure
 
 ```text
-hacker-board-app/
+hacker-board/
+├── .devcontainer/
+│   ├── devcontainer.json            # Dev container config (extensions, ports)
+│   ├── Dockerfile                   # Container image
+│   └── post-create.sh               # Post-create setup script
 ├── .github/
-│   └── workflows/
-│       └── deploy-swa.yml          # GitHub Actions CI/CD (see handoff checklist)
-├── api/                             # Managed Azure Functions (Node.js)
+│   ├── agents/                      # 7 VS Code custom agents
+│   │   ├── hackerboard-conductor.agent.md   # Master orchestrator
+│   │   ├── task-planner.agent.md            # Research & dependency analysis
+│   │   ├── azure-architect.agent.md         # WAF architecture review
+│   │   ├── implementation-planner.agent.md  # Structured implementation plans
+│   │   ├── security-reviewer.agent.md       # OWASP & Zero Trust review
+│   │   ├── ux-designer.agent.md             # UX/UI & accessibility review
+│   │   └── bicep-avm.agent.md               # Bicep IaC with AVM
+│   ├── instructions/                # 14 file-type-specific coding rules
+│   ├── skills/                      # 3 reusable skills
+│   │   ├── docs-writer/SKILL.md
+│   │   ├── git-commit/SKILL.md
+│   │   └── github-operations/SKILL.md
+│   ├── workflows/
+│   │   └── deploy-swa.yml           # GitHub Actions CI/CD
+│   └── copilot-instructions.md      # Global Copilot custom instructions
+├── .vscode/
+│   └── extensions.json              # Recommended VS Code extensions
+├── api/                             # Azure Functions v4 (Node.js 20+, ESM)
 │   ├── host.json                    # Functions host configuration
-│   ├── package.json                 # API dependencies (@azure/data-tables, etc.)
-│   ├── teams/
-│   │   ├── function.json
-│   │   └── index.js                 # GET/POST/PUT/DELETE /api/teams
-│   ├── scores/
-│   │   ├── function.json
-│   │   └── index.js                 # GET/POST /api/scores (admin override writes)
-│   ├── submissions/
-│   │   ├── function.json
-│   │   └── index.js                 # GET /api/submissions (admin queue)
-│   ├── submissions-validate/
-│   │   ├── function.json
-│   │   └── index.js                 # POST /api/submissions/validate
-│   ├── awards/
-│   │   ├── function.json
-│   │   └── index.js                 # GET/POST/PUT /api/awards
-│   ├── attendees/
-│   │   ├── function.json
-│   │   └── index.js                 # GET /api/attendees (admin), GET/POST /api/attendees/me
-│   ├── attendees-bulk/
-│   │   ├── function.json
-│   │   └── index.js                 # POST /api/attendees/bulk (admin bulk import, F9)
-│   ├── teams-assign/
-│   │   ├── function.json
-│   │   └── index.js                 # POST /api/teams/assign (random assignment, F10)
-│   ├── rubrics/
-│   │   ├── function.json
-│   │   └── index.js                 # GET/POST /api/rubrics, GET /api/rubrics/active (F11)
-│   ├── upload/
-│   │   ├── function.json
-│   │   └── index.js                 # POST /api/upload (JSON score import)
-│   └── shared/
-│       ├── auth.js                  # getClientPrincipal(), requireRole() helpers
-│       ├── tables.js                # TableClient factory (managed identity)
-│       ├── errors.js                # Standardised error response builder
-│       └── rubricParser.js          # Markdown → rubric JSON parser
-├── src/                             # SPA Frontend
+│   ├── package.json                 # API dependencies
+│   ├── vitest.config.js             # API test config
+│   ├── shared/                      # Shared helpers
+│   │   ├── auth.js                  # getClientPrincipal(), requireRole()
+│   │   ├── errors.js                # Structured error response builder
+│   │   ├── featureFlags.js          # Feature flag reader
+│   │   ├── logger.js                # Structured logging
+│   │   ├── rubricParser.js          # Markdown → rubric JSON parser
+│   │   └── tables.js                # TableClient factory (conn string or MI)
+│   ├── src/functions/               # v4 HTTP-triggered functions (1 per file)
+│   │   ├── attendees.js             # GET /api/attendees, GET/POST /api/attendees/me
+│   │   ├── attendees-bulk.js        # POST /api/attendees/bulk (F9)
+│   │   ├── awards.js                # GET/POST/PUT /api/awards (F4)
+│   │   ├── flags.js                 # GET/PUT /api/flags
+│   │   ├── rubrics.js               # GET/POST /api/rubrics, GET /api/rubrics/active (F11)
+│   │   ├── scores.js                # GET/POST /api/scores
+│   │   ├── submissions.js           # GET /api/submissions, POST /api/submissions/validate
+│   │   ├── teams.js                 # GET/POST/PUT/DELETE /api/teams
+│   │   ├── teams-assign.js          # POST /api/teams/assign (F10)
+│   │   └── upload.js                # POST /api/upload (F6)
+│   └── tests/                       # API unit tests (Vitest)
+│       ├── helpers/mock-table.js    # Shared table mock
+│       ├── attendees-awards.test.js
+│       ├── feature-flags.test.js
+│       ├── rubric-parser.test.js
+│       ├── scores.test.js
+│       ├── shared-helpers.test.js
+│       ├── teams.test.js
+│       └── upload-submissions.test.js
+├── docs/                            # Project documentation
+│   ├── README.md                    # Documentation hub
+│   ├── api-spec.md                  # API endpoint contracts
+│   ├── openapi.yaml                 # OpenAPI 3.0 specification
+│   ├── swagger-ui.html              # Interactive API explorer
+│   ├── app-prd.md                   # Product requirements (F1–F11)
+│   ├── app-design.md                # UI/UX design + component model
+│   ├── app-scaffold.md              # This file — folder structure guide
+│   ├── app-handoff-checklist.md     # Infrastructure wiring steps
+│   ├── admin-procedures.md          # Admin runbook + role management
+│   ├── agents-and-skills.md         # AI agent inventory & orchestration
+│   └── backlog.md                   # Execution plan, decisions, tracking
+├── infra/                           # Bicep IaC (Azure Verified Modules)
+│   ├── main.bicep                   # Root template
+│   ├── main.bicepparam              # Parameter file
+│   ├── main.json                    # ARM export
+│   ├── azuredeploy.json             # One-click deploy template
+│   ├── deploy.ps1                   # Deployment script
+│   └── modules/                     # AVM-based sub-modules
+│       ├── app-insights.bicep
+│       ├── log-analytics.bicep
+│       ├── static-web-app.bicep
+│       └── storage.bicep
+├── scripts/                         # Utility scripts
+│   ├── seed-demo-data.js            # Seed tables with demo data
+│   └── cleanup-app-data.js          # Reset tables between events
+├── src/                             # SPA Frontend (vanilla JS, ES2022+)
 │   ├── index.html                   # Entry point
-│   ├── styles/
-│   │   └── main.css
-│   ├── components/
-│   │   ├── Leaderboard.js           # F2: Ranked team table
-│   │   ├── ScoreSubmission.js       # F1: Team score submission form (member)
-│   │   ├── TeamDetail.js            # Score breakdown per team
-│   │   ├── SubmissionStatus.js      # Member submission status and history
-│   │   ├── AdminReviewQueue.js      # F8: Admin approval/rejection queue
-│   │   ├── ManualOverride.js        # F8: Admin manual score correction
-│   │   ├── Awards.js                # F4: Award display + assignment (admin write)
-│   │   ├── Registration.js          # F7: Attendee profile form
+│   ├── app.js                       # Hash router + app shell
+│   ├── components/                  # UI components (async functions)
+│   │   ├── AdminReviewQueue.js      # Admin submission triage
 │   │   ├── AttendeeBulkEntry.js     # F9: Admin bulk attendee import
-│   │   ├── TeamAssignment.js        # F10: Admin random team assignment
-│   │   ├── TeamRoster.js            # F10: Team ↔ attendee display grid
-│   │   ├── RubricManager.js         # F11: Admin rubric list + activate/archive
-│   │   ├── RubricUpload.js          # F11: Drag-and-drop rubric.md upload
-│   │   ├── RubricPreview.js         # F11: Parsed rubric preview before activation
-│   │   ├── UploadScores.js          # F6: Own-team JSON upload
-│   │   └── Navigation.js            # Nav bar with role-aware links
-│   ├── services/
-│   │   ├── api.js                   # fetch() wrappers for /api/* endpoints
+│   │   ├── Awards.js                # F4: Award display + assignment
+│   │   ├── FeatureFlags.js          # Admin feature flag toggles
+│   │   ├── Leaderboard.js           # F2/F3: Ranked team table
+│   │   ├── Navigation.js            # Nav bar with role-aware links
+│   │   ├── Registration.js          # F7: Attendee profile form
+│   │   ├── RubricManager.js         # F11: Rubric list + upload + preview
+│   │   ├── ScoreSubmission.js       # F1: Team score submission form
+│   │   ├── SubmissionStatus.js      # Member submission status
+│   │   ├── TeamAssignment.js        # F10: Random team assignment
+│   │   ├── TeamRoster.js            # F10: Team ↔ attendee grid
+│   │   └── UploadScores.js          # F6: Own-team JSON upload
+│   ├── services/                    # API clients and utilities
+│   │   ├── api.js                   # fetch() wrappers for /api/*
 │   │   ├── auth.js                  # /.auth/me client helper
-│   │   └── rubric.js                # Rubric service (fetch active, parse, cache)
-│   ├── data/
-│   │   └── defaultRubric.js         # Default 105+25 rubric for first-use bootstrap
-│   └── app.js                       # SPA router + app shell
-├── staticwebapp.config.json         # Auth, routes, headers (from this repo)
-├── package.json                     # Frontend dependencies + scripts
+│   │   ├── notifications.js         # Toast notification service
+│   │   ├── rubric.js                # Rubric fetch, parse, cache
+│   │   └── telemetry.js             # App Insights telemetry client
+│   └── styles/
+│       └── main.css                 # Global styles + theme variables
+├── templates/                       # Scoring rubric templates
+│   ├── GENERATE-RUBRIC.md           # Prompt for generating rubrics
+│   ├── scoring-rubric.template.md   # Blank rubric template
+│   └── scoring-rubric.reference.md  # Reference rubric (105+25 pts)
+├── .env.example                     # Environment variable template
 ├── .gitignore
-└── README.md
+├── package.json                     # Root dependencies + scripts
+├── staticwebapp.config.json         # Auth, routes, security headers
+├── vitest.config.js                 # Frontend DOM test config (happy-dom)
+└── README.md                        # Repository README
 ```
 
 ---
@@ -120,12 +162,22 @@ hacker-board-app/
   "name": "hacker-board-api",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
+  "main": "src/functions/*.js",
   "engines": {
     "node": ">=20.0.0"
   },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "dependencies": {
     "@azure/data-tables": "^13.3.0",
+    "@azure/functions": "^4.11.2",
     "@azure/identity": "^4.9.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
   }
 }
 ```
@@ -133,69 +185,76 @@ hacker-board-app/
 ### `api/shared/auth.js` — Auth Helpers
 
 ```javascript
-function getClientPrincipal(req) {
-  const header = req.headers["x-ms-client-principal"];
-  if (!header) return null;
-  const encoded = Buffer.from(header, "base64");
-  return JSON.parse(encoded.toString("ascii"));
+export function getClientPrincipal(req) {
+  const header = req.headers.get("x-ms-client-principal");
+  if (!header) return undefined;
+  const decoded = Buffer.from(header, "base64").toString("utf-8");
+  return JSON.parse(decoded);
 }
 
-function requireRole(req, role) {
+export function requireRole(req, role) {
   const principal = getClientPrincipal(req);
   if (!principal || !principal.userRoles.includes(role)) {
     return {
       status: 403,
-      body: {
+      jsonBody: {
         error: { code: "FORBIDDEN", message: "Insufficient permissions" },
       },
     };
   }
-  return null;
+  return undefined;
 }
-
-module.exports = { getClientPrincipal, requireRole };
 ```
 
 ### `api/shared/tables.js` — Table Client Factory
 
 ```javascript
-const { TableClient } = require("@azure/data-tables");
-const { DefaultAzureCredential } = require("@azure/identity");
+import { TableClient } from "@azure/data-tables";
+import { DefaultAzureCredential } from "@azure/identity";
 
 const STORAGE_ACCOUNT = process.env.STORAGE_ACCOUNT_NAME;
-const credential = new DefaultAzureCredential();
+const CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
 
-function getTableClient(tableName) {
+let credential;
+
+export function getTableClient(tableName) {
+  if (CONNECTION_STRING) {
+    return TableClient.fromConnectionString(CONNECTION_STRING, tableName, {
+      allowInsecureConnection: true,
+    });
+  }
+  if (!credential) credential = new DefaultAzureCredential();
   const url = `https://${STORAGE_ACCOUNT}.table.core.windows.net`;
   return new TableClient(url, tableName, credential);
 }
-
-module.exports = { getTableClient };
 ```
 
-### `api/teams/function.json` — Example Binding
+### Azure Functions v4 Endpoint Pattern
 
-```json
-{
-  "bindings": [
-    {
-      "authLevel": "anonymous",
-      "type": "httpTrigger",
-      "direction": "in",
-      "name": "req",
-      "methods": ["get", "post", "put", "delete"],
-      "route": "teams"
-    },
-    {
-      "type": "http",
-      "direction": "out",
-      "name": "res"
+Each endpoint uses the v4 programming model — a single file registers one or more HTTP triggers:
+
+```javascript
+import { app } from "@azure/functions";
+import { requireRole } from "../../shared/auth.js";
+import { getTableClient, ensureTable } from "../../shared/tables.js";
+
+app.http("teams-get", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "teams",
+  handler: async (req, context) => {
+    const client = getTableClient("Teams");
+    await ensureTable("Teams");
+    const entities = [];
+    for await (const entity of client.listEntities()) {
+      entities.push(entity);
     }
-  ]
-}
+    return { jsonBody: entities };
+  },
+});
 ```
 
-> `authLevel: "anonymous"` is correct — SWA handles auth at the proxy layer via `staticwebapp.config.json`. Functions never receive unauthenticated traffic.
+> `authLevel: "anonymous"` is correct — SWA handles auth at the proxy layer via `staticwebapp.config.json`. Functions never receive unauthenticated traffic for protected routes.
 
 ---
 
@@ -206,19 +265,22 @@ module.exports = { getTableClient };
 - Node.js 20+
 - [Azure Static Web Apps CLI](https://github.com/Azure/static-web-apps-cli): `npm install -g @azure/static-web-apps-cli`
 - [Azure Functions Core Tools](https://learn.microsoft.com/azure/azure-functions/functions-run-local) v4
+- [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite) for local Table Storage
+
+> All prerequisites are pre-installed in the dev container (`.devcontainer/`).
 
 ### Setup
 
 ```bash
-# Clone and install
-git clone <app-repo-url>
-cd hacker-board-app
-
-# Install frontend dependencies
+# Install dependencies
 npm install
-
-# Install API dependencies
 cd api && npm install && cd ..
+
+# Start Azurite (Table Storage emulator) in a separate terminal
+azurite --silent --location /tmp/azurite
+
+# Seed demo data
+node scripts/seed-demo-data.js --reset
 
 # Run locally with SWA CLI (emulates auth + routing)
 swa start src --api-location api
@@ -233,26 +295,23 @@ The SWA CLI:
 
 ### Environment Variables for Local Dev
 
+Copy `.env.example` to `.env` and configure:
+
+```bash
+cp .env.example .env
+```
+
 Create `api/local.settings.json` (**do not commit**):
 
 ```json
 {
   "IsEncrypted": false,
   "Values": {
-    "AzureWebJobsStorage": "",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "node",
-    "STORAGE_ACCOUNT_NAME": "stteamleadpromn2ksi",
-    "APPLICATIONINSIGHTS_CONNECTION_STRING": ""
+    "AZURE_STORAGE_CONNECTION_STRING": ""
   }
 }
-```
-
-Add to `.gitignore`:
-
-```text
-api/local.settings.json
-node_modules/
-dist/
 ```
 
 ---
@@ -276,20 +335,24 @@ Adjust the `output_location` in your GitHub Actions workflow and SWA config acco
 
 ```json
 {
-  "name": "hacker-board-app",
-  "version": "1.0.0",
-  "private": true,
   "scripts": {
     "start": "swa start src --api-location api",
     "build": "echo 'No build step for vanilla JS'",
-    "test": "echo 'No tests configured yet'",
+    "test": "cd api && npm test",
+    "test:ui": "vitest run --config vitest.config.js",
+    "test:all": "npm test && npm run test:ui",
     "lint": "echo 'Add ESLint configuration'"
-  },
-  "devDependencies": {
-    "@azure/static-web-apps-cli": "^2.0.0"
   }
 }
 ```
+
+### Testing
+
+| Suite              | Command              | Config                    | Environment |
+| ------------------ | -------------------- | ------------------------- | ----------- |
+| API unit tests     | `cd api && npm test` | `api/vitest.config.js`    | Node.js     |
+| Frontend DOM tests | `npm run test:ui`    | `vitest.config.js` (root) | happy-dom   |
+| All tests          | `npm run test:all`   | Both                      | Both        |
 
 ---
 
@@ -302,43 +365,20 @@ Implement API authorization and validation with these invariants:
 - `admin` role validates/rejects submissions and can manually override scores.
 - Leaderboard totals read from approved score records only.
 
-## Starter `README.md` for the App Repo
-
-```markdown
-# HackerBoard App
-
-Microhack scoring dashboard — Azure Static Web Apps + managed Functions + Table Storage.
-
-## Quick Start
-
-\`\`\`bash
-npm install
-cd api && npm install && cd ..
-swa start src --api-location api
-\`\`\`
-
-## Deployment
-
-Pushes to `main` trigger automatic deployment via GitHub Actions.
-
-## Documentation
-
-- [Product Requirements](../../agent-output/hacker-board/app/app-prd.md)
-- [API Specification](../../agent-output/hacker-board/app/api-spec.md)
-- [Handoff Checklist](../../agent-output/hacker-board/app/app-handoff-checklist.md)
-```
-
 ---
 
 ## References
 
-- [app-prd.md](./app-prd.md) — Product requirements
-- [api-spec.md](./api-spec.md) — Full API specification
-- [app-handoff-checklist.md](./app-handoff-checklist.md) — Infrastructure wiring steps
-- [staticwebapp.config.json](../staticwebapp.config.json) — Auth and route configuration
+- [app-prd.md](app-prd.md) — Product requirements
+- [api-spec.md](api-spec.md) — Full API specification
+- [app-design.md](app-design.md) — UI/UX design + component model
+- [app-handoff-checklist.md](app-handoff-checklist.md) — Infrastructure wiring steps
+- [admin-procedures.md](admin-procedures.md) — Admin runbook
+- [agents-and-skills.md](agents-and-skills.md) — AI agent inventory
 - [SWA CLI Documentation](https://azure.github.io/static-web-apps-cli/)
 - [Azure Functions Node.js Developer Guide](https://learn.microsoft.com/azure/azure-functions/functions-reference-node)
 - [Azure Tables SDK](https://learn.microsoft.com/javascript/api/@azure/data-tables/)
 
 ---
+
 [← Back to Documentation](README.md)

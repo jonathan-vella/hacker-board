@@ -129,14 +129,17 @@ Full schemas in [docs/api-spec.md](docs/api-spec.md).
 
 ## Documentation
 
-| Document                                                       | Purpose                      |
-| -------------------------------------------------------------- | ---------------------------- |
-| [docs/app-prd.md](docs/app-prd.md)                             | Product requirements (F1-11) |
-| [docs/api-spec.md](docs/api-spec.md)                           | Full API specification       |
-| [docs/app-design.md](docs/app-design.md)                       | UI/UX design + components    |
-| [docs/app-scaffold.md](docs/app-scaffold.md)                   | Folder structure guide       |
-| [docs/app-handoff-checklist.md](docs/app-handoff-checklist.md) | Infrastructure wiring        |
-| [docs/backlog.md](docs/backlog.md)                             | Project backlog + milestones |
+| Document                                                       | Purpose                                               |
+| -------------------------------------------------------------- | ----------------------------------------------------- |
+| [docs/app-prd.md](docs/app-prd.md)                             | Product requirements (F1-11)                          |
+| [docs/api-spec.md](docs/api-spec.md)                           | Full API specification                                |
+| [docs/openapi.yaml](docs/openapi.yaml)                         | OpenAPI 3.0 spec ([Swagger UI](docs/swagger-ui.html)) |
+| [docs/app-design.md](docs/app-design.md)                       | UI/UX design + components                             |
+| [docs/app-scaffold.md](docs/app-scaffold.md)                   | Folder structure guide                                |
+| [docs/app-handoff-checklist.md](docs/app-handoff-checklist.md) | Infrastructure wiring                                 |
+| [docs/admin-procedures.md](docs/admin-procedures.md)           | Admin runbook + role management                       |
+| [docs/agents-and-skills.md](docs/agents-and-skills.md)         | AI agents, skills, orchestration                      |
+| [docs/backlog.md](docs/backlog.md)                             | Project backlog + milestones                          |
 
 ## Infrastructure
 

@@ -21,17 +21,17 @@ scoring with a browser-based submission and review workflow.
 
 ### Problem, Users, Value
 
-| Item        | Summary |
-| ----------- | ------- |
-| **Problem** | Scoring currently depends on manual JSON preparation and facilitator-side script execution, which slows leaderboard updates and creates avoidable data-entry errors. |
+| Item        | Summary                                                                                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Problem** | Scoring currently depends on manual JSON preparation and facilitator-side script execution, which slows leaderboard updates and creates avoidable data-entry errors.      |
 | **Users**   | **Team members** submit only their own team scores and uploads. **Admins** review, approve or reject submissions, and can manually override published scores when needed. |
-| **Value**   | Reduces scoring turnaround, removes direct JSON file editing from normal operations, and keeps leaderboard updates traceable through an approval workflow. |
+| **Value**   | Reduces scoring turnaround, removes direct JSON file editing from normal operations, and keeps leaderboard updates traceable through an approval workflow.                |
 
 ### Success Criteria
 
 | Criteria                       | Target                               |
 | ------------------------------ | ------------------------------------ |
-| All 11 features functional    | F1–F11 as listed below              |
+| All 11 features functional     | F1–F11 as listed below               |
 | GitHub authentication enforced | No anonymous access                  |
 | Response time                  | < 2 seconds for any page load        |
 | Concurrent users               | Up to 50                             |
@@ -66,10 +66,10 @@ The app runs on **Azure Static Web Apps (Standard)** with **managed Azure Functi
 
 ### F1 — Team Score Submission Form
 
-| Attribute       | Detail                                                                                 |
-| --------------- | -------------------------------------------------------------------------------------- |
-| **Priority**    | Must-Have                                                                              |
-| **Role**        | Team member only                                                                       |
+| Attribute       | Detail                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------- |
+| **Priority**    | Must-Have                                                                                         |
+| **Role**        | Team member only                                                                                  |
 | **Description** | Form for team members to submit scores for their own team across all 8 categories + 4 bonus items |
 
 **Acceptance Criteria:**
@@ -150,11 +150,11 @@ The app runs on **Azure Static Web Apps (Standard)** with **managed Azure Functi
 
 ### F4 — Award Categories
 
-| Attribute       | Detail                                   |
-| --------------- | ---------------------------------------- |
-| **Priority**    | Must-Have                                |
+| Attribute       | Detail                                     |
+| --------------- | ------------------------------------------ |
+| **Priority**    | Must-Have                                  |
 | **Role**        | Admin (assign), Admin + Team member (view) |
-| **Description** | Display and assign special award winners |
+| **Description** | Display and assign special award winners   |
 
 **Acceptance Criteria:**
 
@@ -193,11 +193,11 @@ User → SWA → /.auth/login/github → GitHub OAuth → callback → /.auth/me
 
 ### F6 — JSON Score Upload
 
-| Attribute       | Detail                                                                    |
-| --------------- | ------------------------------------------------------------------------- |
-| **Priority**    | Must-Have                                                                 |
-| **Role**        | Team member only                                                          |
-| **Description** | Upload `score-results.json` for the signed-in member's own team only     |
+| Attribute       | Detail                                                               |
+| --------------- | -------------------------------------------------------------------- |
+| **Priority**    | Must-Have                                                            |
+| **Role**        | Team member only                                                     |
+| **Description** | Upload `score-results.json` for the signed-in member's own team only |
 
 **Acceptance Criteria:**
 
@@ -235,7 +235,7 @@ User → SWA → /.auth/login/github → GitHub OAuth → callback → /.auth/me
 | Attribute       | Detail                                                      |
 | --------------- | ----------------------------------------------------------- |
 | **Priority**    | Must-Have                                                   |
-| **Role**        | All authenticated users (own profile); Admins (manage all) |
+| **Role**        | All authenticated users (own profile); Admins (manage all)  |
 | **Description** | Authenticated users register their profile linked to a team |
 
 **Acceptance Criteria:**
@@ -249,10 +249,10 @@ User → SWA → /.auth/login/github → GitHub OAuth → callback → /.auth/me
 
 ### F8 — Admin Validation & Manual Override
 
-| Attribute       | Detail                                                                 |
-| --------------- | ---------------------------------------------------------------------- |
-| **Priority**    | Must-Have                                                              |
-| **Role**        | Admin only                                                             |
+| Attribute       | Detail                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------ |
+| **Priority**    | Must-Have                                                                                  |
+| **Role**        | Admin only                                                                                 |
 | **Description** | Admin validates team submissions, can reject with reason, and can override scores manually |
 
 **Acceptance Criteria:**
@@ -266,11 +266,11 @@ User → SWA → /.auth/login/github → GitHub OAuth → callback → /.auth/me
 
 ### F9 — Attendee Bulk Entry (Admin)
 
-| Attribute       | Detail                                                                |
-| --------------- | --------------------------------------------------------------------- |
-| **Priority**    | Must-Have                                                             |
-| **Role**        | Admin / Facilitator only                                              |
-| **Description** | Admin enters attendee names into the app before the event begins      |
+| Attribute       | Detail                                                           |
+| --------------- | ---------------------------------------------------------------- |
+| **Priority**    | Must-Have                                                        |
+| **Role**        | Admin / Facilitator only                                         |
+| **Description** | Admin enters attendee names into the app before the event begins |
 
 **Acceptance Criteria:**
 
@@ -284,11 +284,11 @@ User → SWA → /.auth/login/github → GitHub OAuth → callback → /.auth/me
 
 ### F10 — Random Team Assignment
 
-| Attribute       | Detail                                                                |
-| --------------- | --------------------------------------------------------------------- |
-| **Priority**    | Must-Have                                                             |
-| **Role**        | Admin / Facilitator only                                              |
-| **Description** | App randomly distributes registered attendees across N teams          |
+| Attribute       | Detail                                                       |
+| --------------- | ------------------------------------------------------------ |
+| **Priority**    | Must-Have                                                    |
+| **Role**        | Admin / Facilitator only                                     |
+| **Description** | App randomly distributes registered attendees across N teams |
 
 **Acceptance Criteria:**
 
@@ -312,11 +312,11 @@ User → SWA → /.auth/login/github → GitHub OAuth → callback → /.auth/me
 
 ### F11 — Configurable Rubric Templates
 
-| Attribute       | Detail                                                                          |
-| --------------- | ------------------------------------------------------------------------------- |
-| **Priority**    | Must-Have                                                                       |
-| **Role**        | Admin / Facilitator only (upload); All authenticated (view active rubric)       |
-| **Description** | Admin uploads a Markdown rubric file to configure scoring for each microhack    |
+| Attribute       | Detail                                                                       |
+| --------------- | ---------------------------------------------------------------------------- |
+| **Priority**    | Must-Have                                                                    |
+| **Role**        | Admin / Facilitator only (upload); All authenticated (view active rubric)    |
+| **Description** | Admin uploads a Markdown rubric file to configure scoring for each microhack |
 
 > **Why**: The default scoring model (105 base + 25 bonus) is specific to one
 > microhack format. Rubric templates make the app reusable across events with
@@ -379,9 +379,7 @@ The uploaded `rubric.md` must follow a parseable structure. Example:
     {
       "name": "Requirements & Planning",
       "maxPoints": 20,
-      "criteria": [
-        { "name": "Project context complete", "maxPoints": 4 }
-      ]
+      "criteria": [{ "name": "Project context complete", "maxPoints": 4 }]
     }
   ],
   "bonus": [
@@ -390,9 +388,7 @@ The uploaded `rubric.md` must follow a parseable structure. Example:
   "gradingScale": [
     { "minPercentage": 90, "grade": "OUTSTANDING", "emoji": "🏆" }
   ],
-  "awards": [
-    { "key": "BestOverall", "label": "Best Overall", "emoji": "🏆" }
-  ],
+  "awards": [{ "key": "BestOverall", "label": "Best Overall", "emoji": "🏆" }],
   "baseTotal": 105,
   "bonusTotal": 25,
   "createdBy": "admin-username",
@@ -433,20 +429,20 @@ All data persists in Azure Table Storage (`stteamleadpromn2ksi`). Shared key acc
 
 #### Rubrics Table
 
-| Field          | Type                | Key | Description                                  |
-| -------------- | ------------------- | --- | -------------------------------------------- |
-| `PartitionKey` | string              | PK  | Fixed: `"rubric"`                            |
-| `RowKey`       | string              | RK  | Rubric ID (GUID)                             |
-| `name`         | string              |     | Rubric display name                          |
-| `eventName`    | string              |     | Microhack / event name                       |
-| `version`      | int32               |     | Rubric version number                        |
-| `configJson`   | string (JSON)       |     | Full parsed rubric JSON (categories, bonus, grading, awards) |
-| `sourceMarkdown` | string            |     | Original uploaded Markdown content           |
-| `baseTotal`    | int32               |     | Computed base total from categories          |
-| `bonusTotal`   | int32               |     | Computed bonus total                         |
-| `isActive`     | boolean             |     | Whether this is the current active rubric    |
-| `createdBy`    | string              |     | GitHub username of uploader                  |
-| `createdAt`    | datetime            |     | Upload timestamp                             |
+| Field            | Type          | Key | Description                                                  |
+| ---------------- | ------------- | --- | ------------------------------------------------------------ |
+| `PartitionKey`   | string        | PK  | Fixed: `"rubric"`                                            |
+| `RowKey`         | string        | RK  | Rubric ID (GUID)                                             |
+| `name`           | string        |     | Rubric display name                                          |
+| `eventName`      | string        |     | Microhack / event name                                       |
+| `version`        | int32         |     | Rubric version number                                        |
+| `configJson`     | string (JSON) |     | Full parsed rubric JSON (categories, bonus, grading, awards) |
+| `sourceMarkdown` | string        |     | Original uploaded Markdown content                           |
+| `baseTotal`      | int32         |     | Computed base total from categories                          |
+| `bonusTotal`     | int32         |     | Computed bonus total                                         |
+| `isActive`       | boolean       |     | Whether this is the current active rubric                    |
+| `createdBy`      | string        |     | GitHub username of uploader                                  |
+| `createdAt`      | datetime      |     | Upload timestamp                                             |
 
 #### Teams Table
 
@@ -514,19 +510,19 @@ All data persists in Azure Table Storage (`stteamleadpromn2ksi`). Shared key acc
 
 All endpoints are under `/api/` and require authentication. See [api-spec.md](./api-spec.md) for full request/response schemas.
 
-| Endpoint                    | Methods                | Role                                                | Purpose                              |
-| --------------------------- | ---------------------- | --------------------------------------------------- | ------------------------------------ |
-| `/api/teams`                | GET, POST, PUT, DELETE | GET: authenticated; POST/PUT/DELETE: admin          | Team CRUD                            |
-| `/api/attendees`            | GET, POST, PUT         | GET (all): admin; GET (own)/POST/PUT: authenticated | Attendee registration                |
-| `/api/scores`               | GET, POST            | GET: authenticated; POST: admin                     | Approved score retrieval + override  |
-| `/api/awards`               | GET, POST, PUT         | GET: authenticated; POST/PUT: admin                 | Award assignment                     |
-| `/api/upload`               | POST                   | member                                              | Own-team JSON submission             |
-| `/api/submissions`          | GET                    | admin                                               | Pending submission queue             |
-| `/api/submissions/validate` | POST                   | admin                                               | Approve/reject submission            |
-| `/api/teams/assign`         | POST                   | admin                                                | Random team assignment (F10)         |
-| `/api/attendees/bulk`       | POST                   | admin                                                | Bulk attendee import (F9)            |
-| `/api/rubrics`              | GET, POST              | GET: authenticated; POST: admin                      | Rubric upload and listing (F11)      |
-| `/api/rubrics/active`       | GET                    | authenticated                                        | Active rubric config (F11)           |
+| Endpoint                    | Methods                | Role                                                | Purpose                             |
+| --------------------------- | ---------------------- | --------------------------------------------------- | ----------------------------------- |
+| `/api/teams`                | GET, POST, PUT, DELETE | GET: authenticated; POST/PUT/DELETE: admin          | Team CRUD                           |
+| `/api/attendees`            | GET, POST, PUT         | GET (all): admin; GET (own)/POST/PUT: authenticated | Attendee registration               |
+| `/api/scores`               | GET, POST              | GET: authenticated; POST: admin                     | Approved score retrieval + override |
+| `/api/awards`               | GET, POST, PUT         | GET: authenticated; POST/PUT: admin                 | Award assignment                    |
+| `/api/upload`               | POST                   | member                                              | Own-team JSON submission            |
+| `/api/submissions`          | GET                    | admin                                               | Pending submission queue            |
+| `/api/submissions/validate` | POST                   | admin                                               | Approve/reject submission           |
+| `/api/teams/assign`         | POST                   | admin                                               | Random team assignment (F10)        |
+| `/api/attendees/bulk`       | POST                   | admin                                               | Bulk attendee import (F9)           |
+| `/api/rubrics`              | GET, POST              | GET: authenticated; POST: admin                     | Rubric upload and listing (F11)     |
+| `/api/rubrics/active`       | GET                    | authenticated                                       | Active rubric config (F11)          |
 
 ---
 
@@ -758,15 +754,13 @@ Then add the required workflow surfaces from PRD features:
 
 ## References
 
-- [Scoring Rubric Source](../../../microhack/facilitator/scoring-rubric.md) — Definitive scoring criteria
-- `01-requirements.md` (source material from workshop assets, not committed in this repo)
-- `02-architecture-assessment.md` (source material from workshop assets, not committed in this repo)
-- `06-deployment-summary.md` (deployment output artifact, environment-specific)
-- [api-spec.md](./api-spec.md) — Full API specification
-- [staticwebapp.config.json](../staticwebapp.config.json) — Auth and route configuration
-- [app-handoff-checklist.md](./app-handoff-checklist.md) — Infrastructure wiring instructions
+- [Scoring Rubric Template](../templates/scoring-rubric.template.md) — Scoring criteria template
+- [Scoring Rubric Reference](../templates/scoring-rubric.reference.md) — Reference rubric (105+25 pts)
+- [API Specification](api-spec.md) — Full API specification
+- [App Handoff Checklist](app-handoff-checklist.md) — Infrastructure wiring instructions
 - [SWA Authentication Docs](https://learn.microsoft.com/azure/static-web-apps/authentication-authorization)
 - [Azure Table Storage API](https://learn.microsoft.com/rest/api/storageservices/table-service-rest-api)
 
 ---
+
 [← Back to Documentation](README.md)

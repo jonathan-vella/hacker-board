@@ -9,22 +9,53 @@
 
 ## Quick Links
 
-| Area | Link | Description |
-| ---- | ---- | ----------- |
-| 🔌 | [API Specification](api-spec.md) | Endpoint contracts and payloads |
-| 📋 | [Product Requirements](app-prd.md) | Feature requirements and acceptance criteria |
-| 🧱 | [Scaffold Guide](app-scaffold.md) | Recommended implementation structure |
-| 🚀 | [Handoff Checklist](app-handoff-checklist.md) | Deployment wiring and validation steps |
+| Area | Link                                          | Description                                  |
+| ---- | --------------------------------------------- | -------------------------------------------- |
+| 🔌   | [API Specification](api-spec.md)              | Endpoint contracts and payloads              |
+| 📋   | [Product Requirements](app-prd.md)            | Feature requirements and acceptance criteria |
+| 🧱   | [Scaffold Guide](app-scaffold.md)             | Recommended implementation structure         |
+| 🚀   | [Handoff Checklist](app-handoff-checklist.md) | Deployment wiring and validation steps       |
 
 ## Problem, Users, Value
 
-| Item        | Summary |
-| ----------- | ------- |
-| **Problem** | Manual JSON prep and script-based scoring create slower leaderboard updates and more operational friction during live sessions. |
+| Item        | Summary                                                                                                                                                 |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Problem** | Manual JSON prep and script-based scoring create slower leaderboard updates and more operational friction during live sessions.                         |
 | **Users**   | **Team members** submit scores for their own team. **Admins** review submissions, approve or reject them, and apply manual score overrides when needed. |
-| **Value**   | The UX prioritizes fast submission, clear review state, and role-safe controls so scoring remains auditable and easier to run during the event. |
+| **Value**   | The UX prioritizes fast submission, clear review state, and role-safe controls so scoring remains auditable and easier to run during the event.         |
 
 ---
+
+## Application Architecture
+
+```mermaid
+graph TB
+    subgraph Browser["Browser (SPA)"]
+        Router["Hash Router (app.js)"]
+        Components["UI Components"]
+        Services["Services Layer"]
+    end
+
+    subgraph SWA["Azure Static Web Apps"]
+        Auth["GitHub OAuth (.auth/)"]
+        Proxy["Reverse Proxy"]
+    end
+
+    subgraph API["Managed Azure Functions"]
+        Endpoints["10 HTTP Functions"]
+        Shared["Shared Helpers"]
+    end
+
+    Storage["Azure Table Storage (6 tables)"]
+
+    Router --> Components
+    Components --> Services
+    Services -->|fetch /api/*| Proxy
+    Browser -->|/.auth/login/github| Auth
+    Proxy --> Endpoints
+    Endpoints --> Shared
+    Shared --> Storage
+```
 
 ## Design Goals
 
@@ -83,25 +114,23 @@
 
 ## Component Model
 
-| Component | Purpose |
-| --------- | ------- |
-| `Navbar` | Global controls, search, auth actions, and theme toggle |
-| `ChampionCard` | Top-team summary with role, verification, and score badge |
-| `StatCard` | Compact metric indicators for dashboard highlights |
-| `LeaderboardTable` | Ranked rows, expansion, and responsive fallback on small screens |
-| `ScoreSubmissionForm` | Member-only scoring editor with category subtotal checks |
-| `SubmissionStatusPanel` | Member view of latest submission state |
-| `AdminReviewQueue` | Admin-only pending submission triage |
-| `ManualScoreOverride` | Admin-only score correction workflow |
-| `AwardsPanel` | Admin-only award assignment controls |
-| `JsonUploadPanel` | Member-only structured upload with pre-submit validation |
-| `AttendeeProfileForm` | Self-service attendee registration and editing |
-| `AttendeeBulkEntry` | Admin-only multi-line/CSV attendee import (F9) |
-| `TeamAssignmentPanel` | Admin-only random assignment with preview (F10) |
-| `TeamRoster` | Team ↔ attendee display grid for all authenticated users |
-| `RubricManager` | Admin-only rubric list with active indicator and archive controls (F11) |
-| `RubricUpload` | Admin-only drag-and-drop zone for rubric Markdown upload (F11) |
-| `RubricPreview` | Parsed rubric preview with categories, criteria, points, and grading scale (F11) |
+| Component           | File                   | Purpose                                                          |
+| ------------------- | ---------------------- | ---------------------------------------------------------------- |
+| `Navigation`        | `Navigation.js`        | Global controls, search, auth actions, and theme toggle          |
+| `Leaderboard`       | `Leaderboard.js`       | Ranked team table with expansion and responsive fallback (F2/F3) |
+| `ScoreSubmission`   | `ScoreSubmission.js`   | Member-only scoring editor with category subtotal checks (F1)    |
+| `UploadScores`      | `UploadScores.js`      | Member-only structured JSON upload with validation (F6)          |
+| `SubmissionStatus`  | `SubmissionStatus.js`  | Member view of latest submission state                           |
+| `AdminReviewQueue`  | `AdminReviewQueue.js`  | Admin-only pending submission triage                             |
+| `Awards`            | `Awards.js`            | Award display + admin assignment controls (F4)                   |
+| `Registration`      | `Registration.js`      | Self-service attendee registration and editing (F7)              |
+| `AttendeeBulkEntry` | `AttendeeBulkEntry.js` | Admin-only multi-line/CSV attendee import (F9)                   |
+| `TeamAssignment`    | `TeamAssignment.js`    | Admin-only random assignment with preview (F10)                  |
+| `TeamRoster`        | `TeamRoster.js`        | Team ↔ attendee display grid (F10)                               |
+| `RubricManager`     | `RubricManager.js`     | Admin-only rubric list, upload, preview, activate/archive (F11)  |
+| `FeatureFlags`      | `FeatureFlags.js`      | Admin-only feature flag toggles                                  |
+
+> **Deferred components**: `ManualOverride` (admin score correction) is deferred to Phase 12.
 
 ## Responsive Strategy
 
@@ -132,6 +161,19 @@
 - Admin queue from `/api/submissions`; validation via `/api/submissions/validate`.
 - Polling every 30 seconds for leaderboard freshness unless real-time transport is added.
 
+### Scoring Workflow
+
+```mermaid
+graph LR
+    Member[Team Member] -->|Form or JSON| Upload[POST /api/upload]
+    Upload -->|pendingReview| Queue[Submissions Table]
+    Queue --> Review[Admin Review Queue]
+    Review -->|Approve| Validate[POST /api/submissions/validate]
+    Validate -->|approved| Scores[Scores Table]
+    Scores --> Leaderboard[GET /api/scores]
+    Review -->|Reject| Rejected[rejected status]
+```
+
 ## Animation Guidance
 
 - Use subtle motion only: card hover elevation, light fade-in, smooth theme transition.
@@ -145,11 +187,13 @@
 
 ## References
 
-- [Product Requirements](./app-prd.md)
-- [API Specification](./api-spec.md)
-- [Handoff Checklist](./app-handoff-checklist.md)
-- [Scaffold Guide](./app-scaffold.md)
-- [Infrastructure README](../README.md)
+- [Product Requirements](app-prd.md)
+- [API Specification](api-spec.md)
+- [Handoff Checklist](app-handoff-checklist.md)
+- [Scaffold Guide](app-scaffold.md)
+- [Admin Procedures](admin-procedures.md)
+- [Repository README](../README.md)
 
 ---
+
 [← Back to Documentation](README.md)
