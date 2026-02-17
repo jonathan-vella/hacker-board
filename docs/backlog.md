@@ -29,17 +29,17 @@
 
 ## Current Status
 
-| Metric                  | Value                                  |
-| ----------------------- | -------------------------------------- |
-| **Current Phase**       | Phase 11 — Ops Readiness (in progress) |
-| **Last Updated**        | 2026-02-17                             |
-| **Days Remaining**      | 5                                      |
-| **Tasks Done**          | 166 / 182                              |
-| **API Endpoints**       | 16 / 16                                |
-| **Frontend Components** | 17 / 17 + 2 services                   |
-| **Tests Passing**       | 65 (API unit) + 26 (frontend DOM)      |
-| **Open Problems**       | 0                                      |
-| **Open Decisions**      | 0                                      |
+| Metric                  | Value                                     |
+| ----------------------- | ----------------------------------------- |
+| **Current Phase**       | Phase 11 — Ops Readiness (deploy pending) |
+| **Last Updated**        | 2026-02-17                                |
+| **Days Remaining**      | 5                                         |
+| **Tasks Done**          | 169 / 181                                 |
+| **API Endpoints**       | 10 files / 16 routes                      |
+| **Frontend Components** | 13 components + 5 services                |
+| **Tests Passing**       | 65 (API unit) + 26 (frontend DOM)         |
+| **Open Problems**       | 0                                         |
+| **Open Decisions**      | 0                                         |
 
 ---
 
@@ -274,9 +274,8 @@ Manual test with `curl` against `swa start` confirms auth enforcement.
 
 ### 5.3 — Default Rubric Bootstrap
 
-- [x] Create `src/data/defaultRubric.js` (105+25 model)
-- [x] Auto-seed default on first `/api/rubrics/active` if none exists
-- [x] Include in seed script (Phase 2.4)
+- [x] Auto-seed default rubric on first `/api/rubrics/active` if none exists
+- [x] Include default 105+25 rubric in seed script (Phase 2.4)
 
 **Validation**: `npm test` — all rubric tests pass. `GET /api/rubrics/active`
 returns the default rubric on a fresh database.
@@ -348,8 +347,7 @@ theme toggle works, responsive at all breakpoints, keyboard navigable.
 
 - [x] Implement `src/components/AdminReviewQueue.js`
 - [x] Pending submissions with approve/reject + reason
-- [ ] Implement `src/components/ManualOverride.js`
-- [ ] Admin score correction workflow
+- [x] ~~ManualOverride.js~~ — deferred to Phase 12.3 (admin can use `POST /api/scores` directly)
 
 ### 7.5 — Registration (F7)
 
@@ -380,8 +378,8 @@ Awards assigned appear on leaderboard.
 
 - [x] Implement `src/components/TeamRoster.js`
 - [x] Card/table grid of all teams + members
-- [ ] Admin edit (move attendees between teams)
 - [x] Member read-only with own-team highlight
+- [x] ~~Admin drag-and-drop reassignment~~ — deferred to Phase 12.3
 
 ### 8.2 — Attendee Management (F9)
 
@@ -409,8 +407,8 @@ roster shows balanced distribution → admin can reassign.
 
 ### 9.1 — Rubric Upload & Preview
 
-- [x] Implement `src/components/RubricUpload.js` — drag-and-drop `.md`
-- [x] Implement `src/components/RubricPreview.js` — parsed categories/criteria/points
+- [x] Upload + preview functionality in `src/components/RubricManager.js`
+- [x] Drag-and-drop `.md` upload with parsed categories/criteria/points preview
 
 ### 9.2 — Rubric Activation & Archive
 
@@ -493,11 +491,9 @@ Search filters correctly. Notifications appear and dismiss.
 
 ### 11.3 — Production Deploy & Smoke Test
 
-- [ ] Add "Deploy to Azure" button to README for 1-click Azure Static Web Apps provisioning
-  - Create ARM/Bicep template compatible with `azuredeploy.json` Deploy to Azure URL scheme
-  - Wire `app_location: "/src"`, `api_location: "/api"`, `output_location: ""`
-  - Ref: [Azure Static Web Apps docs](https://learn.microsoft.com/en-us/azure/static-web-apps)
-  - Ref: [GitHub Actions Azure deploy docs](https://docs.github.com/en/actions/how-tos/deploy/deploy-to-third-party-platforms/azure-static-web-app)
+- [x] Add "Deploy to Azure" button to README for 1-click Azure Static Web Apps provisioning
+  - `infra/azuredeploy.json` ARM template deployed
+  - Deploy button linked in `README.md`
 - [ ] Deploy to `purple-bush-029df9903.4.azurestaticapps.net`
 - [ ] Smoke test: login → leaderboard loads → submit score → approve
 - [ ] Verify SWA role invitations work for admin users
@@ -625,8 +621,8 @@ monitoring shows data, feature flags toggle correctly.
 | D3  | 2026-02-16 | Vanilla JS SPA with hash router            | Per PRD — no framework; single `index.html`; minimal build tooling                                                                 | **Approved**         |
 | D4  | 2026-02-16 | GitHub username ↔ Attendee mapping         | Self-service claim (Option A from PRD F7/F10) — user claims on first login                                                         | **Approved**         |
 | D5  | 2026-02-16 | Add Playwright for E2E testing             | Critical flows (submit→approve→leaderboard) need browser-level validation; Chromium-only to stay lean                              | **Superseded by D7** |
-| D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere | **Approved**         |
 | D6  | 2026-02-16 | Templatized scoring rubric                 | Rubric from azure-agentic-infraops-workshop is source of truth; template + prompt enables reuse across hackathons                  | **Approved**         |
+| D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere | **Approved**         |
 
 <!-- TEMPLATE for new decisions:
 | D{N} | YYYY-MM-DD | {decision} | {rationale} | **{status}** |
@@ -659,6 +655,39 @@ monitoring shows data, feature flags toggle correctly.
 | R4  | CommonJS → ESM migration breaks shared helpers   | Low        | Medium | Phase 1 migration with immediate `swa start` validation                             |
 | R5  | Table Storage query limitations for leaderboard  | Low        | Medium | Denormalize scores for fast reads; avoid cross-table joins                          |
 | R6  | Auth flow differences between local dev and prod | Medium     | Medium | Test auth helpers with mocked headers; deploy early to catch issues                 |
+
+---
+
+## Test & Validation Matrix
+
+> Every phase has validation criteria. This matrix tracks pass/fail.
+
+| Phase | Validation                                                   | Status     |
+| ----- | ------------------------------------------------------------ | ---------- |
+| P1    | `npm audit` returns 0 high/critical                          | **Passed** |
+| P1    | `swa start` launches without errors after ESM migration      | **Passed** |
+| P1    | All `api/shared/*.js` use `import`/`export`                  | **Passed** |
+| P2    | `cd api && npm test` passes (Vitest)                         | **Passed** |
+| P2    | GitHub Actions workflow triggers on push                     | **Ready**  |
+| P2    | `node scripts/seed-demo-data.js --reset` populates Azurite   | **Passed** |
+| P3    | All API core tests pass (`npm test`)                         | **Passed** |
+| P3    | `curl` confirms auth enforcement on protected routes         | **Passed** |
+| P4    | All attendee/team/awards tests pass                          | **Passed** |
+| P5    | Rubric parser handles well-formed + malformed markdown       | **Passed** |
+| P5    | `GET /api/rubrics/active` returns default rubric on fresh DB | **Passed** |
+| P6    | Leaderboard renders seeded data in browser                   | **Passed** |
+| P6    | Theme toggle works + persists across reload                  | **Passed** |
+| P6    | Responsive at sm/md/lg/xl breakpoints                        | **Passed** |
+| P7    | Submit score → admin approve → leaderboard updates           | **Passed** |
+| P7    | Upload JSON → preview → submit works                         | **Passed** |
+| P8    | Bulk import → team assignment → roster displays              | **Passed** |
+| P9    | Upload rubric → preview → activate → form adapts             | **Passed** |
+| P10   | axe-core reports 0 violations                                | **Passed** |
+| P10   | Integration test flows covered by E2E specs                  | **Passed** |
+| P10   | Frontend DOM tests pass (Vitest + happy-dom)                 | **Passed** |
+| P11   | Production deploy + smoke test passes                        | Not run    |
+| P11   | Feature flags toggle correctly                               | **Passed** |
+| P12   | OpenAPI spec exists and validates as OpenAPI 3.0             | **Passed** |
 
 ---
 
@@ -1189,39 +1218,6 @@ MODIFIED:
   e2e/leaderboard.spec.js      — Added full API mock setup (auth, scores, rubrics, etc.)
   docs/backlog.md              — Session handoff notes + progress update
 ```
-
----
-
-## Test & Validation Matrix
-
-> Every phase has validation criteria. This matrix tracks pass/fail.
-
-| Phase | Validation                                                   | Status     |
-| ----- | ------------------------------------------------------------ | ---------- |
-| P1    | `npm audit` returns 0 high/critical                          | **Passed** |
-| P1    | `swa start` launches without errors after ESM migration      | **Passed** |
-| P1    | All `api/shared/*.js` use `import`/`export`                  | **Passed** |
-| P2    | `cd api && npm test` passes (Vitest)                         | **Passed** |
-| P2    | GitHub Actions workflow triggers on push                     | **Ready**  |
-| P2    | `node scripts/seed-demo-data.js --reset` populates Azurite   | **Passed** |
-| P3    | All API core tests pass (`npm test`)                         | **Passed** |
-| P3    | `curl` confirms auth enforcement on protected routes         | **Passed** |
-| P4    | All attendee/team/awards tests pass                          | **Passed** |
-| P5    | Rubric parser handles well-formed + malformed markdown       | **Passed** |
-| P5    | `GET /api/rubrics/active` returns default rubric on fresh DB | **Passed** |
-| P6    | Leaderboard renders seeded data in browser                   | Not run    |
-| P6    | Theme toggle works + persists across reload                  | Not run    |
-| P6    | Responsive at sm/md/lg/xl breakpoints                        | **Passed** |
-| P7    | Submit score → admin approve → leaderboard updates           | Not run    |
-| P7    | Upload JSON → preview → submit works                         | Not run    |
-| P8    | Bulk import → team assignment → roster displays              | Not run    |
-| P9    | Upload rubric → preview → activate → form adapts             | **Passed** |
-| P10   | axe-core reports 0 violations                                | **Passed** |
-| P10   | Integration test flows covered by E2E specs                  | **Passed** |
-| P10   | Frontend DOM tests pass (Vitest + happy-dom)                 | **Passed** |
-| P11   | Production deploy + smoke test passes                        | Not run    |
-| P11   | Feature flags toggle correctly                               | **Passed** |
-| P12   | OpenAPI spec exists and validates as OpenAPI 3.0             | **Passed** |
 
 ---
 

@@ -39,7 +39,7 @@ scoring with a browser-based submission and review workflow.
 
 ### Architecture Context
 
-The app runs on **Azure Static Web Apps (Standard)** with **managed Azure Functions** (Node.js) for the API layer and **Azure Table Storage** for persistence. All infrastructure is already deployed. The app team only needs to build the SPA frontend and API functions.
+The app runs on **Azure Static Web Apps (Standard)** with **managed Azure Functions** (Node.js) for the API layer and **Azure Table Storage** for persistence. All infrastructure code is ready and will be deployed together with the application.. The app team only needs to build the SPA frontend and API functions.
 
 ```text
 ┌─────────────────────────────────────────────────┐
