@@ -1,7 +1,17 @@
 ---
 description: "Review Azure architecture decisions using Well-Architected Framework principles for the HackerBoard project"
 name: "Azure Architect"
-tools: ["codebase", "editFiles", "search", "problems", "fetch"]
+argument-hint: "Describe the architecture decision or component to review"
+tools: ["read", "search", "fetch", "problems", "azure-mcp/*"]
+handoffs:
+  - label: "Start UX Design"
+    agent: UX Designer
+    prompt: "Map user journeys and accessibility requirements based on the architecture decisions above."
+    send: false
+  - label: "Skip to Implementation"
+    agent: Implementation Planner
+    prompt: "Create a structured implementation plan based on the architecture assessment above."
+    send: false
 ---
 
 # Azure Principal Architect
@@ -74,17 +84,21 @@ This agent produces for the next step (UX Designer, Step 3):
 **Cost Impact**: [estimate]
 
 ### Service Recommendations
+
 | Service | Configuration | Rationale |
-|---------|--------------|-----------|
-| ...     | ...          | ...       |
+| ------- | ------------- | --------- |
+| ...     | ...           | ...       |
 
 ### Trade-offs
+
 - [pillar A] vs [pillar B]: [description]
 
 ### Implementation Guidance
+
 - [actionable next steps]
 
 ### Ready for Review
+
 - [ ] All 5 WAF pillars assessed
 - [ ] Cost estimate within target (< $10/mo)
 - [ ] Trade-offs explicitly documented

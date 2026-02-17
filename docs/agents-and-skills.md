@@ -5,37 +5,79 @@
 ![Scope](https://img.shields.io/badge/Scope-Agents%20%26%20Skills-0ea5e9)
 
 > Reference guide for HackerBoard's AI agents, skills,
-> orchestration workflow, and prompt examples.
+> orchestration workflow, handoff chains, and prompt examples.
 
 HackerBoard uses 6 specialized AI agents, 1 Conductor
 orchestrator, and 3 reusable skills to streamline development.
-Each agent handles a specific workflow phase, and the Conductor
-coordinates them in sequence with approval gates between steps.
+Each agent handles a specific workflow phase and can be used
+standalone or as a subagent delegated by the Conductor.
+Handoff buttons provide guided transitions between agents.
 
 ## Quick Links
 
-| Area | Link | Description |
-| ---- | ---- | ----------- |
-| 🏠 | [Documentation Hub](README.md) | Main docs landing page |
-| 📋 | [Execution Plan](backlog.md) | Current phase status and tracked work |
-| 📜 | [Docs Standards](../.github/instructions/docs.instructions.md) | Formatting and structure conventions |
+| Area | Link                                                                                            | Description                             |
+| ---- | ----------------------------------------------------------------------------------------------- | --------------------------------------- |
+| 🏠   | [Documentation Hub](README.md)                                                                  | Main docs landing page                  |
+| 📋   | [Execution Plan](backlog.md)                                                                    | Current phase status and tracked work   |
+| 📜   | [Docs Standards](../.github/instructions/docs.instructions.md)                                  | Formatting and structure conventions    |
+| 🤖   | [VS Code Custom Agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents) | Official docs on custom agents          |
+| 🔗   | [VS Code Subagents](https://code.visualstudio.com/docs/copilot/agents/subagents)                | Official docs on subagent orchestration |
 
 ---
 
 ## Agent Inventory
 
 Agents are interactive AI assistants for specific workflow phases.
-Invoke them with `@agent-name` in GitHub Copilot Chat.
+Invoke them with `@agent-name` in GitHub Copilot Chat, or let
+the Conductor delegate to them as subagents.
 
-| Agent | Emoji | Conductor Step | Description | Invocation |
-| --- | --- | --- | --- | --- |
-| Task Planner | 📋 | 1 — Plan | Research and plan tasks | `@task-planner` |
-| Azure Architect | 🏛️ | 2 — Architect | WAF review and design | `@azure-architect` |
-| UX Designer | 🎨 | 3 — Design | User journeys, accessibility | `@ux-designer` |
-| Implementation Planner | 📐 | 4 — Plan | Structured implementation plans | `@implementation-planner` |
-| Bicep AVM Expert | ⚒️ | 5 — Implement | Bicep IaC with Azure Verified Modules | `@bicep-avm` |
-| Security Reviewer | 🔍 | 6 — Review | OWASP Top 10, Zero Trust code review | `@security-reviewer` |
-| HackerBoard Conductor | 🎼 | Orchestrator | Coordinates all agents | `@hackerboard-conductor` |
+| Agent                  | Conductor Step | Tools                                      | Description                           | Invocation                |
+| ---------------------- | -------------- | ------------------------------------------ | ------------------------------------- | ------------------------- |
+| Task Planner           | 1 — Plan       | read, search, fetch, problems              | Research and plan tasks               | `@task-planner`           |
+| Azure Architect        | 2 — Architect  | read, search, fetch, problems              | WAF review and design                 | `@azure-architect`        |
+| UX Designer            | 3 — Design     | read, search, fetch                        | User journeys, accessibility          | `@ux-designer`            |
+| Implementation Planner | 4 — Implement  | read, search, edit, fetch, problems        | Structured implementation plans       | `@implementation-planner` |
+| Security Reviewer      | 5 — Review     | read, search, problems                     | OWASP Top 10, Zero Trust code review  | `@security-reviewer`      |
+| Bicep AVM Expert       | 6 — Deploy     | read, search, edit, fetch, problems        | Bicep IaC with Azure Verified Modules | `@bicep-avm`              |
+| HackerBoard Conductor  | Orchestrator   | agent, read, search, edit, fetch, problems | Coordinates all agents                | `@hackerboard-conductor`  |
+
+---
+
+## Handoff Chains
+
+Each agent provides handoff buttons that appear after a response,
+enabling guided transitions to the next workflow step. Users
+select a handoff button to switch agents with a pre-filled prompt.
+
+```mermaid
+graph LR
+    TP[Task Planner] -->|"Start Architecture Review"| AA[Azure Architect]
+    TP -->|"Skip to Implementation"| IP[Implementation Planner]
+    AA -->|"Start UX Design"| UX[UX Designer]
+    AA -->|"Skip to Implementation"| IP
+    UX -->|"Start Implementation Planning"| IP
+    IP -->|"Start Security Review"| SR[Security Reviewer]
+    SR -->|"Deploy Infrastructure"| BA[Bicep AVM Expert]
+    SR -->|"Fix Issues"| IP
+```
+
+The Conductor offers all handoffs from a single entry point,
+making it the recommended starting point for full workflows.
+
+---
+
+## Subagent Delegation
+
+The Conductor uses the `agent` tool to run workers as subagents.
+Each subagent runs in an isolated context window and returns
+only a summary to the Conductor.
+
+**Key properties:**
+
+- Subagents are synchronous — the Conductor waits for results
+- Multiple subagents can run in parallel for independent tasks
+- Only the final summary enters the Conductor's context window
+- Each subagent starts with a clean context (no history inheritance)
 
 ---
 
@@ -44,33 +86,38 @@ Invoke them with `@agent-name` in GitHub Copilot Chat.
 Skills are reusable capabilities invokable by agents or directly
 by users. They activate based on trigger phrases in the prompt.
 
-| Skill              | Category      | Trigger Keywords                         | Description                       |
-| ------------------ | ------------- | ---------------------------------------- | --------------------------------- |
-| docs-writer        | Documentation | "update docs", "check staleness"         | Documentation maintenance         |
-| git-commit         | Workflow      | "commit", "/commit"                      | Conventional commit generation    |
-| github-operations  | Workflow      | "create issue", "create PR"              | GitHub operations via MCP/CLI     |
+| Skill             | Category      | Trigger Keywords                 | Description                    |
+| ----------------- | ------------- | -------------------------------- | ------------------------------ |
+| docs-writer       | Documentation | "update docs", "check staleness" | Documentation maintenance      |
+| git-commit        | Workflow      | "commit", "/commit"              | Conventional commit generation |
+| github-operations | Workflow      | "create issue", "create PR"      | GitHub operations via MCP/CLI  |
 
 ---
 
 ## Orchestration Workflow
 
-The Conductor orchestrates agents in a linear pipeline with
-mandatory approval gates between each step.
+The Conductor orchestrates agents as subagents in a linear
+pipeline with mandatory approval gates between each step.
+Agents can also be used standalone with handoff buttons
+for guided transitions.
 
 ```mermaid
 graph LR
-    C[🎼 Conductor] --> TP[📋 Task Planner]
-    TP -->|approval| AA[🏛️ Azure Architect]
-    AA -->|approval| UX[🎨 UX Designer]
-    UX -->|approval| IP[📐 Implementation Planner]
-    IP -->|approval| BA[⚒️ Bicep AVM Expert]
-    BA -->|approval| SR[🔍 Security Reviewer]
-    SR -->|approval| C
+    C[Conductor] --> TP[Task Planner]
+    TP -->|approval| AA[Azure Architect]
+    AA -->|approval| UX[UX Designer]
+    UX -->|approval| IP[Implementation Planner]
+    IP -->|approval| SR[Security Reviewer]
+    SR -->|approval| BA[Bicep AVM Expert]
+    BA -->|approval| C
 ```
 
-Each transition requires user approval before the next agent
-begins. This ensures quality gates and human oversight at every
-step.
+**Two usage modes:**
+
+| Mode          | How                                                                          | Best For                            |
+| ------------- | ---------------------------------------------------------------------------- | ----------------------------------- |
+| Conductor-led | Start with `@hackerboard-conductor` — full orchestration with approval gates | Complete features, multi-step tasks |
+| Agent-direct  | Start with any `@agent` — use handoff buttons to transition                  | Targeted work on a single phase     |
 
 ---
 

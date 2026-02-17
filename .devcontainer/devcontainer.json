@@ -22,6 +22,8 @@
         "GitHub.copilot",
         "GitHub.copilot-chat",
         "github.vscode-github-actions",
+        "ms-azuretools.vscode-azure-github-copilot",
+        "ms-azuretools.vscode-azure-mcp-server",
         "ms-azuretools.vscode-azurefunctions",
         "ms-azuretools.vscode-azurestaticwebapps",
         "ms-vscode.azurecli",

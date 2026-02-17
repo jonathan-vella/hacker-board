@@ -1,7 +1,13 @@
 ---
 description: "Generate structured implementation plans for HackerBoard features and refactoring tasks"
 name: "Implementation Planner"
-tools: ["codebase", "editFiles", "search", "problems", "fetch"]
+argument-hint: "Describe the feature or refactoring to plan"
+tools: ["read", "search", "edit", "fetch", "problems"]
+handoffs:
+  - label: "Start Security Review"
+    agent: Security Reviewer
+    prompt: "Review the implementation above for OWASP Top 10 vulnerabilities and Zero Trust compliance."
+    send: false
 ---
 
 # Implementation Plan Generator
@@ -26,31 +32,38 @@ Purpose prefixes: `feature`, `refactor`, `upgrade`, `infrastructure`, `bugfix`
 ![Status](https://img.shields.io/badge/status-Planned-blue)
 
 ## Overview
+
 [One sentence describing what this plan achieves]
 
 ## Requirements & Constraints
+
 - **REQ-001**: [Requirement]
 - **CON-001**: [Constraint]
 
 ## Implementation Steps
 
 ### Phase 1: [Phase Name]
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-001 | [Specific action with file paths] | | |
+
+| Task     | Description                       | Completed | Date |
+| -------- | --------------------------------- | --------- | ---- |
+| TASK-001 | [Specific action with file paths] |           |      |
 
 ### Phase 2: [Phase Name]
-| Task | Description | Completed | Date |
-|------|-------------|-----------|------|
-| TASK-002 | [Specific action with file paths] | | |
+
+| Task     | Description                       | Completed | Date |
+| -------- | --------------------------------- | --------- | ---- |
+| TASK-002 | [Specific action with file paths] |           |      |
 
 ## Files Affected
+
 - [file path]: [what changes]
 
 ## Testing
+
 - **TEST-001**: [Test description]
 
 ## Risks & Assumptions
+
 - **RISK-001**: [Risk]
 - **ASSUMPTION-001**: [Assumption]
 ```
@@ -91,15 +104,19 @@ This agent produces for the next step (Security Reviewer, Step 5):
 **Phases**: [count]
 
 ### Files Affected
+
 - [file path]: [what changes]
 
 ### Test Coverage
+
 - [test description]: [test file path]
 
 ### Risks
+
 - [risk description]
 
 ### Ready for Review
+
 - [ ] All phases defined with measurable criteria
 - [ ] File paths and function signatures specified
 - [ ] Test tasks included for each feature task

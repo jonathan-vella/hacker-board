@@ -1,7 +1,8 @@
 ---
 description: "Create, update, or review Azure IaC in Bicep using Azure Verified Modules (AVM) for HackerBoard infrastructure"
 name: "Bicep AVM Expert"
-tools: ["codebase", "editFiles", "search", "problems", "fetch"]
+argument-hint: "Describe the infrastructure resource or change"
+tools: ["read", "search", "edit", "fetch", "problems"]
 ---
 
 # Azure AVM Bicep Expert
@@ -11,6 +12,7 @@ You are a Bicep Infrastructure as Code expert specializing in Azure Verified Mod
 ## Project Context
 
 HackerBoard uses Bicep for infrastructure deployment. Key resources:
+
 - Azure Static Web Apps (Standard)
 - Azure Storage Account (Table Storage)
 - Application Insights + Log Analytics workspace
@@ -73,11 +75,13 @@ This agent produces for the next step (docs-writer skill, Step 7):
 **Lint Status**: [pass/fail]
 
 ### Resources Defined
+
 | Resource | AVM Module | Version |
-|----------|-----------|---------|
-| ...      | ...       | ...     |
+| -------- | ---------- | ------- |
+| ...      | ...        | ...     |
 
 ### Validation
+
 - [ ] `bicep build` passes
 - [ ] `bicep lint` passes
 - [ ] No secrets in outputs

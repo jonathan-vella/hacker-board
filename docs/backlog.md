@@ -32,7 +32,7 @@
 | Metric                  | Value                                  |
 | ----------------------- | -------------------------------------- |
 | **Current Phase**       | Phase 11 — Ops Readiness (in progress) |
-| **Last Updated**        | 2026-02-16                             |
+| **Last Updated**        | 2026-02-17                             |
 | **Days Remaining**      | 5                                      |
 | **Tasks Done**          | 166 / 182                              |
 | **API Endpoints**       | 16 / 16                                |
@@ -541,6 +541,16 @@ monitoring shows data, feature flags toggle correctly.
   - Agent inventory table (name, role, step, description)
   - Workflow diagram (Mermaid) showing orchestration flow and handoff points
   - Prompt guide with examples for each agent and skill
+- [x] Modernize agents to VS Code custom agents & subagents spec (Feb 2026)
+  - Ref: [Custom Agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents)
+  - Ref: [Subagents](https://code.visualstudio.com/docs/copilot/agents/subagents)
+  - Add `handoffs` frontmatter to all agents for guided workflow transitions
+  - Update tool names to documented format (`read`, `search`, `edit`, `fetch`, `agent`, `problems`)
+  - Add `argument-hint` to all agents for dropdown guidance
+  - Fix Conductor `agents` array to use `name` property values (not kebab-case filenames)
+  - Add `agent` tool to Conductor for subagent invocation
+  - Add subagent delegation section to Conductor with parallel execution guidance
+  - Update `docs/agents-and-skills.md` with handoff chain diagram and subagent docs
 
 #### Current Agent & Skill Inventory
 
@@ -645,6 +655,36 @@ monitoring shows data, feature flags toggle correctly.
 
 > Each Copilot session MUST update this section before ending.
 > This ensures the next session has full context.
+
+### Session: 2026-02-17 — Agent Modernization (VS Code Custom Agents & Subagents)
+
+**What was done**:
+
+- Modernized all 7 agent files to align with VS Code custom agents & subagents spec (Feb 2026).
+- Added `handoffs` frontmatter to 6 agents for guided workflow transitions between steps.
+- Updated tool names from legacy (`codebase`, `editFiles`) to documented format (`read`, `search`, `edit`, `fetch`, `agent`, `problems`).
+- Added `argument-hint` property to all agents for dropdown guidance text.
+- Fixed Conductor `agents` array to use display `name` values instead of kebab-case filenames.
+- Added `agent` tool to Conductor for proper subagent invocation.
+- Added subagent delegation section to Conductor with parallel execution guidance.
+- Updated `docs/agents-and-skills.md` with handoff chain diagram, subagent docs, tools column, and usage modes table.
+- Refs: [Custom Agents docs](https://code.visualstudio.com/docs/copilot/customization/custom-agents), [Subagents docs](https://code.visualstudio.com/docs/copilot/agents/subagents).
+
+**What's next**:
+
+- Test handoff buttons work in VS Code Copilot Chat by running a workflow with `@hackerboard-conductor`.
+- Consider adding `model` fallback arrays once team settles on preferred models.
+- Consider `user-invokable: false` for worker agents if they should only be subagent-accessible.
+
+**Open questions**:
+
+- None.
+
+**Known issues**:
+
+- Existing CI deploy failure is unrelated (`deployment_token was not provided`).
+
+---
 
 ### Session: 2026-02-16 — OpenAPI + Swagger docs
 

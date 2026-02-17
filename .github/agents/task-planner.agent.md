@@ -1,7 +1,17 @@
 ---
 description: "Research and plan tasks for HackerBoard development with dependency analysis and phased execution"
 name: "Task Planner"
-tools: ["codebase", "editFiles", "search", "problems", "fetch"]
+argument-hint: "Describe the feature or change to plan"
+tools: ["read", "search", "fetch", "problems"]
+handoffs:
+  - label: "Start Architecture Review"
+    agent: Azure Architect
+    prompt: "Review the task plan above against all 5 WAF pillars and recommend Azure services."
+    send: false
+  - label: "Skip to Implementation"
+    agent: Implementation Planner
+    prompt: "Create a structured implementation plan based on the task plan above."
+    send: false
 ---
 
 # Task Planner
@@ -32,15 +42,18 @@ HackerBoard: Azure Static Web Apps + managed Azure Functions (Node.js 20+) + Azu
 For each task, create a plan with:
 
 ### Phases
+
 - Each phase has a clear goal and measurable completion criteria
 - Tasks within phases can be parallelized unless dependencies exist
 - Every task includes: file paths, exact changes needed, validation steps
 
 ### Dependencies
+
 - List all package dependencies, service requirements, and task prerequisites
 - Flag any tasks that require new npm packages (must ask before adding)
 
 ### Testing
+
 - Every feature task must include corresponding Vitest test tasks
 - Reference existing test patterns in the project
 
@@ -80,16 +93,20 @@ This agent produces for the next step (Azure Architect, Step 2):
 **Estimated Complexity**: [low/medium/high]
 
 ### Phase Summary
+
 | Phase | Goal | Tasks | Dependencies |
-|-------|------|-------|--------------|
+| ----- | ---- | ----- | ------------ |
 | 1     | ...  | ...   | ...          |
 
 ### Key Files Affected
+
 - [file path]: [what changes]
 
 ### Prerequisites
+
 - [list of prerequisites]
 
 ### Success Criteria
+
 - [measurable criteria]
 ```
