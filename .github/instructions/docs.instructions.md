@@ -61,12 +61,12 @@ Use emoji + link + description columns for consistent scanning.
 ```markdown
 ## Quick Links
 
-| Area | Link | Description |
-| ---- | ---- | ----------- |
-| 🧩 | [Architecture](app-design.md) | SPA + Functions + Table Storage system design |
-| 🔌 | [API Spec](api-spec.md) | Endpoint contracts, payloads, and error envelopes |
-| 🤖 | [Agents & Skills](agents-and-skills.md) | Agent inventory and skill usage guidance |
-| 📋 | [Backlog](backlog.md) | Current phase status, decisions, and blockers |
+| Area | Link                                    | Description                                       |
+| ---- | --------------------------------------- | ------------------------------------------------- |
+| 🧩   | [Architecture](app-design.md)           | SPA + Functions + Table Storage system design     |
+| 🔌   | [API Spec](api-spec.md)                 | Endpoint contracts, payloads, and error envelopes |
+| 🤖   | [Agents & Skills](agents-and-skills.md) | Agent inventory and skill usage guidance          |
+| 📋   | [Backlog](backlog.md)                   | Current phase status, decisions, and blockers     |
 ```
 
 ## Collapsible Sections
@@ -123,15 +123,15 @@ Prefer tables over bullet lists for inventories and structured references.
 - Configuration columns: `Property | Value`
 
 ```markdown
-| Name | Purpose | File path |
-| ---- | ------- | --------- |
-| Teams API | Team CRUD and listing | `api/src/functions/teams.js` |
+| Name       | Purpose                        | File path                     |
+| ---------- | ------------------------------ | ----------------------------- |
+| Teams API  | Team CRUD and listing          | `api/src/functions/teams.js`  |
 | Scores API | Score submission and retrieval | `api/src/functions/scores.js` |
 
-| Property | Value |
-| -------- | ----- |
-| Runtime | Node.js 20+ |
-| Hosting | Azure Static Web Apps (Standard) |
+| Property | Value                            |
+| -------- | -------------------------------- |
+| Runtime  | Node.js 20+                      |
+| Hosting  | Azure Static Web Apps (Standard) |
 ```
 
 ## Navigation Links
@@ -140,6 +140,7 @@ Every doc page should include a navigation footer link at the bottom:
 
 ```markdown
 ---
+
 [← Back to Documentation](README.md)
 ```
 
@@ -147,18 +148,17 @@ Every doc page should include a navigation footer link at the bottom:
 
 ### Documentation Files
 
-| File                            | Purpose                             |
-| ------------------------------- | ----------------------------------- |
-| `docs/README.md`                | Documentation hub and navigation    |
-| `docs/api-spec.md`              | API endpoint specifications         |
+| File                            | Purpose                                 |
+| ------------------------------- | --------------------------------------- | --- | -------------------------- | --------------------------- | --- | --------------------------- | ----------------------------------- |
+| `docs/README.md`                | Documentation hub and navigation        |
+| `docs/api-spec.md`              | API endpoint specifications             |
 | `docs/admin-procedures.md`      | Admin workflows and operational runbook |
-| `docs/app-design.md`            | Application design and architecture |
-| `docs/app-prd.md`               | Product requirements document       |
-| `docs/app-scaffold.md`          | Project scaffolding guide           |
-| `docs/app-handoff-checklist.md` | Handoff and review checklist        |
-| `docs/agents-and-skills.md`     | Agent/skill inventory, prompt guide |
-| `docs/backlog.md`               | Feature backlog and task tracking   |
-| `README.md`                     | Repo root README                    |
+| `docs/app-design.md`            | Application design and architecture     |
+| `docs/app-prd.md`               | Product requirements document           |
+| `docs/app-scaffold.md`          | Project scaffolding guide               |
+| `docs/app-handoff-checklist.md` | Handoff and review checklist            |     | `docs/deployment-guide.md` | End-to-end deployment guide |     | `docs/agents-and-skills.md` | Agent/skill inventory, prompt guide |
+| `docs/backlog.md`               | Feature backlog and task tracking       |
+| `README.md`                     | Repo root README                        |
 
 ### Agents
 

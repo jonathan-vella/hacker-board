@@ -17,6 +17,7 @@
 | 🔌   | [API Specification](api-spec.md)              | All 16 endpoint contracts                                  |
 | 📘   | [OpenAPI / Swagger](swagger-ui.html)          | Interactive API explorer ([YAML](openapi.yaml))            |
 | 🎨   | [App Design](app-design.md)                   | UI/UX, component model, responsive strategy                |
+| 🚀   | [Deployment Guide](deployment-guide.md)       | End-to-end deploy: infra → CI/CD → roles → smoke test      |
 | 🏗️   | [Scaffold Guide](app-scaffold.md)             | Folder structure, dependencies, helpers                    |
 | ✅   | [Handoff Checklist](app-handoff-checklist.md) | Pre-deploy verification steps                              |
 | 📊   | [Backlog](backlog.md)                         | Execution plan, task tracking, decision log                |

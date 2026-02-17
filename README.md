@@ -74,8 +74,10 @@ cd infra
 ./deploy.ps1 -CostCenter "microhack" -TechnicalContact "team@contoso.com"
 ```
 
-See [docs/app-handoff-checklist.md](docs/app-handoff-checklist.md) for the full
-wiring guide (secrets, roles, managed identity, table creation).
+See [docs/deployment-guide.md](docs/deployment-guide.md) for the full
+end-to-end deployment guide (infra, OIDC, secrets, roles, table creation,
+smoke testing). For the legacy pre-deploy checklist, see
+[docs/app-handoff-checklist.md](docs/app-handoff-checklist.md).
 
 ## Features
 

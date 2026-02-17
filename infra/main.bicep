@@ -15,16 +15,16 @@ param environment string = 'prod'
 param location string = 'westeurope'
 
 @description('Resource owner identifier.')
-param owner string = 'agentic-infraops'
+param owner string = 'microhack-agentic-infraops'
 
 @description('Cost center code required by Azure Policy.')
-param costCenter string
+param costCenter string = 'microhack-agentic-infraops'
 
 @description('Technical contact email required by Azure Policy.')
 param technicalContact string
 
 @description('GitHub repository URL for Static Web App source linkage.')
-param repositoryUrl string = ''
+param repositoryUrl string = 'https://github.com/jonathan-vella/hacker-board'
 
 @description('GitHub repository branch for Static Web App.')
 param repositoryBranch string = 'main'
