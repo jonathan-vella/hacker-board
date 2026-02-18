@@ -27,8 +27,8 @@
     Technical contact email required by Azure Policy.
 
 .PARAMETER SqlAdminObjectId
-    Entra ID Object ID of the user or group to assign as SQL Entra admin.
-    Required for production deployments.
+    Deprecated — no longer used. The deployment UAMI created by Bicep is the SQL
+    Entra admin. Kept as an accepted parameter so existing scripts do not break.
 
 .PARAMETER AdminEmail
     GitHub email address of the first admin to invite to the Static Web App.
@@ -181,9 +181,6 @@ $deployParams = @(
     '--parameters', "repositoryUrl=$RepositoryUrl"
     '--parameters', "repositoryBranch=$RepositoryBranch"
 )
-if ($SqlAdminObjectId -ne '') {
-    $deployParams += @('--parameters', "sqlAdminObjectId=$SqlAdminObjectId")
-}
 if ($AdminEmail -ne '') {
     $deployParams += @('--parameters', "adminEmail=$AdminEmail")
 }
@@ -209,7 +206,7 @@ $deployParams += @(
     '--output', 'json'
 )
 
-$result = az deployment group create @deployParams 2>$null
+$result = az deployment group create @deployParams 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Host "  ❌ Deployment failed:" -ForegroundColor Red
     Write-Host $result -ForegroundColor Red
@@ -252,29 +249,27 @@ if ($deploymentResult.properties.outputs) {
         if ($o.sqlDatabaseName.value) {
             Write-Host "     SQL DB:       $($o.sqlDatabaseName.value)"
         }
+        if ($o.deploymentIdentityName.value) {
+            Write-Host "     Deploy UAMI:  $($o.deploymentIdentityName.value)  (SQL Entra admin)"
+        }
+        if ($o.deploymentIdentityPrincipalId.value) {
+            Write-Host "     UAMI OID:     $($o.deploymentIdentityPrincipalId.value)  ← assign Directory Readers in Entra ID" -ForegroundColor Yellow
+        }
     }
 
-    # ── Post-deploy: SQL schema migration ───────────────────────────────────
-    if (-not $SkipSchema) {
-        Write-Host ""
-        Write-Host "  🗃️  Running SQL schema migration..." -ForegroundColor Yellow
-
-        $sqlFqdn = if ($o -and $o.sqlServerFqdn.value) { $o.sqlServerFqdn.value } else { '' }
-        $sqlDb   = if ($o -and $o.sqlDatabaseName.value) { $o.sqlDatabaseName.value } else { 'hacker-board-db' }
-
-        if ($sqlFqdn -ne '') {
-            $scriptRoot = Split-Path -Parent $PSScriptRoot
-            $env:SQL_SERVER_FQDN   = $sqlFqdn
-            $env:SQL_DATABASE_NAME = $sqlDb
-            node "$scriptRoot/scripts/deploy-schema.js"
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "  ❌ Schema migration failed" -ForegroundColor Red
-                exit 1
-            }
-            Write-Host "  ✅ Schema migration complete" -ForegroundColor Green
-        } else {
-            Write-Host "  ⚠️  sqlServerFqdn output not available — skipping schema migration" -ForegroundColor Yellow
-        }
+    # ── Post-deploy: SQL schema + grants ─────────────────────────────────────
+    # Schema migration and db_owner grants run automatically inside the VNet
+    # via an Azure Container Instance (Bicep deploymentScript in sql-grant.bicep).
+    # No public SQL access is needed — everything runs behind the private endpoint.
+    Write-Host ""
+    Write-Host "  🗃️  SQL schema migration and SWA db_owner grant are handled" -ForegroundColor Green
+    Write-Host "     automatically by the sql-grant Bicep deployment script." -ForegroundColor Green
+    Write-Host "  ⚠️  PREREQUISITE: The SQL server's managed identity must have" -ForegroundColor Yellow
+    Write-Host "     the Entra ID 'Directory Readers' role assigned — otherwise" -ForegroundColor Yellow
+    Write-Host "     CREATE USER FROM EXTERNAL PROVIDER will fail." -ForegroundColor Yellow
+    if ($o -and $o.deploymentIdentityPrincipalId.value) {
+        Write-Host "     Assign: Portal → Entra ID → Roles → Directory Readers → Add member" -ForegroundColor Yellow
+        Write-Host "             Object ID: $($o.deploymentIdentityPrincipalId.value)" -ForegroundColor Yellow
     }
 
     # ── Post-deploy: Admin invitation ────────────────────────────────────────
@@ -296,9 +291,10 @@ if ($deploymentResult.properties.outputs) {
 
 Write-Host ""
 Write-Host "ℹ️  Next steps:" -ForegroundColor Yellow
-Write-Host "  1. Link your GitHub repo to the Static Web App (if not set via repositoryUrl)"
-Write-Host "  2. Configure staticwebapp.config.json with GitHub OAuth and admin/member roles"
-Write-Host "  3. Grant the SWA managed identity the SQL db_owner or db_datareader/writer role"
-Write-Host "     ALTER ROLE db_owner ADD MEMBER [<swa-name>] (as Entra admin in SQL)"
-Write-Host "  4. Invite admin users: ./scripts/invite-admin.sh --app <name> --rg <rg> --email <email>"
+Write-Host "  1. Assign 'Directory Readers' Entra ID role to the SQL server managed identity"
+Write-Host "     (needed so 'CREATE USER FROM EXTERNAL PROVIDER' can resolve principals)"
+Write-Host "  2. Re-run: az deployment group create ... (the sql-grant script will then succeed)"
+Write-Host "  3. Set AZURE_STATIC_WEB_APPS_API_TOKEN in GitHub repo secrets then push to main"
+Write-Host "  4. Accept the admin invitation in your email (expires in 24 hours)"
+Write-Host "  5. To add more admins: ./scripts/invite-admin.sh --app <name> --rg <rg> --email <email>"
 Write-Host ""

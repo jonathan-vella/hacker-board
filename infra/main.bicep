@@ -49,13 +49,10 @@ param repositoryBranch string = 'main'
 @description('UTC timestamp used to generate unique sub-deployment names. Prevents DeploymentActive conflicts on re-deploy.')
 param deploymentTimestamp string = utcNow('yyyyMMddHHmmss')
 
-@description('Email address (UPN) of the Entra ID admin user/group for SQL Server administration.')
+@description('Email address (UPN) sent the SWA admin invitation. Also granted db_owner access in SQL via the post-deploy grant script.')
 param adminEmail string
 
-@description('Object ID of the Entra ID admin user/group for SQL Server administration.')
-param sqlAdminObjectId string
-
-@description('Enable Private Endpoint for Azure SQL Server. When true, a VNet, Private Endpoint, and Private DNS Zone are created. Set to false for cost-saving dev deployments.')
+@description('Enable Private Endpoint for Azure SQL Server. When true, a VNet, Private Endpoint, Private DNS Zone, and in-VNet SQL grant script are created. Set to false for cost-saving dev deployments.')
 param enablePrivateEndpoint bool = true
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -70,6 +67,21 @@ var tags = {
   owner: owner
   costCenter: costCenter
   technicalContact: technicalContact
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Deployment identity — UAMI used as the SQL Entra admin so the in-VNet
+// deployment script can connect to SQL and grant db_owner to the SWA identity.
+// Reference: https://learn.microsoft.com/azure/azure-sql/database/authentication-aad-configure
+// PREREQUISITE: After first deploy, assign the SQL server's system-assigned
+// managed identity the Entra ID "Directory Readers" role so it can resolve
+// external principals (needed for CREATE USER ... FROM EXTERNAL PROVIDER).
+// ──────────────────────────────────────────────────────────────────────────────
+
+resource deploymentIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: 'id-deploy-${suffix}'
+  location: location
+  tags: tags
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -102,8 +114,11 @@ module sql 'modules/sql-server.bicep' = {
     location: location
     tags: tags
     databaseName: 'hackerboard'
-    administratorLogin: adminEmail
-    administratorObjectId: sqlAdminObjectId
+    // The UAMI is the SQL Entra admin so the sql-grant deployment script can
+    // connect via managed identity and run DDL without a password or public access.
+    administratorLogin: deploymentIdentity.name
+    administratorObjectId: deploymentIdentity.properties.principalId
+    administratorPrincipalType: 'Application'
   }
 }
 
@@ -137,6 +152,25 @@ module sqlPrivateEndpoint 'modules/sql-private-endpoint.bicep' = if (enablePriva
   }
 }
 
+module sqlGrant 'modules/sql-grant.bicep' = if (enablePrivateEndpoint) {
+  name: 'sql-grant-${deploymentTimestamp}'
+  params: {
+    location: location
+    tags: tags
+    deploymentIdentityId: deploymentIdentity.id
+    scriptsSubnetId: vnet!.outputs.scriptsSubnetId
+    sqlServerFqdn: sql.outputs.serverFqdn
+    sqlDatabaseName: sql.outputs.databaseName
+    swaName: staticWebApp.outputs.staticWebAppName
+    operatorLogin: adminEmail
+    deploymentTimestamp: deploymentTimestamp
+  }
+  dependsOn: [
+    sqlPrivateEndpoint
+    privateDns
+  ]
+}
+
 module staticWebApp 'modules/static-web-app.bicep' = {
   name: 'static-web-app-${deploymentTimestamp}'
   params: {
@@ -160,6 +194,12 @@ output swaHostname string = staticWebApp.outputs.defaultHostname
 
 @description('Name of the Static Web App resource.')
 output swaName string = staticWebApp.outputs.staticWebAppName
+
+@description('Name of the deployment UAMI used as the SQL Entra admin.')
+output deploymentIdentityName string = deploymentIdentity.name
+
+@description('Principal ID of the deployment UAMI — used to identify it for Directory Readers role assignment.')
+output deploymentIdentityPrincipalId string = deploymentIdentity.properties.principalId
 
 @description('Principal ID of the SWA system-assigned managed identity.')
 output swaPrincipalId string = staticWebApp.outputs.principalId

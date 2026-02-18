@@ -8,9 +8,10 @@ param location string
 param tags object
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Virtual Network via AVM — two subnets:
-//   snet-swa    : SWA VNet integration (no delegation required for Standard SWA)
-//   snet-sql-pe : SQL Private Endpoint placement
+// Virtual Network via AVM — three subnets:
+//   snet-swa     : SWA VNet integration (no delegation required for Standard SWA)
+//   snet-sql-pe  : SQL Private Endpoint placement
+//   snet-scripts : Azure Container Instances for deployment scripts (sql-grant)
 // ──────────────────────────────────────────────────────────────────────────────
 
 module vnet 'br/public:avm/res/network/virtual-network:0.7.0' = {
@@ -36,6 +37,13 @@ module vnet 'br/public:avm/res/network/virtual-network:0.7.0' = {
         privateEndpointNetworkPolicies: 'Disabled'
         privateLinkServiceNetworkPolicies: 'Disabled'
       }
+      {
+        name: 'snet-scripts'
+        addressPrefix: '10.0.3.0/24'
+        // Required delegation — ACI containers for deploymentScripts must run
+        // in a subnet delegated to ContainerInstance/containerGroups.
+        delegation: 'Microsoft.ContainerInstance/containerGroups'
+      }
     ]
   }
 }
@@ -55,3 +63,6 @@ output swaSubnetId string = vnet.outputs.subnetResourceIds[0]
 
 @description('Resource ID of the SQL Private Endpoint subnet.')
 output sqlPeSubnetId string = vnet.outputs.subnetResourceIds[1]
+
+@description('Resource ID of the deployment scripts subnet (ACI).')
+output scriptsSubnetId string = vnet.outputs.subnetResourceIds[2]

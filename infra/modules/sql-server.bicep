@@ -16,6 +16,10 @@ param administratorLogin string
 @description('Object ID of the Entra ID admin user/group.')
 param administratorObjectId string
 
+@description('Principal type of the Entra ID administrator. Use Application for managed identities.')
+@allowed(['User', 'Group', 'Application'])
+param administratorPrincipalType string = 'User'
+
 // ──────────────────────────────────────────────────────────────────────────────
 // SQL Server + Database via AVM
 // ──────────────────────────────────────────────────────────────────────────────
@@ -30,7 +34,7 @@ module sqlServer 'br/public:avm/res/sql/server:0.14.0' = {
     administrators: {
       azureADOnlyAuthentication: true
       login: administratorLogin
-      principalType: 'User'
+      principalType: administratorPrincipalType
       sid: administratorObjectId
       tenantId: tenant().tenantId
     }
