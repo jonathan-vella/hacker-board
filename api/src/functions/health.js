@@ -28,17 +28,19 @@ async function handleHealth(request) {
     }
   }
 
-  const diagnostics = request.query.get("diag") === "1"
-    ? {
-        identityEndpoint: !!process.env.IDENTITY_ENDPOINT,
-        identityHeader: !!process.env.IDENTITY_HEADER,
-        msiEndpoint: !!process.env.MSI_ENDPOINT,
-        msiSecret: !!process.env.MSI_SECRET,
-        storageAccount: process.env.STORAGE_ACCOUNT_NAME ?? "(unset)",
-        connectionString: !!process.env.AZURE_STORAGE_CONNECTION_STRING,
-        nodeVersion: process.version,
-      }
-    : undefined;
+  const diagnostics =
+    request.query.get("diag") === "1"
+      ? {
+          identityEndpoint: !!process.env.IDENTITY_ENDPOINT,
+          identityHeader: !!process.env.IDENTITY_HEADER,
+          msiEndpoint: !!process.env.MSI_ENDPOINT,
+          msiSecret: !!process.env.MSI_SECRET,
+          azureClientId: !!process.env.AZURE_CLIENT_ID,
+          storageAccount: process.env.STORAGE_ACCOUNT_NAME ?? "(unset)",
+          connectionString: !!process.env.AZURE_STORAGE_CONNECTION_STRING,
+          nodeVersion: process.version,
+        }
+      : undefined;
 
   return {
     status: healthy ? 200 : 503,

@@ -1,5 +1,8 @@
 import { TableClient } from "@azure/data-tables";
-import { DefaultAzureCredential } from "@azure/identity";
+import {
+  ManagedIdentityCredential,
+  DefaultAzureCredential,
+} from "@azure/identity";
 
 const STORAGE_ACCOUNT = process.env.STORAGE_ACCOUNT_NAME;
 const CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
@@ -18,6 +21,21 @@ function resolveConnectionString() {
   return undefined;
 }
 
+// SWA managed functions don't expose IDENTITY_ENDPOINT/MSI_ENDPOINT,
+// so DefaultAzureCredential's chain fails. Use ManagedIdentityCredential
+// directly when a client ID is provided, falling back to DefaultAzureCredential
+// for local dev.
+function resolveCredential() {
+  if (credential) return credential;
+  const clientId = process.env.AZURE_CLIENT_ID;
+  if (clientId) {
+    credential = new ManagedIdentityCredential(clientId);
+  } else {
+    credential = new DefaultAzureCredential();
+  }
+  return credential;
+}
+
 const ensuredTables = new Set();
 
 export function getTableClient(tableName) {
@@ -28,11 +46,9 @@ export function getTableClient(tableName) {
       allowInsecureConnection: true,
     });
   } else {
-    if (!credential) {
-      credential = new DefaultAzureCredential();
-    }
+    const cred = resolveCredential();
     const url = `https://${STORAGE_ACCOUNT}.table.core.windows.net`;
-    client = new TableClient(url, tableName, credential);
+    client = new TableClient(url, tableName, cred);
   }
   return client;
 }
