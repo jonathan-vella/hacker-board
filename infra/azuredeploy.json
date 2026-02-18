@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "10233036414542113774"
+      "templateHash": "1782164471186980002"
     }
   },
   "parameters": {
@@ -12197,7 +12197,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "13123228276273579135"
+              "templateHash": "2397261907960637409"
             }
           },
           "parameters": {
@@ -12247,6 +12247,18 @@
             }
           },
           "resources": [
+            {
+              "type": "Microsoft.Web/staticSites/basicAuth",
+              "apiVersion": "2023-12-01",
+              "name": "[format('{0}/default', parameters('name'))]",
+              "properties": {
+                "applicableEnvironmentsMode": "AllEnvironments",
+                "environments": []
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', 'static-web-app')]"
+              ]
+            },
             {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2025-04-01",
