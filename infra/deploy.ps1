@@ -260,16 +260,51 @@ if ($deploymentResult.properties.outputs) {
     # ── Post-deploy: SQL schema + grants ─────────────────────────────────────
     # Schema migration and db_owner grants run automatically inside the VNet
     # via an Azure Container Instance (Bicep deploymentScript in sql-grant.bicep).
-    # No public SQL access is needed — everything runs behind the private endpoint.
     Write-Host ""
-    Write-Host "  🗃️  SQL schema migration and SWA db_owner grant are handled" -ForegroundColor Green
-    Write-Host "     automatically by the sql-grant Bicep deployment script." -ForegroundColor Green
-    Write-Host "  ⚠️  PREREQUISITE: The SQL server's managed identity must have" -ForegroundColor Yellow
-    Write-Host "     the Entra ID 'Directory Readers' role assigned — otherwise" -ForegroundColor Yellow
-    Write-Host "     CREATE USER FROM EXTERNAL PROVIDER will fail." -ForegroundColor Yellow
-    if ($o -and $o.deploymentIdentityPrincipalId.value) {
-        Write-Host "     Assign: Portal → Entra ID → Roles → Directory Readers → Add member" -ForegroundColor Yellow
-        Write-Host "             Object ID: $($o.deploymentIdentityPrincipalId.value)" -ForegroundColor Yellow
+    Write-Host "  🗃️  SQL schema migration and db_owner grants are handled automatically" -ForegroundColor Green
+    Write-Host "     by the Bicep deployment (in-VNet Azure Container Instance)." -ForegroundColor Green
+
+    # ── Post-deploy: Directory Readers Entra role for SQL server MI ──────────
+    # SQL's system-assigned MI needs the Entra 'Directory Readers' role to resolve
+    # external principals in CREATE USER ... FROM EXTERNAL PROVIDER.
+    # We assign it here via the Graph API using the deploying user's credentials.
+    if ($o.sqlMiPrincipalId.value) {
+        $sqlMiOid = $o.sqlMiPrincipalId.value
+        Write-Host ""
+        Write-Host "  🔑 Assigning 'Directory Readers' Entra role to SQL server MI..." -ForegroundColor Yellow
+
+        # 88d8e3e3-8f55-4a1e-953a-9b9898b8876b is the well-known tenant-invariant
+        # roleTemplateId for the 'Directory Readers' built-in Entra role.
+        $directoryReadersId = '88d8e3e3-8f55-4a1e-953a-9b9898b8876b'
+
+        # Idempotent: check if already assigned before creating.
+        $existingAssignment = az rest `
+            --method GET `
+            --url "https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignments?`$filter=principalId eq '$sqlMiOid' and roleDefinitionId eq '$directoryReadersId'" `
+            --headers 'Content-Type=application/json' 2>&1 | ConvertFrom-Json
+
+        if ($existingAssignment.value.Count -gt 0) {
+            Write-Host "  ✅ Directory Readers already assigned — skipping" -ForegroundColor Green
+        } else {
+            $body = @{
+                principalId     = $sqlMiOid
+                roleDefinitionId = $directoryReadersId
+                directoryScopeId = '/'
+            } | ConvertTo-Json -Compress
+
+            az rest `
+                --method POST `
+                --url 'https://graph.microsoft.com/v1.0/roleManagement/directory/roleAssignments' `
+                --headers 'Content-Type=application/json' `
+                --body $body 2>&1 | Out-Null
+
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "  ✅ Directory Readers role assigned to SQL server MI" -ForegroundColor Green
+            } else {
+                Write-Host "  ⚠️  Directory Readers assignment failed — assign manually in Entra ID" -ForegroundColor Yellow
+                Write-Host "     SQL MI Object ID: $sqlMiOid" -ForegroundColor Yellow
+            }
+        }
     }
 
     # ── Post-deploy: Admin invitation ────────────────────────────────────────
@@ -291,10 +326,7 @@ if ($deploymentResult.properties.outputs) {
 
 Write-Host ""
 Write-Host "ℹ️  Next steps:" -ForegroundColor Yellow
-Write-Host "  1. Assign 'Directory Readers' Entra ID role to the SQL server managed identity"
-Write-Host "     (needed so 'CREATE USER FROM EXTERNAL PROVIDER' can resolve principals)"
-Write-Host "  2. Re-run: az deployment group create ... (the sql-grant script will then succeed)"
-Write-Host "  3. Set AZURE_STATIC_WEB_APPS_API_TOKEN in GitHub repo secrets then push to main"
-Write-Host "  4. Accept the admin invitation in your email (expires in 24 hours)"
-Write-Host "  5. To add more admins: ./scripts/invite-admin.sh --app <name> --rg <rg> --email <email>"
+Write-Host "  1. Set AZURE_STATIC_WEB_APPS_API_TOKEN in GitHub repo secrets then push to main"
+Write-Host "  2. Accept the admin invitation in your email (expires in 24 hours)"
+Write-Host "  3. To add more admins: ./scripts/invite-admin.sh --app <name> --rg <rg> --email <email>"
 Write-Host ""

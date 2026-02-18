@@ -74,3 +74,6 @@ output databaseName string = databaseName
 
 @description('Resource ID of the SQL Server.')
 output resourceId string = sqlServer.outputs.resourceId
+
+@description('Principal ID of the SQL Server system-assigned managed identity.')
+output systemAssignedMIPrincipalId string = sqlServer.outputs.systemAssignedMIPrincipalId!

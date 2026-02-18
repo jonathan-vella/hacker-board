@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "14850814860730182215"
+      "templateHash": "6102871701049093754"
     }
   },
   "parameters": {
@@ -4181,7 +4181,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "12676261202538524363"
+              "templateHash": "11835613844835530207"
             }
           },
           "parameters": {
@@ -10326,6 +10326,13 @@
                 "description": "Resource ID of the SQL Server."
               },
               "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sql-server'), '2025-04-01').outputs.resourceId.value]"
+            },
+            "systemAssignedMIPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Principal ID of the SQL Server system-assigned managed identity."
+              },
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sql-server'), '2025-04-01').outputs.systemAssignedMIPrincipalId.value]"
             }
           }
         }
@@ -21766,6 +21773,13 @@
         "description": "Name of the Azure SQL Database."
       },
       "value": "[reference(resourceId('Microsoft.Resources/deployments', format('sql-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.databaseName.value]"
+    },
+    "sqlMiPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "Principal ID of the SQL Server system-assigned managed identity — used to assign Directory Readers Entra role post-deploy."
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('sql-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.systemAssignedMIPrincipalId.value]"
     }
   }
 }

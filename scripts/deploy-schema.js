@@ -1,21 +1,24 @@
 #!/usr/bin/env node
 
 /**
- * Deploy the HackerBoard Azure SQL schema.
+ * Deploy the HackerBoard Azure SQL schema and grant the SWA managed identity
+ * db_owner access so the API can connect without a password.
  *
  * Reads api/schema/init.sql and executes it against the target Azure SQL database.
  * Uses Entra ID (DefaultAzureCredential) — no passwords required.
  *
  * Usage:
  *   node scripts/deploy-schema.js
- *   SQL_SERVER_FQDN=<fqdn> SQL_DATABASE_NAME=<db> node scripts/deploy-schema.js
+ *   SQL_SERVER_FQDN=<fqdn> SQL_DATABASE_NAME=<db> SWA_NAME=<swa> node scripts/deploy-schema.js
  *
  * Required environment variables:
  *   SQL_SERVER_FQDN      — e.g. my-server.database.windows.net
  *   SQL_DATABASE_NAME    — e.g. hacker-board-db
  *
- * Optional (local dev override):
- *   SQL_CONNECTION_STRING — full mssql connection string (bypasses Entra ID)
+ * Optional:
+ *   SWA_NAME             — Static Web App resource name; when set, grants the SWA
+ *                          system-assigned managed identity the db_owner role.
+ *   SQL_CONNECTION_STRING — full mssql connection string (bypasses Entra ID, local dev)
  */
 
 import { readFileSync } from "node:fs";
@@ -30,6 +33,7 @@ const SCHEMA_PATH = join(__dirname, "..", "api", "schema", "init.sql");
 const SQL_SERVER_FQDN = process.env.SQL_SERVER_FQDN;
 const SQL_DATABASE_NAME = process.env.SQL_DATABASE_NAME;
 const SQL_CONNECTION_STRING = process.env.SQL_CONNECTION_STRING;
+const SWA_NAME = process.env.SWA_NAME;
 
 async function buildConfig() {
   if (SQL_CONNECTION_STRING) {
@@ -104,6 +108,30 @@ async function main() {
       console.error(`     SQL: ${label}`);
       await pool.close();
       process.exit(1);
+    }
+  }
+
+  // Grant the SWA managed identity db_owner so the API can authenticate
+  // via its system-assigned identity without a connection string or password.
+  if (SWA_NAME) {
+    console.log("");
+    console.log("🔐 Granting db_owner to SWA managed identity...");
+    try {
+      await pool
+        .request()
+        .query(`IF NOT EXISTS (
+  SELECT 1 FROM sys.database_principals WHERE name = '${SWA_NAME}'
+)
+BEGIN
+  CREATE USER [${SWA_NAME}] FROM EXTERNAL PROVIDER
+END;
+ALTER ROLE db_owner ADD MEMBER [${SWA_NAME}];`);
+      console.log(`  ✅ db_owner granted to [${SWA_NAME}]`);
+    } catch (err) {
+      // Non-fatal: the SWA identity may not have propagated yet.
+      // The operator can re-run or grant manually.
+      console.warn(`  ⚠️  Could not grant db_owner to [${SWA_NAME}]: ${err.message}`);
+      console.warn("     Re-run deploy-schema.js with SWA_NAME once the SWA is fully provisioned.");
     }
   }
 

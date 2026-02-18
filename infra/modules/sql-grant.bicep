@@ -34,13 +34,8 @@ param deploymentTimestamp string
 //   2. CREATE USER + ALTER ROLE db_owner for the SWA managed identity
 //   3. CREATE USER + ALTER ROLE db_owner for the human operator (adminEmail)
 //
-// NOTE: The SQL Server's system-assigned managed identity must have the Entra ID
-// "Directory Readers" role to process CREATE USER ... FROM EXTERNAL PROVIDER.
-// Assign this role before running the deployment if it is not already present:
-//   Portal → Entra ID → Roles → Directory Readers → Add assignment → <sql-server-MI>
-//   or via CLI: az rest --method POST \
-//     --uri "https://graph.microsoft.com/v1.0/directoryRoles/roleTemplateId/88d8e3e3-8f55-4a1e-953a-9b9898b8876b/members/$ref" \
-//     --body '{"@odata.id":"https://graph.microsoft.com/v1.0/directoryObjects/<sql-server-mi-principal-id>"}'
+// The SQL server's 'Directory Readers' Entra role is assigned automatically in
+// main.bicep via the Microsoft.Graph extension before this script runs.
 // ──────────────────────────────────────────────────────────────────────────────
 
 var schemaSqlB64 = loadFileAsBase64('../../api/schema/init.sql')

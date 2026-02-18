@@ -212,3 +212,6 @@ output sqlServerFqdn string = sql.outputs.serverFqdn
 
 @description('Name of the Azure SQL Database.')
 output sqlDatabaseName string = sql.outputs.databaseName
+
+@description('Principal ID of the SQL Server system-assigned managed identity — used to assign Directory Readers Entra role post-deploy.')
+output sqlMiPrincipalId string = sql.outputs.systemAssignedMIPrincipalId
