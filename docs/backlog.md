@@ -29,17 +29,17 @@
 
 ## Current Status
 
-| Metric                  | Value                                        |
-| ----------------------- | -------------------------------------------- |
-| **Current Phase**       | Phase 13 — Attendee Anonymization (complete) |
-| **Last Updated**        | 2026-02-18                                   |
-| **Days Remaining**      | 5                                            |
-| **Tasks Done**          | 203 / 218                                    |
-| **API Endpoints**       | 10 files / 16 routes                         |
-| **Frontend Components** | 12 components + 5 services                   |
-| **Tests Passing**       | 74 (API unit) + 61 (frontend DOM)            |
-| **Open Problems**       | 0                                            |
-| **Open Decisions**      | 0                                            |
+| Metric                  | Value                                     |
+| ----------------------- | ----------------------------------------- |
+| **Current Phase**       | Phase 14 — Azure SQL Migration (complete) |
+| **Last Updated**        | 2026-02-20                                |
+| **Days Remaining**      | 5                                         |
+| **Tasks Done**          | 218 / 218                                 |
+| **API Endpoints**       | 10 files / 16 routes                      |
+| **Frontend Components** | 12 components + 5 services                |
+| **Tests Passing**       | 69 (API unit) + 61 (frontend DOM)         |
+| **Open Problems**       | 0                                         |
+| **Open Decisions**      | 0                                         |
 
 ---
 

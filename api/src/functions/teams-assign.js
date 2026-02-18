@@ -1,9 +1,7 @@
 import { app } from "@azure/functions";
-import { getTableClient } from "../../shared/tables.js";
+import { query } from "../../shared/db.js";
 import { errorResponse } from "../../shared/errors.js";
 import { randomInt } from "node:crypto";
-
-const TABLE_NAME = "Attendees";
 
 async function assignTeams(request) {
   const { teamCount } = await request.json();
@@ -15,18 +13,10 @@ async function assignTeams(request) {
     );
   }
 
-  const client = getTableClient(TABLE_NAME);
-  const attendees = [];
-
-  for await (const entity of client.listEntities()) {
-    attendees.push({
-      partitionKey: entity.partitionKey,
-      rowKey: entity.rowKey,
-      firstName: entity.firstName,
-      surname: entity.surname,
-      gitHubUsername: entity.gitHubUsername || "",
-    });
-  }
+  const attendeesResult = await query(
+    `SELECT id, firstName, surname, gitHubUsername FROM dbo.Attendees`,
+  );
+  const attendees = attendeesResult.recordset;
 
   if (attendees.length === 0) {
     return errorResponse(
@@ -48,19 +38,13 @@ async function assignTeams(request) {
     [attendees[i], attendees[j]] = [attendees[j], attendees[i]];
   }
 
-  const teamsClient = getTableClient("Teams");
-  const teams = [];
-
-  for (let t = 0; t < teamCount; t++) {
-    teams.push({
-      teamName: `Team ${t + 1}`,
-      members: [],
-    });
-  }
+  const teams = Array.from({ length: teamCount }, (_, t) => ({
+    teamName: `Team ${t + 1}`,
+    members: [],
+  }));
 
   attendees.forEach((attendee, index) => {
-    const teamIndex = index % teamCount;
-    teams[teamIndex].members.push({
+    teams[index % teamCount].members.push({
       firstName: attendee.firstName,
       surname: attendee.surname,
       gitHubUsername: attendee.gitHubUsername || undefined,
@@ -69,27 +53,49 @@ async function assignTeams(request) {
 
   for (let t = 0; t < teamCount; t++) {
     const teamName = `team-${t + 1}`;
-    await teamsClient.upsertEntity({
-      partitionKey: "team",
-      rowKey: teamName,
-      teamName: teams[t].teamName,
-      teamMembers: JSON.stringify(
-        teams[t].members.map(
-          (m) => m.gitHubUsername || `${m.firstName} ${m.surname}`,
-        ),
+    const teamMembers = JSON.stringify(
+      teams[t].members.map(
+        (m) => m.gitHubUsername || `${m.firstName} ${m.surname}`,
       ),
-      createdAt: new Date().toISOString(),
-    });
+    );
+    const now = new Date().toISOString();
+
+    await query(
+      `MERGE dbo.Teams AS target
+       USING (SELECT @teamName AS teamName) AS source ON target.teamName = source.teamName
+       WHEN MATCHED THEN
+         UPDATE SET teamMembers = @teamMembers, updatedAt = @updatedAt
+       WHEN NOT MATCHED THEN
+         INSERT (teamName, teamNumber, teamMembers, createdAt, updatedAt)
+         VALUES (@teamName, @teamNumber, @teamMembers, @createdAt, @createdAt);`,
+      {
+        teamName,
+        teamNumber: t + 1,
+        teamMembers,
+        createdAt: now,
+        updatedAt: now,
+      },
+    );
   }
 
+  // Update each attendee's team assignment
   for (let i = 0; i < attendees.length; i++) {
     const teamIndex = i % teamCount;
-    await client.upsertEntity({
-      partitionKey: attendees[i].partitionKey,
-      rowKey: attendees[i].rowKey,
-      teamNumber: teamIndex + 1,
-      teamId: `team-${teamIndex + 1}`,
-    });
+    const teamName = `team-${teamIndex + 1}`;
+    const teamResult = await query(
+      `SELECT id FROM dbo.Teams WHERE teamName = @teamName`,
+      { teamName },
+    );
+    if (teamResult.recordset.length > 0) {
+      await query(
+        `UPDATE dbo.Attendees SET teamId = @teamId, teamNumber = @teamNumber WHERE id = @id`,
+        {
+          teamId: teamResult.recordset[0].id,
+          teamNumber: teamIndex + 1,
+          id: attendees[i].id,
+        },
+      );
+    }
   }
 
   return {

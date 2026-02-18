@@ -16,8 +16,11 @@ param repositoryBranch string = 'main'
 @description('Application Insights connection string for telemetry.')
 param appInsightsConnectionString string
 
-@description('Storage Account name for app configuration.')
-param storageAccountName string
+@description('Fully-qualified domain name of the Azure SQL Server.')
+param sqlServerFqdn string
+
+@description('Name of the Azure SQL Database.')
+param sqlDatabaseName string
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Static Web App via AVM — Standard SKU with managed Functions
@@ -43,7 +46,8 @@ module staticWebApp 'br/public:avm/res/web/static-site:0.9.3' = {
     }
     appSettings: {
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsightsConnectionString
-      STORAGE_ACCOUNT_NAME: storageAccountName
+      SQL_SERVER_FQDN: sqlServerFqdn
+      SQL_DATABASE_NAME: sqlDatabaseName
     }
   }
 }

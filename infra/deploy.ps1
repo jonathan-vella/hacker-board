@@ -3,8 +3,10 @@
     Deploys hacker-board Azure infrastructure using Bicep templates.
 
 .DESCRIPTION
-    Provisions Azure Static Web App, Table Storage, Log Analytics, and Application
-    Insights for the microhack HackerBoard app.
+    Provisions Azure Static Web App, Azure SQL Database (Basic DTU), Log Analytics,
+    and Application Insights for the microhack HackerBoard app.
+    After a successful deployment, optionally runs the SQL schema script and sends
+    an admin invitation to the Static Web App.
 
 .PARAMETER ResourceGroupName
     Name of the resource group. Default: rg-hacker-board-prod
@@ -24,6 +26,17 @@
 .PARAMETER TechnicalContact
     Technical contact email required by Azure Policy.
 
+.PARAMETER SqlAdminObjectId
+    Entra ID Object ID of the user or group to assign as SQL Entra admin.
+    Required for production deployments.
+
+.PARAMETER AdminEmail
+    GitHub email address of the first admin to invite to the Static Web App.
+    If provided, an invitation will be sent after deployment.
+
+.PARAMETER SkipSchema
+    Skip the post-deployment SQL schema migration step.
+
 .PARAMETER RepositoryUrl
     GitHub repository URL for Static Web App linkage.
 
@@ -31,7 +44,7 @@
     Run what-if preview without deploying.
 
 .EXAMPLE
-    ./deploy.ps1 -CostCenter "microhack" -TechnicalContact "team@contoso.com"
+    ./deploy.ps1 -CostCenter "microhack" -TechnicalContact "team@contoso.com" -SqlAdminObjectId "<oid>"
 
 .EXAMPLE
     ./deploy.ps1 -WhatIf -CostCenter "microhack" -TechnicalContact "team@contoso.com"
@@ -53,6 +66,9 @@ param(
     [Parameter(Mandatory)]
     [string]$TechnicalContact,
 
+    [string]$SqlAdminObjectId = '',
+    [string]$AdminEmail = '',
+    [switch]$SkipSchema,
     [string]$RepositoryUrl = '',
     [string]$RepositoryBranch = 'main'
 )
@@ -164,6 +180,9 @@ $deployParams = @(
     '--parameters', "repositoryUrl=$RepositoryUrl"
     '--parameters', "repositoryBranch=$RepositoryBranch"
 )
+if ($SqlAdminObjectId -ne '') {
+    $deployParams += @('--parameters', "sqlAdminObjectId=$SqlAdminObjectId")
+}
 
 # ── What-If preview ──────────────────────────────────────────────────────────
 
@@ -218,13 +237,55 @@ if ($deploymentResult.properties.outputs) {
         Write-Host ""
         Write-Host "  📌 Key Outputs:" -ForegroundColor Cyan
         if ($o.staticWebAppUrl.value) {
-            Write-Host "     SWA URL:     https://$($o.staticWebAppUrl.value)"
+            Write-Host "     SWA URL:      https://$($o.staticWebAppUrl.value)"
         }
         if ($o.staticWebAppName.value) {
-            Write-Host "     SWA Name:    $($o.staticWebAppName.value)"
+            Write-Host "     SWA Name:     $($o.staticWebAppName.value)"
         }
-        if ($o.storageAccountName.value) {
-            Write-Host "     Storage:     $($o.storageAccountName.value)"
+        if ($o.sqlServerFqdn.value) {
+            Write-Host "     SQL Server:   $($o.sqlServerFqdn.value)"
+        }
+        if ($o.sqlDatabaseName.value) {
+            Write-Host "     SQL DB:       $($o.sqlDatabaseName.value)"
+        }
+    }
+
+    # ── Post-deploy: SQL schema migration ───────────────────────────────────
+    if (-not $SkipSchema) {
+        Write-Host ""
+        Write-Host "  🗃️  Running SQL schema migration..." -ForegroundColor Yellow
+
+        $sqlFqdn = if ($o -and $o.sqlServerFqdn.value) { $o.sqlServerFqdn.value } else { '' }
+        $sqlDb   = if ($o -and $o.sqlDatabaseName.value) { $o.sqlDatabaseName.value } else { 'hacker-board-db' }
+
+        if ($sqlFqdn -ne '') {
+            $scriptRoot = Split-Path -Parent $PSScriptRoot
+            $env:SQL_SERVER_FQDN   = $sqlFqdn
+            $env:SQL_DATABASE_NAME = $sqlDb
+            node "$scriptRoot/scripts/deploy-schema.js"
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "  ❌ Schema migration failed" -ForegroundColor Red
+                exit 1
+            }
+            Write-Host "  ✅ Schema migration complete" -ForegroundColor Green
+        } else {
+            Write-Host "  ⚠️  sqlServerFqdn output not available — skipping schema migration" -ForegroundColor Yellow
+        }
+    }
+
+    # ── Post-deploy: Admin invitation ────────────────────────────────────────
+    if ($AdminEmail -ne '' -and $o -and $o.staticWebAppName.value) {
+        Write-Host ""
+        Write-Host "  📧 Sending admin invitation to $AdminEmail..." -ForegroundColor Yellow
+        $scriptRoot = Split-Path -Parent $PSScriptRoot
+        bash "$scriptRoot/scripts/invite-admin.sh" \
+            --app "$($o.staticWebAppName.value)" \
+            --rg "$ResourceGroupName" \
+            --email "$AdminEmail"
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "  ✅ Admin invitation sent" -ForegroundColor Green
+        } else {
+            Write-Host "  ⚠️  Admin invitation failed — run invite-admin.sh manually" -ForegroundColor Yellow
         }
     }
 }
@@ -233,5 +294,7 @@ Write-Host ""
 Write-Host "ℹ️  Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Link your GitHub repo to the Static Web App (if not set via repositoryUrl)"
 Write-Host "  2. Configure staticwebapp.config.json with GitHub OAuth and writer/reader roles"
-Write-Host "  3. Set up managed identity for SWA → Storage access (shared key is disabled)"
+Write-Host "  3. Grant the SWA managed identity the SQL db_owner or db_datareader/writer role"
+Write-Host "     ALTER ROLE db_owner ADD MEMBER [<swa-name>] (as Entra admin in SQL)"
+Write-Host "  4. Invite admin users: ./scripts/invite-admin.sh --app <name> --rg <rg> --email <email>"
 Write-Host ""

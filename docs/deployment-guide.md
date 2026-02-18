@@ -3,6 +3,7 @@
 ![Type](https://img.shields.io/badge/Type-Deployment%20Guide-blue)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![Platform](https://img.shields.io/badge/Platform-Azure%20Static%20Web%20Apps-0078D4)
+![DB](https://img.shields.io/badge/DB-Azure%20SQL%20Basic-0078D4)
 ![Auth](https://img.shields.io/badge/Auth-OIDC%20%2B%20GitHub%20OAuth-181717)
 
 > End-to-end guide for deploying HackerBoard — from Azure infrastructure provisioning through CI/CD to production smoke testing.
@@ -12,7 +13,7 @@
 ```mermaid
 graph TD
     A[1. Prerequisites] --> B[2. Provision Infrastructure]
-    B --> C[3. Create Storage Tables]
+    B --> C[3. Deploy SQL Schema]
     C --> D[4. Configure OIDC Auth]
     D --> E[5. Verify Readiness]
     E --> F[6. First Deployment]
@@ -45,6 +46,7 @@ graph TD
 | GitHub CLI         | `gh auth login` authenticated          |
 | Node.js            | 20+                                    |
 | PowerShell         | 7+ (for `deploy.ps1`)                  |
+| Entra ID Object ID | For the SQL Entra admin assignment     |
 
 ---
 
@@ -58,39 +60,47 @@ Two options: the **Deploy to Azure** button for 1-click provisioning, or the
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjonathan-vella%2Fhacker-board%2Fmain%2Finfra%2Fazuredeploy.json)
 
 This deploys via the pre-compiled ARM template. Fill in the required parameters
-(`costCenter`, `technicalContact`) in the portal form.
+(`costCenter`, `technicalContact`, `sqlAdminObjectId`) in the portal form.
 
 ### Option B — Deploy Script (Recommended)
 
 ```powershell
 cd infra
 
-# Full deployment (foundation + application phases)
-./deploy.ps1 -CostCenter "microhack" -TechnicalContact "you@contoso.com"
+# Full deployment
+./deploy.ps1 `
+  -CostCenter "microhack" `
+  -TechnicalContact "you@contoso.com" `
+  -SqlAdminObjectId "<entra-object-id>"
 
 # Preview changes first (what-if)
-./deploy.ps1 -WhatIf -CostCenter "microhack" -TechnicalContact "you@contoso.com"
+./deploy.ps1 -WhatIf `
+  -CostCenter "microhack" `
+  -TechnicalContact "you@contoso.com"
 
-# Link to GitHub repo during provisioning
-./deploy.ps1 \
-  -CostCenter "microhack" \
-  -TechnicalContact "you@contoso.com" \
-  -RepositoryUrl "https://github.com/jonathan-vella/hacker-board"
+# Full deployment with admin invite
+./deploy.ps1 `
+  -CostCenter "microhack" `
+  -TechnicalContact "you@contoso.com" `
+  -SqlAdminObjectId "<entra-object-id>" `
+  -AdminEmail "admin@github.com"
 ```
 
 <details>
 <summary>Deploy script parameters</summary>
 
-| Parameter           | Default                | Description                           |
-| ------------------- | ---------------------- | ------------------------------------- |
-| `ResourceGroupName` | `rg-hacker-board-prod` | Target resource group                 |
-| `Location`          | `westeurope`           | Azure region                          |
-| `Environment`       | `prod`                 | `dev`, `staging`, or `prod`           |
-| `CostCenter`        | _(required)_           | Cost center code for tagging          |
-| `TechnicalContact`  | _(required)_           | Contact email for tagging             |
-| `RepositoryUrl`     | _(empty)_              | GitHub repo URL for SWA linkage       |
-| `Phase`             | `all`                  | `all`, `foundation`, or `application` |
-| `WhatIf`            | `false`                | Preview without deploying             |
+| Parameter           | Default                | Description                                       |
+| ------------------- | ---------------------- | ------------------------------------------------- |
+| `ResourceGroupName` | `rg-hacker-board-prod` | Target resource group                             |
+| `Location`          | `westeurope`           | Azure region                                      |
+| `Environment`       | `prod`                 | `dev`, `staging`, or `prod`                       |
+| `CostCenter`        | _(required)_           | Cost center code for tagging                      |
+| `TechnicalContact`  | _(required)_           | Contact email for tagging                         |
+| `SqlAdminObjectId`  | _(required for prod)_  | Entra ID Object ID of the SQL Entra admin         |
+| `AdminEmail`        | _(empty)_              | GitHub email to auto-invite as admin after deploy |
+| `SkipSchema`        | `false`                | Skip automatic SQL schema migration step          |
+| `RepositoryUrl`     | _(empty)_              | GitHub repo URL for SWA linkage                   |
+| `WhatIf`            | `false`                | Preview without deploying                         |
 
 </details>
 
@@ -100,7 +110,8 @@ cd infra
 graph LR
     subgraph Foundation
         LA[Log Analytics<br/>law-hacker-board-prod]
-        SA[Storage Account<br/>st*]
+        SQL[Azure SQL Server<br/>sql-hacker-board-prod]
+        DB[SQL Database<br/>hacker-board-db<br/>Basic DTU]
     end
 
     subgraph Application
@@ -109,42 +120,62 @@ graph LR
     end
 
     LA --> AI
-    SA --> SWA
-    SWA -->|Managed Identity<br/>RBAC| SA
+    SQL --> DB
+    DB --> SWA
+    SWA -->|Managed Identity<br/>Entra ID| DB
 ```
 
-| Resource             | Name Pattern               | SKU          |
-| -------------------- | -------------------------- | ------------ |
-| Resource Group       | `rg-hacker-board-{env}`    | —            |
-| Log Analytics        | `law-{project}-{env}`      | PerGB2018    |
-| Storage Account      | `st{project}{env}{suffix}` | Standard_LRS |
-| Application Insights | `appi-{project}-{env}`     | —            |
-| Static Web App       | `swa-{project}-{env}`      | Standard     |
+| Resource             | Name Pattern            | SKU           |
+| -------------------- | ----------------------- | ------------- |
+| Resource Group       | `rg-hacker-board-{env}` | —             |
+| Log Analytics        | `law-{project}-{env}`   | PerGB2018     |
+| Azure SQL Server     | `sql-{project}-{env}`   | —             |
+| Azure SQL Database   | `{project}-db`          | Basic (5 DTU) |
+| Application Insights | `appi-{project}-{env}`  | —             |
+| Static Web App       | `swa-{project}-{env}`   | Standard      |
 
 The Bicep templates use [Azure Verified Modules](https://aka.ms/avm) and
 automatically configure:
 
+- Entra ID-only authentication on the SQL Server (`azureADOnlyAuthentication: true`)
 - System-assigned managed identity on the SWA
-- Storage Table Data Contributor RBAC for the SWA identity
-- App settings for Application Insights and Storage Account name
+- App settings for Application Insights, SQL FQDN and database name
 
 ---
 
-## Step 2 — Verify Storage Tables
+## Step 2 — Deploy SQL Schema
 
-All 7 storage tables are automatically provisioned by the Bicep templates via
-the AVM `tableServices.tables` property. No manual table creation is required.
+The SQL schema migration is idempotent — `api/schema/init.sql` uses
+`IF NOT EXISTS` guards so it is safe to run on every deployment.
 
-Verify the tables were created:
+The `deploy.ps1` script runs this automatically after infrastructure is
+provisioned. To run manually:
 
 ```bash
-# Replace with your actual storage account name from deployment output
-STORAGE_ACCOUNT="<storage-account-name>"
+export SQL_SERVER_FQDN="<sql-server>.database.windows.net"
+export SQL_DATABASE_NAME="hacker-board-db"
 
-az storage table list --account-name "$STORAGE_ACCOUNT" --auth-mode login -o table
+node scripts/deploy-schema.js
 ```
 
-Expected tables: `Teams`, `Attendees`, `Scores`, `Awards`, `Submissions`, `Rubrics`, `Config`.
+Expected output confirms 7 tables created: `Teams`, `Attendees`, `Scores`,
+`Awards`, `Submissions`, `Rubrics`, `Config`, plus the `HackerNumberSequence`
+SEQUENCE.
+
+> **Entra ID access required**: The identity running the script must be a member
+> of the Entra admin group assigned to the SQL server, or have `db_owner`/
+> `db_ddladmin` rights obtained via `ALTER ROLE`. The SWA managed identity
+> is granted `db_datareader` and `db_datawriter` roles automatically by the
+> schema script.
+
+### Verify Schema
+
+```bash
+# Connect with sqlcmd (install via brew/apt)
+sqlcmd -S $SQL_SERVER_FQDN -d $SQL_DATABASE_NAME \
+  --authentication-method ActiveDirectoryDefault \
+  -Q "SELECT name FROM sys.tables ORDER BY name"
+```
 
 ---
 
@@ -239,16 +270,18 @@ gh workflow run "CI/CD" --repo jonathan-vella/hacker-board
 git push origin main
 ```
 
-The CI/CD workflow runs five jobs:
+The CI/CD workflow runs six jobs:
 
 ```mermaid
 graph LR
-    BT[Build & Test] --> D[Deploy to SWA]
+    BT[Build & Test] --> SM[Schema Migrate]
+    SM --> D[Deploy to SWA]
     D --> ST[Smoke Test]
     BT --> DP[Deploy PR Preview]
     PR[PR Closed] --> CL[Close PR Env]
 
     style BT fill:#3498db,stroke:#333,color:#fff
+    style SM fill:#0078D4,stroke:#333,color:#fff
     style D fill:#27ae60,stroke:#333,color:#fff
     style ST fill:#f39c12,stroke:#333,color:#fff
     style DP fill:#9b59b6,stroke:#333,color:#fff
@@ -258,6 +291,7 @@ graph LR
 | Job                   | Triggers On             | Purpose                                       |
 | --------------------- | ----------------------- | --------------------------------------------- |
 | **Build & Test**      | push, PR, manual        | `npm ci`, Vitest (API + UI), `npm audit`      |
+| **Schema Migrate**    | push to `main`, manual  | OIDC login → `node scripts/deploy-schema.js`  |
 | **Deploy**            | push to `main`, manual  | OIDC auth → `Azure/static-web-apps-deploy@v1` |
 | **Smoke Test**        | after successful deploy | Health check + API reachability               |
 | **Deploy PR Preview** | PR opened/updated       | Staging environment for the PR                |
@@ -369,23 +403,24 @@ hostname. Azure provisions a free managed SSL certificate automatically.
 
 ### Prerequisites
 
-| Tool                          | Install                                                                                |
-| ----------------------------- | -------------------------------------------------------------------------------------- |
-| SWA CLI                       | `npm install -g @azure/static-web-apps-cli`                                            |
-| Azure Functions Core Tools v4 | [Install guide](https://learn.microsoft.com/azure/azure-functions/functions-run-local) |
-| Azurite                       | `npm install -g azurite`                                                               |
+| Tool                          | Install                                                                                                          |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| SWA CLI                       | `npm install -g @azure/static-web-apps-cli`                                                                      |
+| Azure Functions Core Tools v4 | [Install guide](https://learn.microsoft.com/azure/azure-functions/functions-run-local)                           |
+| SQL Server                    | Docker: `docker run -e ACCEPT_EULA=Y -e SA_PASSWORD=... -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest` |
 
 ### Start Local Environment
 
 ```bash
-# Terminal 1 — Start Azurite (Table Storage emulator)
-azurite --silent --location /tmp/azurite
+# Set local SQL connection string
+export SQL_CONNECTION_STRING="Server=localhost;Database=hackerboard;User Id=sa;Password=<password>;Encrypt=false"
 
-# Terminal 2 — Install deps + seed data
+# Install deps + deploy schema + seed data
 npm install && cd api && npm install && cd ..
+node scripts/deploy-schema.js
 node scripts/seed-demo-data.js --reset
 
-# Terminal 3 — Start local dev server (emulates SWA auth + routing)
+# Start local dev server (emulates SWA auth + routing)
 swa start src --api-location api
 # Open http://localhost:4280
 ```
@@ -407,29 +442,33 @@ npm run test:all
 
 ## Troubleshooting
 
-| Symptom                                 | Cause                                             | Fix                                                      |
-| --------------------------------------- | ------------------------------------------------- | -------------------------------------------------------- |
-| Deploy action fails with "unauthorized" | Deployment auth policy not set to GitHub          | Run `scripts/configure-swa-auth.sh` (Step 3)             |
-| Deploy action fails with OIDC error     | Deployment auth policy still on DeploymentToken   | Run `scripts/configure-swa-auth.sh` (Step 3)             |
-| `/api/*` returns 404                    | API not deployed or `api_location` mismatch       | Verify `api_location: "api"` in workflow                 |
-| Health check returns 500                | Storage tables not created or RBAC not configured | Complete Step 2; verify RBAC in Azure Portal             |
-| User gets 401 on admin routes           | Role invitation not accepted                      | Re-send invitation (Step 6)                              |
-| `swa start` fails locally               | Missing SWA CLI or Azurite not running            | Install prerequisites from the Local Development section |
+| Symptom                                 | Cause                                                    | Fix                                                                        |
+| --------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Deploy action fails with "unauthorized" | Deployment auth policy not set to GitHub                 | Run `scripts/configure-swa-auth.sh` (Step 4)                               |
+| Deploy action fails with OIDC error     | Deployment auth policy still on DeploymentToken          | Run `scripts/configure-swa-auth.sh` (Step 4)                               |
+| `/api/*` returns 404                    | API not deployed or `api_location` mismatch              | Verify `api_location: "api"` in workflow                                   |
+| Health check returns 500                | SQL schema not deployed or SWA identity lacks SQL access | Run `node scripts/deploy-schema.js`; grant `db_datareader`/`db_datawriter` |
+| User gets 401 on admin routes           | Role invitation not accepted                             | Re-send invitation (Step 7)                                                |
+| `swa start` fails locally               | Missing SWA CLI or SQL not running                       | Install prerequisites from the Local Development section                   |
+| Schema migration fails                  | Entra ID identity lacks SQL admin rights                 | Ensure `sqlAdminObjectId` is set correctly in Bicep params                 |
 
 ---
 
 ## Quick Reference
 
-| Item           | Value                                                  |
-| -------------- | ------------------------------------------------------ |
-| Resource Group | `rg-hacker-board-prod`                                 |
-| SWA Resource   | `swa-hacker-board-prod`                                |
-| Region         | `westeurope`                                           |
-| Workflow File  | `.github/workflows/deploy-swa.yml`                     |
-| Deploy Auth    | OIDC (`deploymentAuthPolicy: GitHub`)                  |
-| Auth Provider  | GitHub OAuth (SWA built-in)                            |
-| Setup Script   | `scripts/configure-swa-auth.sh`                        |
-| Storage Tables | Teams, Attendees, Scores, Submissions, Awards, Rubrics |
+| Item           | Value                                                          |
+| -------------- | -------------------------------------------------------------- |
+| Resource Group | `rg-hacker-board-prod`                                         |
+| SWA Resource   | `swa-hacker-board-prod`                                        |
+| SQL Server     | `sql-hacker-board-prod.database.windows.net`                   |
+| SQL Database   | `hacker-board-db` (Basic DTU)                                  |
+| Region         | `westeurope`                                                   |
+| Workflow File  | `.github/workflows/deploy-swa.yml`                             |
+| Infra Workflow | `.github/workflows/deploy-infra.yml`                           |
+| Deploy Auth    | OIDC (`deploymentAuthPolicy: GitHub`)                          |
+| Auth Provider  | GitHub OAuth (SWA built-in)                                    |
+| Schema Script  | `scripts/deploy-schema.js`                                     |
+| SQL Tables     | Teams, Attendees, Scores, Submissions, Awards, Rubrics, Config |
 
 ## References
 

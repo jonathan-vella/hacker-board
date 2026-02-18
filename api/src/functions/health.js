@@ -1,5 +1,5 @@
 import { app } from "@azure/functions";
-import { getTableClient } from "../../shared/tables.js";
+import { query } from "../../shared/db.js";
 
 const REQUIRED_TABLES = [
   "Teams",
@@ -13,17 +13,29 @@ const REQUIRED_TABLES = [
 
 async function handleHealth(request) {
   const started = Date.now();
-  const tables = {};
   let healthy = true;
+  let tablesFound = [];
+  let dbError;
 
+  try {
+    const result = await query(
+      `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_CATALOG = DB_NAME()`,
+    );
+    tablesFound = result.recordset.map((r) => r.TABLE_NAME);
+  } catch (err) {
+    healthy = false;
+    dbError = err.message;
+  }
+
+  const tables = {};
   for (const name of REQUIRED_TABLES) {
-    try {
-      const client = getTableClient(name);
-      const iter = client.listEntities({ queryOptions: { top: 1 } });
-      await iter.next();
+    if (dbError) {
+      tables[name] = `error: ${dbError}`;
+    } else if (tablesFound.includes(name)) {
       tables[name] = "ok";
-    } catch (err) {
-      tables[name] = `error: ${err.message}`;
+    } else {
+      tables[name] = "missing";
       healthy = false;
     }
   }
@@ -36,8 +48,9 @@ async function handleHealth(request) {
           msiEndpoint: !!process.env.MSI_ENDPOINT,
           msiSecret: !!process.env.MSI_SECRET,
           azureClientId: !!process.env.AZURE_CLIENT_ID,
-          storageAccount: process.env.STORAGE_ACCOUNT_NAME ?? "(unset)",
-          connectionString: !!process.env.AZURE_STORAGE_CONNECTION_STRING,
+          sqlServerFqdn: process.env.SQL_SERVER_FQDN ?? "(unset)",
+          sqlDatabaseName: process.env.SQL_DATABASE_NAME ?? "(unset)",
+          connectionString: !!process.env.SQL_CONNECTION_STRING,
           nodeVersion: process.version,
         }
       : undefined;

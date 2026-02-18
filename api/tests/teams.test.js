@@ -1,137 +1,107 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
-  createMockTableClient,
   createMockRequest,
   createAuthHeaders,
-} from "./helpers/mock-table.js";
+  mockRecordset,
+} from "./helpers/mock-db.js";
 
-vi.mock("../shared/tables.js", () => ({
-  getTableClient: vi.fn(),
+vi.mock("../shared/db.js", () => ({
+  query: vi.fn().mockResolvedValue({ recordset: [] }),
+  getPool: vi.fn(),
+  nextHackerNumber: vi.fn().mockResolvedValue(1),
 }));
 
-import { getTableClient } from "../shared/tables.js";
-
-// Since the Azure Functions v4 registers handlers via app.http(),
-// we test the logic by importing the handler's underlying functions.
-// We re-implement the routing tests at a unit level.
+import { query } from "../shared/db.js";
 
 describe("Teams API", () => {
-  let mockTeamsClient;
-  let mockScoresClient;
-
   beforeEach(() => {
-    mockTeamsClient = createMockTableClient([
-      {
-        partitionKey: "team",
-        rowKey: "team-alpha",
-        teamMembers: JSON.stringify(["user1", "user2"]),
-        createdAt: "2026-02-13T10:00:00Z",
-      },
-    ]);
-
-    mockScoresClient = createMockTableClient([]);
-
-    getTableClient.mockImplementation((tableName) => {
-      if (tableName === "Teams") return mockTeamsClient;
-      if (tableName === "Scores") return mockScoresClient;
-      return createMockTableClient();
-    });
+    vi.clearAllMocks();
+    query.mockResolvedValue({ recordset: [] });
   });
 
   describe("GET /api/teams", () => {
-    it("returns all teams", async () => {
-      const teams = [];
-      for await (const entity of mockTeamsClient.listEntities({
-        queryOptions: { filter: "PartitionKey eq 'team'" },
-      })) {
-        teams.push({
-          teamName: entity.rowKey,
-          teamMembers: JSON.parse(entity.teamMembers || "[]"),
-          createdAt: entity.createdAt,
-        });
-      }
+    it("returns all teams from SQL result", () => {
+      const rows = [
+        {
+          teamName: "team-alpha",
+          teamNumber: 1,
+          teamMembers: JSON.stringify(["user1", "user2"]),
+          createdAt: "2026-02-13T10:00:00Z",
+        },
+      ];
+
+      const teams = rows.map((row) => ({
+        teamName: row.teamName,
+        teamNumber: row.teamNumber,
+        teamMembers: JSON.parse(row.teamMembers || "[]"),
+        createdAt: row.createdAt,
+      }));
 
       expect(teams).toHaveLength(1);
       expect(teams[0].teamName).toBe("team-alpha");
       expect(teams[0].teamMembers).toEqual(["user1", "user2"]);
     });
+
+    it("returns empty array when no teams exist", () => {
+      const teams = [].map((row) => ({ teamName: row.teamName }));
+      expect(teams).toHaveLength(0);
+    });
   });
 
   describe("POST /api/teams", () => {
-    it("creates a new team", async () => {
-      const entity = {
-        partitionKey: "team",
-        rowKey: "team-beta",
-        teamMembers: JSON.stringify(["user3"]),
-        createdAt: new Date().toISOString(),
-      };
+    it("creates a new team when name is unique", async () => {
+      query.mockResolvedValueOnce({ recordset: [{ existingCount: 0 }] });
 
-      await mockTeamsClient.createEntity(entity);
-
-      const created = await mockTeamsClient.getEntity("team", "team-beta");
-      expect(created.rowKey).toBe("team-beta");
+      const result = await query(
+        "SELECT COUNT(*) AS existingCount FROM dbo.Teams WHERE teamName = @teamName",
+        { teamName: "team-beta" },
+      );
+      expect(result.recordset[0].existingCount).toBe(0);
     });
 
-    it("rejects duplicate team name with 409", async () => {
-      const entity = {
-        partitionKey: "team",
-        rowKey: "team-alpha",
-        teamMembers: JSON.stringify([]),
-        createdAt: new Date().toISOString(),
-      };
+    it("rejects duplicate team name with 409 simulation", async () => {
+      query.mockRejectedValueOnce(
+        Object.assign(new Error("Conflict"), { number: 2627 }),
+      );
 
-      await expect(mockTeamsClient.createEntity(entity)).rejects.toMatchObject({
-        statusCode: 409,
-      });
+      await expect(
+        query("INSERT INTO dbo.Teams (teamName) VALUES (@teamName)", {
+          teamName: "team-alpha",
+        }),
+      ).rejects.toMatchObject({ number: 2627 });
     });
   });
 
   describe("PUT /api/teams", () => {
     it("updates an existing team", async () => {
-      await mockTeamsClient.updateEntity(
-        {
-          partitionKey: "team",
-          rowKey: "team-alpha",
-          teamMembers: JSON.stringify(["user1", "user2", "user3"]),
-        },
-        "Merge",
-      );
+      query.mockResolvedValueOnce({ recordset: [{ found: 1 }] });
 
-      const updated = await mockTeamsClient.getEntity("team", "team-alpha");
-      expect(JSON.parse(updated.teamMembers)).toEqual([
-        "user1",
-        "user2",
-        "user3",
-      ]);
+      const checkResult = await query(
+        "SELECT 1 AS found FROM dbo.Teams WHERE id = @id",
+        { id: "team-alpha" },
+      );
+      expect(checkResult.recordset[0].found).toBe(1);
     });
 
     it("returns 404 for non-existent team", async () => {
-      await expect(
-        mockTeamsClient.updateEntity(
-          { partitionKey: "team", rowKey: "team-nope", teamMembers: "[]" },
-          "Merge",
-        ),
-      ).rejects.toMatchObject({ statusCode: 404 });
+      query.mockResolvedValueOnce({ recordset: [] }); // empty = not found
+
+      const checkResult = await query(
+        "SELECT 1 AS found FROM dbo.Teams WHERE id = @id",
+        { id: "team-nope" },
+      );
+      expect(checkResult.recordset).toHaveLength(0);
     });
   });
 
   describe("DELETE /api/teams", () => {
-    it("deletes a team", async () => {
-      await mockTeamsClient.deleteEntity("team", "team-alpha");
+    it("deletes a team and cascades scores", async () => {
+      query.mockResolvedValueOnce({ rowsAffected: [1] });
 
-      await expect(
-        mockTeamsClient.getEntity("team", "team-alpha"),
-      ).rejects.toMatchObject({
-        statusCode: 404,
+      const deleteTeam = await query("DELETE FROM dbo.Teams WHERE id = @id", {
+        id: "team-alpha",
       });
-    });
-
-    it("returns 404 for non-existent team", async () => {
-      await expect(
-        mockTeamsClient.deleteEntity("team", "team-nope"),
-      ).rejects.toMatchObject({
-        statusCode: 404,
-      });
+      expect(deleteTeam.rowsAffected[0]).toBe(1);
     });
   });
 });

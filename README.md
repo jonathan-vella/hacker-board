@@ -2,12 +2,13 @@
 
 ![HackerBoard hero banner](assets/readme-banner.svg)
 
-Serverless microhack scoring dashboard — Azure Static Web Apps + managed Functions + Azure Table Storage.
+Serverless microhack scoring dashboard — Azure Static Web Apps + managed Functions + Azure SQL Database.
 
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![Node](https://img.shields.io/badge/Node.js-20+-green)
 ![Azure](https://img.shields.io/badge/Azure-Static%20Web%20Apps-blue)
 ![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth-orange)
+![DB](https://img.shields.io/badge/DB-Azure%20SQL%20Basic-0078D4)
 ![Docs](https://img.shields.io/badge/Docs-Polished-6f42c1)
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjonathan-vella%2Fhacker-board%2Fmain%2Finfra%2Fazuredeploy.json)
@@ -27,9 +28,10 @@ Azure Static Web Apps (Standard)
 ├── Managed Azure Functions (api/)
 │   └── Node.js 20 LTS
 ├── GitHub OAuth (built-in SWA auth)
-└── Azure Table Storage (6 tables)
-    ├── Rubrics, Teams, Attendees
-    ├── Scores, Submissions, Awards
+└── Azure SQL Database (Basic DTU)
+    ├── Teams, Attendees, Scores
+    ├── Submissions, Awards, Rubrics, Config
+    └── Entra ID auth (no SQL passwords)
 ```
 
 ## Quick Start
@@ -39,11 +41,11 @@ Azure Static Web Apps (Standard)
 npm install
 cd api && npm install && cd ..
 
-# Copy environment variables
-cp .env.example .env
+# Set env vars for local SQL Server (e.g. Docker or Azure SQL)
+export SQL_CONNECTION_STRING="Server=localhost;Database=hackerboard;..."
 
-# Start Azurite (Table Storage emulator) in a separate terminal
-azurite --silent --location /tmp/azurite
+# Deploy schema (idempotent)
+node scripts/deploy-schema.js
 
 # Seed demo data
 node scripts/seed-demo-data.js --reset
@@ -65,14 +67,20 @@ cd api && npm test
 - Node.js 20+
 - [SWA CLI](https://github.com/Azure/static-web-apps-cli): `npm install -g @azure/static-web-apps-cli`
 - [Azure Functions Core Tools](https://learn.microsoft.com/azure/azure-functions/functions-run-local) v4
-- [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite) for local Table Storage
+- SQL Server (local Docker or Azure SQL) with `SQL_CONNECTION_STRING` env var
 
 ## Deploy Infrastructure
 
 ```powershell
 cd infra
-./deploy.ps1 -CostCenter "microhack" -TechnicalContact "team@contoso.com"
+./deploy.ps1 `
+  -CostCenter "microhack" `
+  -TechnicalContact "team@contoso.com" `
+  -SqlAdminObjectId "<entra-object-id>"
 ```
+
+Post-deploy, the script automatically runs the SQL schema migration and can
+send an admin invitation if `--AdminEmail` is provided.
 
 See [docs/deployment-guide.md](docs/deployment-guide.md) for the full
 end-to-end deployment guide (infra, OIDC, secrets, roles, table creation,
@@ -147,12 +155,12 @@ Full schemas in [docs/api-spec.md](docs/api-spec.md).
 
 Estimated cost: **~$9.05/month** (West Europe).
 
-| Resource        | SKU          | Purpose              |
-| --------------- | ------------ | -------------------- |
-| Static Web App  | Standard     | Frontend + Functions |
-| Storage Account | Standard_LRS | Table Storage        |
-| App Insights    | —            | Telemetry            |
-| Log Analytics   | PerGB2018    | Centralized logging  |
+| Resource       | SKU           | Purpose               |
+| -------------- | ------------- | --------------------- |
+| Static Web App | Standard      | Frontend + Functions  |
+| Azure SQL DB   | Basic (5 DTU) | Relational data store |
+| App Insights   | —             | Telemetry             |
+| Log Analytics  | PerGB2018     | Centralized logging   |
 
 ## License
 

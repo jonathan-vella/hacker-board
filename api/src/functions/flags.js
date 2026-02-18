@@ -1,5 +1,4 @@
 import { app } from "@azure/functions";
-import { getTableClient } from "../../shared/tables.js";
 import { requireRole } from "../../shared/auth.js";
 import { errorResponse } from "../../shared/errors.js";
 import { createRequestLogger } from "../../shared/logger.js";
@@ -13,10 +12,9 @@ import {
 async function handleFlags(request) {
   const log = createRequestLogger(request);
   log.info(`flags.${request.method}`);
-  const configClient = getTableClient("Config");
 
   if (request.method === "GET") {
-    const flags = await getFlags(configClient);
+    const flags = await getFlags();
     const descriptions = getFlagDescriptions();
     return {
       status: 200,
@@ -37,7 +35,7 @@ async function handleFlags(request) {
     }
 
     clearFlagCache();
-    const updated = await setFlags(configClient, body);
+    const updated = await setFlags(body);
     return {
       status: 200,
       jsonBody: { flags: updated },

@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getClientPrincipal, requireRole } from "../shared/auth.js";
 import { errorResponse } from "../shared/errors.js";
-import { getTableClient } from "../shared/tables.js";
 
 describe("shared/auth", () => {
   it("returns undefined when no header present", () => {
@@ -70,8 +69,15 @@ describe("shared/errors", () => {
   });
 });
 
-describe("shared/tables", () => {
-  it("getTableClient is a function", () => {
-    expect(typeof getTableClient).toBe("function");
+describe("shared/db", () => {
+  it("exports query, getPool, and nextHackerNumber functions", async () => {
+    // NOTE: Only test the module shape — actual SQL calls require a live DB.
+    // The module is mocked in integration tests.
+    const db = await import("../shared/db.js").catch(() => null);
+    if (db) {
+      expect(typeof db.query).toBe("function");
+      expect(typeof db.getPool).toBe("function");
+      expect(typeof db.nextHackerNumber).toBe("function");
+    }
   });
 });

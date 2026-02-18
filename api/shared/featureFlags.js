@@ -1,3 +1,5 @@
+import { query } from "./db.js";
+
 const DEFAULT_FLAGS = {
   SUBMISSIONS_ENABLED: true,
   LEADERBOARD_LOCKED: false,
@@ -24,35 +26,30 @@ export function getFlagDescriptions() {
   return { ...FLAG_DESCRIPTIONS };
 }
 
-export async function getFlags(tableClient) {
+export async function getFlags() {
   if (flagCache) return { ...flagCache };
 
-  try {
-    const entity = await tableClient.getEntity("config", "featureFlags");
-    flagCache = { ...DEFAULT_FLAGS };
-    for (const key of Object.keys(DEFAULT_FLAGS)) {
-      if (entity[key] !== undefined) {
-        flagCache[key] = entity[key] === true || entity[key] === "true";
-      }
+  const result = await query(
+    `SELECT configKey, configValue FROM dbo.Config WHERE configKey IN (${Object.keys(
+      DEFAULT_FLAGS,
+    )
+      .map((_, i) => `@k${i}`)
+      .join(",")})`,
+    Object.fromEntries(Object.keys(DEFAULT_FLAGS).map((k, i) => [`k${i}`, k])),
+  );
+
+  flagCache = { ...DEFAULT_FLAGS };
+  for (const row of result.recordset) {
+    if (row.configKey in flagCache) {
+      flagCache[row.configKey] =
+        row.configValue === "true" || row.configValue === true;
     }
-    return { ...flagCache };
-  } catch (err) {
-    if (err.statusCode === 404) {
-      flagCache = { ...DEFAULT_FLAGS };
-      // Persist defaults so they appear in the Config table immediately
-      await tableClient.upsertEntity({
-        partitionKey: "config",
-        rowKey: "featureFlags",
-        ...flagCache,
-      });
-      return { ...flagCache };
-    }
-    throw err;
   }
+  return { ...flagCache };
 }
 
-export async function setFlags(tableClient, flags) {
-  const current = await getFlags(tableClient);
+export async function setFlags(flags) {
+  const current = await getFlags();
   const updated = { ...current };
 
   for (const [key, value] of Object.entries(flags)) {
@@ -61,14 +58,27 @@ export async function setFlags(tableClient, flags) {
     }
   }
 
-  await tableClient.upsertEntity({
-    partitionKey: "config",
-    rowKey: "featureFlags",
-    ...updated,
-  });
+  // MERGE each flag into Config table
+  for (const [key, value] of Object.entries(updated)) {
+    await query(
+      `MERGE dbo.Config AS target
+       USING (SELECT @configKey AS configKey) AS source ON target.configKey = source.configKey
+       WHEN MATCHED THEN UPDATE SET configValue = @configValue, updatedAt = @updatedAt
+       WHEN NOT MATCHED THEN INSERT (configKey, configValue, updatedAt) VALUES (@configKey, @configValue, @updatedAt);`,
+      {
+        configKey: key,
+        configValue: String(value),
+        updatedAt: new Date().toISOString(),
+      },
+    );
+  }
 
   flagCache = { ...updated };
   return updated;
+}
+
+export function clearFlagCache() {
+  flagCache = undefined;
 }
 
 export function requireFeature(flags, flagName) {
@@ -84,8 +94,4 @@ export function requireFeature(flags, flagName) {
     };
   }
   return undefined;
-}
-
-export function clearFlagCache() {
-  flagCache = undefined;
 }

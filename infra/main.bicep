@@ -49,16 +49,20 @@ param repositoryBranch string = 'main'
 @description('UTC timestamp used to generate unique sub-deployment names. Prevents DeploymentActive conflicts on re-deploy.')
 param deploymentTimestamp string = utcNow('yyyyMMddHHmmss')
 
+@description('Email address (UPN) of the Entra ID admin user/group for SQL Server administration.')
+param adminEmail string
+
+@description('Object ID of the Entra ID admin user/group for SQL Server administration.')
+param sqlAdminObjectId string
+
+@description('Enable Private Endpoint for Azure SQL Server. When true, a VNet, Private Endpoint, and Private DNS Zone are created. Set to false for cost-saving dev deployments.')
+param enablePrivateEndpoint bool = true
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Variables
 // ──────────────────────────────────────────────────────────────────────────────
 
 var suffix = '${projectName}-${environment}'
-
-// Storage account names: max 24 chars, lowercase alphanumeric only.
-// uniqueString scopes to the resource group so re-deploys to the same RG always
-// produce the same name (idempotent), while different RGs get different names.
-var storageAccountName = take(replace('st${projectName}${environment}${uniqueString(resourceGroup().id)}', '-', ''), 24)
 
 var tags = {
   project: projectName
@@ -91,12 +95,45 @@ module appInsights 'modules/app-insights.bicep' = {
   }
 }
 
-module storage 'modules/storage.bicep' = {
-  name: 'storage-${deploymentTimestamp}'
+module sql 'modules/sql-server.bicep' = {
+  name: 'sql-${deploymentTimestamp}'
   params: {
-    name: storageAccountName
+    name: 'sql-${suffix}'
     location: location
     tags: tags
+    databaseName: 'hackerboard'
+    administratorLogin: adminEmail
+    administratorObjectId: sqlAdminObjectId
+  }
+}
+
+module vnet 'modules/vnet.bicep' = if (enablePrivateEndpoint) {
+  name: 'vnet-${deploymentTimestamp}'
+  params: {
+    name: 'vnet-${suffix}'
+    location: location
+    tags: tags
+  }
+}
+
+module privateDns 'modules/private-dns.bicep' = if (enablePrivateEndpoint) {
+  name: 'private-dns-${deploymentTimestamp}'
+  params: {
+    location: 'global'
+    tags: tags
+    vnetId: vnet!.outputs.vnetId
+  }
+}
+
+module sqlPrivateEndpoint 'modules/sql-private-endpoint.bicep' = if (enablePrivateEndpoint) {
+  name: 'sql-pe-${deploymentTimestamp}'
+  params: {
+    name: 'pe-sql-${suffix}'
+    location: location
+    tags: tags
+    sqlServerResourceId: sql.outputs.resourceId
+    subnetResourceId: vnet!.outputs.sqlPeSubnetId
+    privateDnsZoneResourceId: privateDns!.outputs.resourceId
   }
 }
 
@@ -109,15 +146,8 @@ module staticWebApp 'modules/static-web-app.bicep' = {
     repositoryUrl: repositoryUrl
     repositoryBranch: repositoryBranch
     appInsightsConnectionString: appInsights.outputs.connectionString
-    storageAccountName: storage.outputs.storageAccountName
-  }
-}
-
-module storageRbac 'modules/storage-rbac.bicep' = {
-  name: 'storage-rbac-${deploymentTimestamp}'
-  params: {
-    storageAccountId: storage.outputs.storageAccountId
-    principalId: staticWebApp.outputs.principalId
+    sqlServerFqdn: sql.outputs.serverFqdn
+    sqlDatabaseName: sql.outputs.databaseName
   }
 }
 
@@ -131,8 +161,14 @@ output swaHostname string = staticWebApp.outputs.defaultHostname
 @description('Name of the Static Web App resource.')
 output swaName string = staticWebApp.outputs.staticWebAppName
 
+@description('Principal ID of the SWA system-assigned managed identity.')
+output swaPrincipalId string = staticWebApp.outputs.principalId
+
 @description('Application Insights connection string.')
 output appInsightsConnectionString string = appInsights.outputs.connectionString
 
-@description('Name of the Storage Account.')
-output storageAccountName string = storage.outputs.storageAccountName
+@description('Fully-qualified domain name of the Azure SQL Server.')
+output sqlServerFqdn string = sql.outputs.serverFqdn
+
+@description('Name of the Azure SQL Database.')
+output sqlDatabaseName string = sql.outputs.databaseName

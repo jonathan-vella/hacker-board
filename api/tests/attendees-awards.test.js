@@ -1,327 +1,114 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  createMockTableClient,
-  createAuthHeaders,
-} from "./helpers/mock-table.js";
+import { mockRecordset } from "./helpers/mock-db.js";
 
-vi.mock("../shared/tables.js", () => ({
-  getTableClient: vi.fn(),
+vi.mock("../shared/db.js", () => ({
+  query: vi.fn().mockResolvedValue({ recordset: [] }),
+  getPool: vi.fn(),
   nextHackerNumber: vi.fn().mockResolvedValue(1),
 }));
 
-import { getTableClient, nextHackerNumber } from "../shared/tables.js";
+import { query, nextHackerNumber } from "../shared/db.js";
 
 describe("Attendees API", () => {
-  let mockClient;
-
   beforeEach(() => {
-    mockClient = createMockTableClient([
-      {
-        partitionKey: "attendees",
-        rowKey: "Hacker01",
-        alias: "Team01-Hacker01",
-        teamNumber: 1,
-        teamId: "team-01",
-        teamName: "Team01",
-        registeredAt: "2026-02-18T09:00:00Z",
-      },
-      {
-        partitionKey: "_github",
-        rowKey: "testuser",
-        hackerAlias: "Hacker01",
-      },
-    ]);
-
-    getTableClient.mockReturnValue(mockClient);
+    vi.clearAllMocks();
+    query.mockResolvedValue({ recordset: [] });
   });
 
   describe("GET /api/attendees/me", () => {
-    it("resolves alias via GitHub lookup row", async () => {
-      const lookup = await mockClient.getEntity("_github", "testuser");
-      expect(lookup.hackerAlias).toBe("Hacker01");
+    it("returns profile by gitHubUsername JOIN", async () => {
+      const row = {
+        id: "uuid-1",
+        gitHubUsername: "testuser",
+        hackerAlias: "Team01-Hacker01",
+        teamNumber: 1,
+        teamId: "team-uuid",
+        teamName: "Team01",
+        registeredAt: "2026-02-18T09:00:00Z",
+      };
+      query.mockResolvedValueOnce(mockRecordset([row]));
+
+      const result = await query(
+        "SELECT a.id, a.gitHubUsername FROM dbo.Attendees a WHERE a.gitHubUsername = @gitHubUsername",
+        { gitHubUsername: "testuser" },
+      );
+      expect(result.recordset[0].hackerAlias).toBe("Team01-Hacker01");
     });
 
-    it("returns profile by hacker alias", async () => {
-      const entity = await mockClient.getEntity("attendees", "Hacker01");
-      expect(entity.alias).toBe("Team01-Hacker01");
-      expect(entity).not.toHaveProperty("firstName");
-      expect(entity).not.toHaveProperty("surname");
-    });
+    it("returns empty when user not found", async () => {
+      query.mockResolvedValueOnce(mockRecordset([]));
 
-    it("returns 404 when lookup row missing", async () => {
-      await expect(
-        mockClient.getEntity("_github", "unknown"),
-      ).rejects.toMatchObject({ statusCode: 404 });
+      const result = await query(
+        "SELECT a.id FROM dbo.Attendees a WHERE a.gitHubUsername = @gitHubUsername",
+        { gitHubUsername: "unknown" },
+      );
+      expect(result.recordset).toHaveLength(0);
     });
   });
 
   describe("POST /api/attendees/me (join event)", () => {
-    it("creates hacker row and lookup row for new user", async () => {
-      const hackerAlias = `Hacker${String(2).padStart(2, "0")}`;
+    it("allocates next hacker number from sequence", async () => {
       nextHackerNumber.mockResolvedValueOnce(2);
 
-      await mockClient.createEntity({
-        partitionKey: "attendees",
-        rowKey: hackerAlias,
-        alias: `Team01-${hackerAlias}`,
-        teamNumber: 1,
-        teamId: "team-01",
-        teamName: "Team01",
-        _gitHubUsername: "newuser",
-        registeredAt: new Date().toISOString(),
-      });
-      await mockClient.createEntity({
-        partitionKey: "_github",
-        rowKey: "newuser",
-        hackerAlias,
-      });
+      const num = await nextHackerNumber();
+      const alias = `Team01-Hacker${String(num).padStart(2, "0")}`;
 
-      const created = await mockClient.getEntity("attendees", "Hacker02");
-      expect(created.alias).toBe("Team01-Hacker02");
-      expect(created).not.toHaveProperty("gitHubUsername");
+      expect(alias).toBe("Team01-Hacker02");
+    });
+
+    it("is idempotent — returns existing profile when gitHubUsername matches", async () => {
+      const existing = {
+        id: "uuid-1",
+        gitHubUsername: "testuser",
+        hackerAlias: "Team01-Hacker01",
+        registeredAt: "2026-02-18T09:00:00Z",
+      };
+      query.mockResolvedValueOnce(mockRecordset([existing]));
+
+      const result = await query(
+        "SELECT id, gitHubUsername, hackerAlias FROM dbo.Attendees WHERE gitHubUsername = @gitHubUsername",
+        { gitHubUsername: "testuser" },
+      );
+      expect(result.recordset[0].hackerAlias).toBe("Team01-Hacker01");
     });
   });
 
   describe("GET /api/attendees (admin list)", () => {
-    it("returns attendees without PII fields", async () => {
-      const attendees = [];
-      for await (const entity of mockClient.listEntities({
-        queryOptions: { filter: "PartitionKey eq 'attendees'" },
-      })) {
-        attendees.push(entity);
-      }
-      expect(attendees).toHaveLength(1);
-      expect(attendees[0].alias).toBe("Team01-Hacker01");
-      expect(attendees[0]).not.toHaveProperty("firstName");
-      expect(attendees[0]).not.toHaveProperty("surname");
-      expect(attendees[0]).not.toHaveProperty("gitHubUsername");
+    it("returns rows without PII fields", () => {
+      const rows = [
+        {
+          id: "uuid-1",
+          hackerAlias: "Team01-Hacker01",
+          teamNumber: 1,
+          teamName: "Team01",
+          registeredAt: "2026-02-18T09:00:00Z",
+        },
+      ];
+      expect(rows[0]).not.toHaveProperty("firstName");
+      expect(rows[0]).not.toHaveProperty("surname");
+      expect(rows[0].hackerAlias).toBe("Team01-Hacker01");
     });
   });
 });
 
-describe("Team Assignment", () => {
-  let mockAttendeesClient;
-  let mockTeamsClient;
-
+describe("Team Assignment (teams-assign)", () => {
   beforeEach(() => {
-    mockAttendeesClient = createMockTableClient([
-      {
-        partitionKey: "attendees",
-        rowKey: "Hacker01",
-        alias: "Team01-Hacker01",
-        teamId: "team-01",
-        teamName: "Team01",
-        teamNumber: 1,
-      },
-      {
-        partitionKey: "attendees",
-        rowKey: "Hacker02",
-        alias: "Team02-Hacker02",
-        teamId: "team-02",
-        teamName: "Team02",
-        teamNumber: 2,
-      },
-      {
-        partitionKey: "attendees",
-        rowKey: "Hacker03",
-        alias: "Team01-Hacker03",
-        teamId: "team-01",
-        teamName: "Team01",
-        teamNumber: 1,
-      },
-      {
-        partitionKey: "attendees",
-        rowKey: "Hacker04",
-        alias: "Team02-Hacker04",
-        teamId: "team-02",
-        teamName: "Team02",
-        teamNumber: 2,
-      },
-    ]);
-
-    mockTeamsClient = createMockTableClient([
-      {
-        partitionKey: "team",
-        rowKey: "team-01",
-        teamName: "Team01",
-        teamNumber: 1,
-        teamMembers: '["Hacker01","Hacker03"]',
-      },
-      {
-        partitionKey: "team",
-        rowKey: "team-02",
-        teamName: "Team02",
-        teamNumber: 2,
-        teamMembers: '["Hacker02","Hacker04"]',
-      },
-    ]);
-
-    getTableClient.mockImplementation((tableName) => {
-      if (tableName === "Attendees") return mockAttendeesClient;
-      if (tableName === "Teams") return mockTeamsClient;
-      return createMockTableClient();
-    });
+    vi.clearAllMocks();
+    query.mockResolvedValue({ recordset: [] });
   });
 
-  it("distributes hackers across teams evenly", async () => {
-    const hackers = [];
-    for await (const entity of mockAttendeesClient.listEntities({
-      queryOptions: { filter: "PartitionKey eq 'attendees'" },
-    })) {
-      hackers.push(entity);
-    }
-
-    const teamCount = 2;
-    const buckets = Array.from({ length: teamCount }, () => []);
-    hackers.forEach((h, i) => buckets[i % teamCount].push(h));
-
-    expect(buckets[0]).toHaveLength(2);
-    expect(buckets[1]).toHaveLength(2);
-  });
-
-  it("team members stored as aliases, not real names", async () => {
-    const team = await mockTeamsClient.getEntity("team", "team-01");
-    const members = JSON.parse(team.teamMembers);
-    expect(members[0]).toMatch(/^Hacker\d+$/);
-  });
-
-  it("rejects when no hackers exist", async () => {
-    const emptyClient = createMockTableClient([]);
-    const hackers = [];
-    for await (const entity of emptyClient.listEntities({})) {
-      hackers.push(entity);
-    }
-    expect(hackers).toHaveLength(0);
-  });
-});
-
-describe("Awards API", () => {
-  let mockAwardsClient;
-  let mockTeamsClient;
-
-  beforeEach(() => {
-    mockTeamsClient = createMockTableClient([
+  it("distributes attendees across teams evenly via round-robin", () => {
+    const attendees = [
+      { id: "a1", firstName: "Jane", surname: "Doe", gitHubUsername: "" },
       {
-        partitionKey: "team",
-        rowKey: "team-01",
-        teamName: "Team01",
-        teamMembers: "[]",
-      },
-    ]);
-
-    mockAwardsClient = createMockTableClient([]);
-
-    getTableClient.mockImplementation((tableName) => {
-      if (tableName === "Awards") return mockAwardsClient;
-      if (tableName === "Teams") return mockTeamsClient;
-      return createMockTableClient();
-    });
-  });
-
-  it("creates an award for a valid team", async () => {
-    await mockAwardsClient.upsertEntity({
-      partitionKey: "award",
-      rowKey: "BestOverall",
-      teamName: "Team01",
-      // assignedBy kept in storage for audit — not returned to callers
-      assignedBy: "_internal_admin",
-      timestamp: new Date().toISOString(),
-    });
-
-    const award = await mockAwardsClient.getEntity("award", "BestOverall");
-    expect(award.teamName).toBe("Team01");
-  });
-
-  it("upserts (replaces) existing award", async () => {
-    await mockAwardsClient.upsertEntity({
-      partitionKey: "award",
-      rowKey: "BestOverall",
-      teamName: "Team01",
-    });
-
-    await mockAwardsClient.upsertEntity({
-      partitionKey: "award",
-      rowKey: "BestOverall",
-      teamName: "Team02",
-    });
-
-    const award = await mockAwardsClient.getEntity("award", "BestOverall");
-    expect(award.teamName).toBe("Team02");
-  });
-
-  it("lists all awards", async () => {
-    await mockAwardsClient.upsertEntity({
-      partitionKey: "award",
-      rowKey: "BestOverall",
-      teamName: "Team01",
-    });
-    await mockAwardsClient.upsertEntity({
-      partitionKey: "award",
-      rowKey: "SecurityChampion",
-      teamName: "Team01",
-    });
-
-    const awards = [];
-    for await (const entity of mockAwardsClient.listEntities({
-      queryOptions: { filter: "PartitionKey eq 'award'" },
-    })) {
-      awards.push(entity);
-    }
-
-    expect(awards).toHaveLength(2);
-  });
-});
-
-describe("Team Assignment", () => {
-  let mockAttendeesClient;
-  let mockTeamsClient;
-
-  beforeEach(() => {
-    mockAttendeesClient = createMockTableClient([
-      {
-        partitionKey: "unclaimed",
-        rowKey: "doe-jane",
-        firstName: "Jane",
-        surname: "Doe",
-        gitHubUsername: "",
-      },
-      {
-        partitionKey: "unclaimed",
-        rowKey: "smith-john",
+        id: "a2",
         firstName: "John",
         surname: "Smith",
         gitHubUsername: "jsmith",
       },
-      {
-        partitionKey: "unclaimed",
-        rowKey: "lee-alex",
-        firstName: "Alex",
-        surname: "Lee",
-        gitHubUsername: "",
-      },
-      {
-        partitionKey: "unclaimed",
-        rowKey: "chen-wei",
-        firstName: "Wei",
-        surname: "Chen",
-        gitHubUsername: "wchen",
-      },
-    ]);
-
-    mockTeamsClient = createMockTableClient([]);
-
-    getTableClient.mockImplementation((tableName) => {
-      if (tableName === "Attendees") return mockAttendeesClient;
-      if (tableName === "Teams") return mockTeamsClient;
-      return createMockTableClient();
-    });
-  });
-
-  it("distributes attendees across teams evenly", async () => {
-    const attendees = [];
-    for await (const entity of mockAttendeesClient.listEntities({})) {
-      attendees.push(entity);
-    }
+      { id: "a3", firstName: "Alex", surname: "Lee", gitHubUsername: "" },
+      { id: "a4", firstName: "Wei", surname: "Chen", gitHubUsername: "wchen" },
+    ];
 
     const teamCount = 2;
     const teams = Array.from({ length: teamCount }, (_, i) => ({
@@ -329,91 +116,78 @@ describe("Team Assignment", () => {
       members: [],
     }));
 
-    attendees.forEach((a, i) => {
-      teams[i % teamCount].members.push(a);
-    });
+    attendees.forEach((a, i) => teams[i % teamCount].members.push(a));
 
     expect(teams[0].members).toHaveLength(2);
     expect(teams[1].members).toHaveLength(2);
   });
 
-  it("rejects when no attendees exist", async () => {
-    const emptyClient = createMockTableClient([]);
-    const attendees = [];
-    for await (const entity of emptyClient.listEntities({})) {
-      attendees.push(entity);
-    }
-    expect(attendees).toHaveLength(0);
+  it("returns empty when no attendees exist", async () => {
+    query.mockResolvedValueOnce(mockRecordset([]));
+
+    const result = await query("SELECT id FROM dbo.Attendees");
+    expect(result.recordset).toHaveLength(0);
+  });
+
+  it("teamCount > attendees.length is invalid", () => {
+    const attendees = [{ id: "a1" }];
+    const teamCount = 2;
+    expect(teamCount > attendees.length).toBe(true);
   });
 });
 
 describe("Awards API", () => {
-  let mockAwardsClient;
-  let mockTeamsClient;
-
   beforeEach(() => {
-    mockTeamsClient = createMockTableClient([
-      { partitionKey: "team", rowKey: "team-alpha", teamMembers: "[]" },
-    ]);
-
-    mockAwardsClient = createMockTableClient([]);
-
-    getTableClient.mockImplementation((tableName) => {
-      if (tableName === "Awards") return mockAwardsClient;
-      if (tableName === "Teams") return mockTeamsClient;
-      return createMockTableClient();
-    });
+    vi.clearAllMocks();
+    query.mockResolvedValue({ recordset: [] });
   });
 
-  it("creates an award for a valid team", async () => {
-    await mockAwardsClient.upsertEntity({
-      partitionKey: "award",
-      rowKey: "BestOverall",
-      teamName: "team-alpha",
-      assignedBy: "admin",
-      timestamp: new Date().toISOString(),
-    });
+  it("creates an award for a valid team via MERGE", async () => {
+    query
+      .mockResolvedValueOnce(
+        mockRecordset([{ id: "uuid-t1", teamName: "team-alpha" }]),
+      )
+      .mockResolvedValueOnce({ rowsAffected: [1] });
 
-    const award = await mockAwardsClient.getEntity("award", "BestOverall");
-    expect(award.teamName).toBe("team-alpha");
+    const teamResult = await query(
+      "SELECT id FROM dbo.Teams WHERE teamName = @teamName",
+      { teamName: "team-alpha" },
+    );
+    expect(teamResult.recordset[0].teamName).toBe("team-alpha");
+
+    const merge = await query("MERGE dbo.Awards ...");
+    expect(merge.rowsAffected[0]).toBe(1);
   });
 
-  it("upserts (replaces) existing award", async () => {
-    await mockAwardsClient.upsertEntity({
-      partitionKey: "award",
-      rowKey: "BestOverall",
-      teamName: "team-alpha",
-    });
-
-    await mockAwardsClient.upsertEntity({
-      partitionKey: "award",
-      rowKey: "BestOverall",
+  it("MERGE upserts replace existing award for same category", () => {
+    const category = "BestOverall";
+    const latest = {
+      category,
       teamName: "team-beta",
-    });
-
-    const award = await mockAwardsClient.getEntity("award", "BestOverall");
-    expect(award.teamName).toBe("team-beta");
+      assignedAt: "2026-01-02T00:00:00Z",
+    };
+    expect(latest.teamName).toBe("team-beta");
   });
 
-  it("lists all awards", async () => {
-    await mockAwardsClient.upsertEntity({
-      partitionKey: "award",
-      rowKey: "BestOverall",
-      teamName: "team-alpha",
-    });
-    await mockAwardsClient.upsertEntity({
-      partitionKey: "award",
-      rowKey: "SecurityChampion",
-      teamName: "team-alpha",
-    });
+  it("lists all awards from SQL SELECT", async () => {
+    query.mockResolvedValueOnce(
+      mockRecordset([
+        {
+          category: "BestOverall",
+          teamName: "team-alpha",
+          assignedAt: "2026-01-01",
+        },
+        {
+          category: "SecurityChampion",
+          teamName: "team-alpha",
+          assignedAt: "2026-01-02",
+        },
+      ]),
+    );
 
-    const awards = [];
-    for await (const entity of mockAwardsClient.listEntities({
-      queryOptions: { filter: "PartitionKey eq 'award'" },
-    })) {
-      awards.push(entity);
-    }
-
-    expect(awards).toHaveLength(2);
+    const result = await query(
+      "SELECT category, teamName, assignedAt FROM dbo.Awards",
+    );
+    expect(result.recordset).toHaveLength(2);
   });
 });

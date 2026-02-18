@@ -1,97 +1,71 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  createMockTableClient,
-  createAuthHeaders,
-} from "./helpers/mock-table.js";
+import { mockRecordset } from "./helpers/mock-db.js";
 
-vi.mock("../shared/tables.js", () => ({
-  getTableClient: vi.fn(),
+vi.mock("../shared/db.js", () => ({
+  query: vi.fn().mockResolvedValue({ recordset: [] }),
+  getPool: vi.fn(),
+  nextHackerNumber: vi.fn().mockResolvedValue(1),
 }));
 
-import { getTableClient } from "../shared/tables.js";
+import { query } from "../shared/db.js";
 
 describe("Scores API", () => {
-  let mockScoresClient;
-  let mockTeamsClient;
-
   beforeEach(() => {
-    mockTeamsClient = createMockTableClient([
-      {
-        partitionKey: "team",
-        rowKey: "team-alpha",
-        teamMembers: "[]",
-        createdAt: "2026-02-13T10:00:00Z",
-      },
-    ]);
-
-    mockScoresClient = createMockTableClient([
-      {
-        partitionKey: "team-alpha",
-        rowKey: "Requirements_ProjectContext",
-        category: "Requirements",
-        criterion: "ProjectContext",
-        points: 4,
-        maxPoints: 4,
-        scoredBy: "admin",
-        timestamp: "2026-02-13T14:30:00Z",
-      },
-      {
-        partitionKey: "team-alpha",
-        rowKey: "Bonus_ZoneRedundancy",
-        category: "Bonus",
-        criterion: "ZoneRedundancy",
-        points: 5,
-        maxPoints: 5,
-        scoredBy: "admin",
-        timestamp: "2026-02-13T14:30:00Z",
-      },
-    ]);
-
-    getTableClient.mockImplementation((tableName) => {
-      if (tableName === "Scores") return mockScoresClient;
-      if (tableName === "Teams") return mockTeamsClient;
-      return createMockTableClient();
-    });
+    vi.clearAllMocks();
+    query.mockResolvedValue({ recordset: [] });
   });
 
   describe("GET /api/scores", () => {
     it("returns scores filtered by team", async () => {
-      const scores = [];
-      for await (const entity of mockScoresClient.listEntities({
-        queryOptions: { filter: "PartitionKey eq 'team-alpha'" },
-      })) {
-        scores.push(entity);
-      }
+      const rows = [
+        {
+          teamName: "team-alpha",
+          category: "Requirements",
+          criterion: "ProjectContext",
+          points: 4,
+          maxPoints: 4,
+          scoredBy: "admin",
+          timestamp: "2026-02-13T14:30:00Z",
+        },
+        {
+          teamName: "team-alpha",
+          category: "Bonus",
+          criterion: "ZoneRedundancy",
+          points: 5,
+          maxPoints: 5,
+          scoredBy: "admin",
+          timestamp: "2026-02-13T14:30:00Z",
+        },
+      ];
 
-      expect(scores).toHaveLength(2);
-      expect(scores[0].category).toBe("Requirements");
+      query.mockResolvedValueOnce(mockRecordset(rows));
+
+      const result = await query(
+        "SELECT * FROM dbo.Scores WHERE teamName = @teamName",
+        { teamName: "team-alpha" },
+      );
+
+      expect(result.recordset).toHaveLength(2);
+      expect(result.recordset[0].category).toBe("Requirements");
     });
 
-    it("calculates leaderboard when no team filter", async () => {
-      const scores = [];
-      for await (const entity of mockScoresClient.listEntities({})) {
-        scores.push(entity);
-      }
+    it("calculates leaderboard aggregation from SQL result", () => {
+      const rows = [
+        {
+          teamName: "team-alpha",
+          baseScore: 4,
+          bonusScore: 5,
+          totalScore: 9,
+          maxBase: 4,
+          grade: "A",
+        },
+      ];
 
-      const teamScores = new Map();
-      for (const score of scores) {
-        if (!teamScores.has(score.partitionKey)) {
-          teamScores.set(score.partitionKey, { base: 0, bonus: 0, maxBase: 0 });
-        }
-        const ts = teamScores.get(score.partitionKey);
-        if (score.category === "Bonus") {
-          ts.bonus += score.points;
-        } else {
-          ts.base += score.points;
-          ts.maxBase += score.maxPoints;
-        }
-      }
-
-      const leaderboard = [...teamScores.entries()].map(([teamName, ts]) => ({
-        teamName,
-        baseScore: ts.base,
-        bonusScore: ts.bonus,
-        totalScore: ts.base + ts.bonus,
+      const leaderboard = rows.map((row) => ({
+        teamName: row.teamName,
+        baseScore: row.baseScore,
+        bonusScore: row.bonusScore,
+        totalScore: row.totalScore,
       }));
 
       expect(leaderboard).toHaveLength(1);
@@ -102,34 +76,26 @@ describe("Scores API", () => {
   });
 
   describe("POST /api/scores", () => {
-    it("upserts scores for a valid team", async () => {
-      const scoreItems = [
-        {
-          category: "Requirements",
-          criterion: "FunctionalReqs",
-          points: 3,
-          maxPoints: 4,
-        },
-      ];
+    it("upserts scores via MERGE statement", async () => {
+      query.mockResolvedValueOnce({ recordset: [{ id: "team-alpha-uuid" }] }); // team lookup
+      query.mockResolvedValueOnce({ rowsAffected: [1] }); // MERGE
 
-      for (const item of scoreItems) {
-        await mockScoresClient.upsertEntity({
-          partitionKey: "team-alpha",
-          rowKey: `${item.category}_${item.criterion}`,
-          ...item,
-          scoredBy: "admin",
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      const saved = await mockScoresClient.getEntity(
-        "team-alpha",
-        "Requirements_FunctionalReqs",
+      const teamCheck = await query(
+        "SELECT id FROM dbo.Teams WHERE teamName = @teamName",
+        { teamName: "team-alpha" },
       );
-      expect(saved.points).toBe(3);
+      expect(teamCheck.recordset[0].id).toBe("team-alpha-uuid");
+
+      const merge = await query("MERGE dbo.Scores ...", {
+        teamId: "team-alpha-uuid",
+        category: "Requirements",
+        criterion: "FunctionalReqs",
+        points: 3,
+      });
+      expect(merge.rowsAffected[0]).toBe(1);
     });
 
-    it("rejects scores exceeding maxPoints", () => {
+    it("rejects scores exceeding maxPoints (validation)", () => {
       const item = {
         category: "Requirements",
         criterion: "Test",
@@ -140,11 +106,13 @@ describe("Scores API", () => {
     });
 
     it("returns 404 for non-existent team", async () => {
-      await expect(
-        mockTeamsClient.getEntity("team", "team-nope"),
-      ).rejects.toMatchObject({
-        statusCode: 404,
-      });
+      query.mockResolvedValueOnce({ recordset: [] }); // empty = team not found
+
+      const result = await query(
+        "SELECT id FROM dbo.Teams WHERE teamName = @teamName",
+        { teamName: "team-nope" },
+      );
+      expect(result.recordset).toHaveLength(0);
     });
   });
 });

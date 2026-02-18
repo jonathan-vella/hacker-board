@@ -12,9 +12,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@azure/data-tables": "^13.3.0",
     "@azure/functions": "^4.11.2",
-    "@azure/identity": "^4.9.0"
+    "@azure/identity": "^4.9.0",
+    "mssql": "^11.0.1"
   },
   "devDependencies": {
     "vitest": "^4.0.18"

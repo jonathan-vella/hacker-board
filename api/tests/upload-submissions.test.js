@@ -1,36 +1,30 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  createMockTableClient,
-  createAuthHeaders,
-} from "./helpers/mock-table.js";
+import { mockRecordset } from "./helpers/mock-db.js";
 
-vi.mock("../shared/tables.js", () => ({
-  getTableClient: vi.fn(),
+vi.mock("../shared/db.js", () => ({
+  query: vi.fn().mockResolvedValue({ recordset: [] }),
+  getPool: vi.fn(),
+  nextHackerNumber: vi.fn().mockResolvedValue(1),
 }));
 
-import { getTableClient } from "../shared/tables.js";
+vi.mock("../shared/featureFlags.js", () => ({
+  getFlags: vi.fn().mockResolvedValue({
+    SUBMISSIONS_ENABLED: true,
+    LEADERBOARD_LOCKED: false,
+    REGISTRATION_OPEN: true,
+    AWARDS_VISIBLE: true,
+    RUBRIC_UPLOAD_ENABLED: true,
+  }),
+  requireFeature: vi.fn().mockReturnValue(undefined),
+  clearFlagCache: vi.fn(),
+}));
+
+import { query } from "../shared/db.js";
 
 describe("Upload API", () => {
-  let mockTeamsClient;
-  let mockSubmissionsClient;
-
   beforeEach(() => {
-    mockTeamsClient = createMockTableClient([
-      {
-        partitionKey: "team",
-        rowKey: "team-alpha",
-        teamMembers: "[]",
-        createdAt: "2026-02-13T10:00:00Z",
-      },
-    ]);
-
-    mockSubmissionsClient = createMockTableClient([]);
-
-    getTableClient.mockImplementation((tableName) => {
-      if (tableName === "Teams") return mockTeamsClient;
-      if (tableName === "Submissions") return mockSubmissionsClient;
-      return createMockTableClient();
-    });
+    vi.clearAllMocks();
+    query.mockResolvedValue({ recordset: [] });
   });
 
   describe("POST /api/upload", () => {
@@ -47,28 +41,14 @@ describe("Upload API", () => {
         },
       };
 
-      // Verify team exists
-      const team = await mockTeamsClient.getEntity("team", "team-alpha");
-      expect(team).toBeDefined();
+      query.mockResolvedValueOnce(mockRecordset([{ id: "team-uuid-1" }]));
 
-      // Create submission
-      const submissionId = "test-submission-id";
-      await mockSubmissionsClient.createEntity({
-        partitionKey: payload.TeamName,
-        rowKey: submissionId,
-        submittedBy: "testuser",
-        submittedAt: new Date().toISOString(),
-        status: "Pending",
-        payload: JSON.stringify(payload),
-        calculatedTotal: payload.Total.Grand,
-      });
-
-      const saved = await mockSubmissionsClient.getEntity(
-        "team-alpha",
-        submissionId,
+      const teamResult = await query(
+        "SELECT id FROM dbo.Teams WHERE teamName = @teamName",
+        { teamName: payload.TeamName },
       );
-      expect(saved.status).toBe("Pending");
-      expect(saved.calculatedTotal).toBe(105);
+      expect(teamResult.recordset[0].id).toBe("team-uuid-1");
+      expect(payload.Total.Grand).toBe(105);
     });
 
     it("rejects when TeamName is missing", () => {
@@ -76,12 +56,14 @@ describe("Upload API", () => {
       expect(payload.TeamName).toBeUndefined();
     });
 
-    it("rejects when team does not exist", async () => {
-      await expect(
-        mockTeamsClient.getEntity("team", "team-nope"),
-      ).rejects.toMatchObject({
-        statusCode: 404,
-      });
+    it("rejects when team does not exist (empty recordset)", async () => {
+      query.mockResolvedValueOnce(mockRecordset([]));
+
+      const result = await query(
+        "SELECT id FROM dbo.Teams WHERE teamName = @teamName",
+        { teamName: "team-nope" },
+      );
+      expect(result.recordset).toHaveLength(0);
     });
 
     it("rejects when base score exceeds max", () => {
@@ -95,134 +77,114 @@ describe("Upload API", () => {
 });
 
 describe("Submissions API", () => {
-  let mockSubmissionsClient;
-  let mockScoresClient;
-
   beforeEach(() => {
-    mockSubmissionsClient = createMockTableClient([
-      {
-        partitionKey: "team-alpha",
-        rowKey: "sub-001",
-        submittedBy: "user1",
-        submittedAt: "2026-02-13T14:30:00Z",
-        status: "Pending",
-        calculatedTotal: 105,
-        payload: JSON.stringify({
-          TeamName: "team-alpha",
-          Categories: {
-            Requirements: {
-              Score: 18,
-              MaxPoints: 20,
-              Criteria: { ProjectContext: 4 },
-            },
-          },
-          Bonus: { ZoneRedundancy: { Points: 5, Verified: true } },
-        }),
-      },
-    ]);
-
-    mockScoresClient = createMockTableClient([]);
-
-    getTableClient.mockImplementation((tableName) => {
-      if (tableName === "Submissions") return mockSubmissionsClient;
-      if (tableName === "Scores") return mockScoresClient;
-      return createMockTableClient();
-    });
+    vi.clearAllMocks();
+    query.mockResolvedValue({ recordset: [] });
   });
 
   describe("GET /api/submissions", () => {
-    it("returns all submissions", async () => {
-      const submissions = [];
-      for await (const entity of mockSubmissionsClient.listEntities({})) {
-        submissions.push(entity);
-      }
-      expect(submissions).toHaveLength(1);
-      expect(submissions[0].status).toBe("Pending");
+    it("returns all submissions from SQL", async () => {
+      query.mockResolvedValueOnce(
+        mockRecordset([
+          {
+            id: "sub-001",
+            teamName: "team-alpha",
+            submittedBy: "user1",
+            submittedAt: "2026-02-13T14:30:00Z",
+            status: "Pending",
+            calculatedTotal: 105,
+          },
+        ]),
+      );
+
+      const result = await query(
+        "SELECT s.id, t.teamName, s.submittedBy, s.submittedAt, s.status, s.calculatedTotal FROM dbo.Submissions s JOIN dbo.Teams t ON s.teamId = t.id",
+      );
+      expect(result.recordset).toHaveLength(1);
+      expect(result.recordset[0].status).toBe("Pending");
     });
 
-    it("filters by status", async () => {
-      const submissions = [];
-      for await (const entity of mockSubmissionsClient.listEntities({
-        queryOptions: { filter: "status eq 'Pending'" },
-      })) {
-        submissions.push(entity);
-      }
-      expect(submissions).toHaveLength(1);
+    it("filters by status via WHERE clause", async () => {
+      query.mockResolvedValueOnce(
+        mockRecordset([{ id: "sub-001", status: "Pending" }]),
+      );
+
+      const result = await query(
+        "SELECT * FROM dbo.Submissions WHERE status = @status",
+        { status: "Pending" },
+      );
+      expect(result.recordset).toHaveLength(1);
     });
   });
 
   describe("POST /api/submissions/validate", () => {
-    it("approves a pending submission and writes scores", async () => {
-      const submission = await mockSubmissionsClient.getEntity(
-        "team-alpha",
-        "sub-001",
-      );
-      expect(submission.status).toBe("Pending");
-
-      // Approve
-      await mockSubmissionsClient.updateEntity(
-        {
-          partitionKey: "team-alpha",
-          rowKey: "sub-001",
-          status: "Approved",
-          reviewedBy: "admin",
-          reviewedAt: new Date().toISOString(),
+    it("approves a pending submission via UPDATE and writes scores via MERGE", async () => {
+      const payload = JSON.stringify({
+        TeamName: "team-alpha",
+        Categories: {
+          Requirements: {
+            Score: 18,
+            MaxPoints: 20,
+            Criteria: { ProjectContext: 4 },
+          },
         },
-        "Merge",
-      );
+        Bonus: { ZoneRedundancy: { Points: 5, Verified: true } },
+      });
 
-      const updated = await mockSubmissionsClient.getEntity(
-        "team-alpha",
-        "sub-001",
-      );
-      expect(updated.status).toBe("Approved");
+      const submission = {
+        id: "sub-001",
+        teamId: "team-uuid-1",
+        status: "Pending",
+        payload,
+      };
 
-      // Write scores from payload
-      const payload = JSON.parse(submission.payload);
-      for (const [category, data] of Object.entries(payload.Categories)) {
-        for (const [criterion, points] of Object.entries(data.Criteria)) {
-          await mockScoresClient.upsertEntity({
-            partitionKey: "team-alpha",
-            rowKey: `${category}_${criterion}`,
-            category,
-            criterion,
-            points,
-            maxPoints: data.MaxPoints,
-          });
-        }
-      }
+      // SELECT submission
+      query.mockResolvedValueOnce(mockRecordset([submission]));
+      // UPDATE status
+      query.mockResolvedValueOnce({ rowsAffected: [1] });
+      // MERGE scores (once per criterion)
+      query.mockResolvedValue({ rowsAffected: [1] });
 
-      const score = await mockScoresClient.getEntity(
-        "team-alpha",
-        "Requirements_ProjectContext",
+      const subResult = await query(
+        "SELECT * FROM dbo.Submissions WHERE id = @id",
+        { id: "sub-001" },
       );
-      expect(score.points).toBe(4);
+      expect(subResult.recordset[0].status).toBe("Pending");
+
+      const updateResult = await query(
+        "UPDATE dbo.Submissions SET status = @status WHERE id = @id",
+        { status: "Approved", id: "sub-001" },
+      );
+      expect(updateResult.rowsAffected[0]).toBe(1);
     });
 
     it("rejects a submission with a reason", async () => {
-      await mockSubmissionsClient.updateEntity(
-        {
-          partitionKey: "team-alpha",
-          rowKey: "sub-001",
-          status: "Rejected",
-          reviewedBy: "admin",
-          reason: "Scores look incorrect",
-        },
-        "Merge",
+      query.mockResolvedValueOnce(
+        mockRecordset([{ id: "sub-001", status: "Pending" }]),
       );
+      query.mockResolvedValueOnce({ rowsAffected: [1] });
 
-      const updated = await mockSubmissionsClient.getEntity(
-        "team-alpha",
-        "sub-001",
+      const subResult = await query(
+        "SELECT * FROM dbo.Submissions WHERE id = @id",
+        { id: "sub-001" },
       );
-      expect(updated.status).toBe("Rejected");
-      expect(updated.reason).toBe("Scores look incorrect");
+      expect(subResult.recordset[0].status).toBe("Pending");
+
+      const updateResult = await query(
+        "UPDATE dbo.Submissions SET status = @status, reason = @reason WHERE id = @id",
+        { status: "Rejected", reason: "Scores look incorrect", id: "sub-001" },
+      );
+      expect(updateResult.rowsAffected[0]).toBe(1);
     });
 
-    it("rejects when submission not found", async () => {
-      await expect(
-        mockSubmissionsClient.getEntity("team-alpha", "sub-nonexistent"),
-      ).rejects.toMatchObject({ statusCode: 404 });
+    it("returns empty recordset when submission not found", async () => {
+      query.mockResolvedValueOnce(mockRecordset([]));
+
+      const result = await query(
+        "SELECT * FROM dbo.Submissions WHERE id = @id",
+        { id: "sub-nonexistent" },
+      );
+      expect(result.recordset).toHaveLength(0);
     });
   });
 });

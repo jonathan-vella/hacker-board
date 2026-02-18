@@ -1,0 +1,206 @@
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "prod"
+        type: choice
+        options: [dev, staging, prod]
+      resource_group:
+        description: "Azure resource group name"
+        required: true
+        default: "rg-hacker-board-prod"
+      location:
+        description: "Azure region"
+        required: false
+        default: "westeurope"
+      sql_admin_object_id:
+        description: "Entra ID Object ID for SQL Entra admin"
+        required: true
+      admin_email:
+        description: "GitHub email of the first admin to invite (optional)"
+        required: false
+        default: ""
+      cost_center:
+        description: "Cost center tag value"
+        required: true
+      technical_contact:
+        description: "Technical contact email tag value"
+        required: true
+      what_if:
+        description: "Run what-if preview only (no deploy)"
+        required: false
+        default: "false"
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-infra-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-infra:
+    name: Deploy Azure Infrastructure
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    outputs:
+      sql_fqdn: ${{ steps.deploy.outputs.sql_fqdn }}
+      sql_db: ${{ steps.deploy.outputs.sql_db }}
+      swa_name: ${{ steps.deploy.outputs.swa_name }}
+      swa_url: ${{ steps.deploy.outputs.swa_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Validate ARM token
+        run: |
+          az account get-access-token --resource https://management.azure.com/ --output none
+          echo "✅ ARM token validated"
+
+      - name: Install Bicep CLI
+        run: az bicep install
+
+      - name: Validate Bicep templates
+        run: |
+          az bicep build --file infra/main.bicep
+          echo "✅ Bicep build passed"
+          az bicep lint --file infra/main.bicep || echo "⚠️  Lint warnings (non-blocking)"
+
+      - name: Create resource group
+        run: |
+          az group create \
+            --name "${{ github.event.inputs.resource_group }}" \
+            --location "${{ github.event.inputs.location }}" \
+            --tags \
+              "environment=${{ github.event.inputs.environment }}" \
+              "owner=agentic-infraops" \
+              "costcenter=${{ github.event.inputs.cost_center }}" \
+              "application=hacker-board" \
+              "workload=hacker-board" \
+              "sla=99.9%" \
+              "backup-policy=none" \
+              "maint-window=sat-02-06-utc" \
+              "technical-contact=${{ github.event.inputs.technical_contact }}" \
+            --output none
+          echo "✅ Resource group ready"
+
+      - name: What-if preview
+        if: github.event.inputs.what_if == 'true'
+        run: |
+          az deployment group what-if \
+            --resource-group "${{ github.event.inputs.resource_group }}" \
+            --template-file infra/main.bicep \
+            --parameters \
+              "projectName=hacker-board" \
+              "environment=${{ github.event.inputs.environment }}" \
+              "location=${{ github.event.inputs.location }}" \
+              "costCenter=${{ github.event.inputs.cost_center }}" \
+              "technicalContact=${{ github.event.inputs.technical_contact }}" \
+              "sqlAdminObjectId=${{ github.event.inputs.sql_admin_object_id }}" \
+            --output table
+
+      - name: Deploy infrastructure
+        if: github.event.inputs.what_if != 'true'
+        id: deploy
+        run: |
+          RESULT=$(az deployment group create \
+            --resource-group "${{ github.event.inputs.resource_group }}" \
+            --template-file infra/main.bicep \
+            --name "hacker-board-$(date +%Y%m%d-%H%M%S)" \
+            --parameters \
+              "projectName=hacker-board" \
+              "environment=${{ github.event.inputs.environment }}" \
+              "location=${{ github.event.inputs.location }}" \
+              "costCenter=${{ github.event.inputs.cost_center }}" \
+              "technicalContact=${{ github.event.inputs.technical_contact }}" \
+              "sqlAdminObjectId=${{ github.event.inputs.sql_admin_object_id }}" \
+            --output json)
+
+          SQL_FQDN=$(echo "$RESULT" | jq -r '.properties.outputs.sqlServerFqdn.value // empty')
+          SQL_DB=$(echo "$RESULT" | jq -r '.properties.outputs.sqlDatabaseName.value // "hacker-board-db"')
+          SWA_NAME=$(echo "$RESULT" | jq -r '.properties.outputs.staticWebAppName.value // empty')
+          SWA_URL=$(echo "$RESULT" | jq -r '.properties.outputs.staticWebAppUrl.value // empty')
+
+          echo "sql_fqdn=$SQL_FQDN"   >> "$GITHUB_OUTPUT"
+          echo "sql_db=$SQL_DB"       >> "$GITHUB_OUTPUT"
+          echo "swa_name=$SWA_NAME"   >> "$GITHUB_OUTPUT"
+          echo "swa_url=$SWA_URL"     >> "$GITHUB_OUTPUT"
+
+          echo "✅ Deployment complete"
+          echo "   SQL:  $SQL_FQDN / $SQL_DB"
+          echo "   SWA:  https://$SWA_URL"
+
+  migrate-schema:
+    name: Deploy SQL Schema
+    needs: deploy-infra
+    if: github.event.inputs.what_if != 'true' && needs.deploy-infra.outputs.sql_fqdn != ''
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install API dependencies
+        run: cd api && npm ci
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run schema migration
+        env:
+          SQL_SERVER_FQDN: ${{ needs.deploy-infra.outputs.sql_fqdn }}
+          SQL_DATABASE_NAME: ${{ needs.deploy-infra.outputs.sql_db }}
+        run: node scripts/deploy-schema.js
+
+  invite-admin:
+    name: Invite Admin User
+    needs: [deploy-infra, migrate-schema]
+    if: |
+      github.event.inputs.what_if != 'true' &&
+      github.event.inputs.admin_email != '' &&
+      needs.deploy-infra.outputs.swa_name != ''
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Send admin invitation
+        run: |
+          bash scripts/invite-admin.sh \
+            --app "${{ needs.deploy-infra.outputs.swa_name }}" \
+            --rg "${{ github.event.inputs.resource_group }}" \
+            --email "${{ github.event.inputs.admin_email }}" \
+            --role writer

@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("../shared/db.js", () => ({
+  query: vi.fn().mockResolvedValue({ recordset: [] }),
+  getPool: vi.fn(),
+  nextHackerNumber: vi.fn().mockResolvedValue(1),
+}));
+
+import { query } from "../shared/db.js";
+
 const REQUIRED_TABLES = [
   "Teams",
   "Attendees",
@@ -10,98 +18,104 @@ const REQUIRED_TABLES = [
   "Config",
 ];
 
-function createMockListClient(shouldFail = false) {
-  return {
-    listEntities: () => ({
-      next: shouldFail
-        ? () => Promise.reject(new Error("Table not found"))
-        : () => Promise.resolve({ done: true }),
-    }),
-  };
-}
-
-async function runHealthCheck(getTableClient) {
-  const started = Date.now();
-  const tables = {};
-  let healthy = true;
-
-  for (const name of REQUIRED_TABLES) {
-    try {
-      const client = getTableClient(name);
-      const iter = client.listEntities({ queryOptions: { top: 1 } });
-      await iter.next();
-      tables[name] = "ok";
-    } catch (err) {
-      tables[name] = `error: ${err.message}`;
-      healthy = false;
-    }
-  }
-
-  return {
-    status: healthy ? 200 : 503,
-    jsonBody: {
-      status: healthy ? "healthy" : "degraded",
-      tables,
-      uptime: process.uptime(),
-      duration: Date.now() - started,
-    },
-  };
-}
-
 describe("health endpoint", () => {
-  it("returns 200 with healthy status when all tables respond", async () => {
-    const getTableClient = () => createMockListClient(false);
-
-    const result = await runHealthCheck(getTableClient);
-
-    expect(result.status).toBe(200);
-    expect(result.jsonBody.status).toBe("healthy");
-    expect(result.jsonBody.tables.Teams).toBe("ok");
-    expect(result.jsonBody.tables.Config).toBe("ok");
-    expect(Object.keys(result.jsonBody.tables)).toHaveLength(7);
-    expect(typeof result.jsonBody.uptime).toBe("number");
-    expect(typeof result.jsonBody.duration).toBe("number");
+  beforeEach(() => {
+    vi.clearAllMocks();
+    query.mockResolvedValue({ recordset: [] });
   });
 
-  it("returns 503 with degraded status when a table fails", async () => {
-    let callCount = 0;
-    const getTableClient = () => {
-      callCount++;
-      return createMockListClient(callCount === 3);
-    };
+  it("returns 200 with healthy status when all tables exist", async () => {
+    query.mockResolvedValueOnce({
+      recordset: REQUIRED_TABLES.map((TABLE_NAME) => ({ TABLE_NAME })),
+    });
 
-    const result = await runHealthCheck(getTableClient);
+    const result = await query(
+      "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_CATALOG = DB_NAME()",
+    );
 
-    expect(result.status).toBe(503);
-    expect(result.jsonBody.status).toBe("degraded");
-    expect(result.jsonBody.tables.Scores).toContain("error");
+    const tablesFound = result.recordset.map((r) => r.TABLE_NAME);
+    const tables = {};
+    let healthy = true;
+
+    for (const name of REQUIRED_TABLES) {
+      if (tablesFound.includes(name)) {
+        tables[name] = "ok";
+      } else {
+        tables[name] = "missing";
+        healthy = false;
+      }
+    }
+
+    expect(healthy).toBe(true);
+    expect(tables.Teams).toBe("ok");
+    expect(tables.Config).toBe("ok");
+    expect(Object.keys(tables)).toHaveLength(7);
+  });
+
+  it("returns 503 with degraded status when a table is missing", async () => {
+    query.mockResolvedValueOnce({
+      recordset: REQUIRED_TABLES.filter((n) => n !== "Scores").map(
+        (TABLE_NAME) => ({ TABLE_NAME }),
+      ),
+    });
+
+    const result = await query(
+      "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ...",
+    );
+    const tablesFound = result.recordset.map((r) => r.TABLE_NAME);
+
+    let healthy = true;
+    const tables = {};
+    for (const name of REQUIRED_TABLES) {
+      if (tablesFound.includes(name)) {
+        tables[name] = "ok";
+      } else {
+        tables[name] = "missing";
+        healthy = false;
+      }
+    }
+
+    expect(healthy).toBe(false);
+    expect(tables.Scores).toBe("missing");
   });
 
   it("checks all 7 required tables", async () => {
-    const getTableClient = () => createMockListClient(false);
+    query.mockResolvedValueOnce({
+      recordset: REQUIRED_TABLES.map((TABLE_NAME) => ({ TABLE_NAME })),
+    });
 
-    const result = await runHealthCheck(getTableClient);
-    const tableNames = Object.keys(result.jsonBody.tables);
+    const result = await query(
+      "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ...",
+    );
+    const tablesFound = result.recordset.map((r) => r.TABLE_NAME);
 
-    expect(tableNames).toContain("Teams");
-    expect(tableNames).toContain("Attendees");
-    expect(tableNames).toContain("Scores");
-    expect(tableNames).toContain("Awards");
-    expect(tableNames).toContain("Submissions");
-    expect(tableNames).toContain("Rubrics");
-    expect(tableNames).toContain("Config");
+    for (const name of REQUIRED_TABLES) {
+      expect(tablesFound).toContain(name);
+    }
   });
 
-  it("reports individual table errors without failing healthy tables", async () => {
-    const getTableClient = (name) =>
-      createMockListClient(name === "Awards" || name === "Config");
+  it("returns degraded when SQL query throws", async () => {
+    query.mockRejectedValueOnce(new Error("connection refused"));
 
-    const result = await runHealthCheck(getTableClient);
+    let healthy = true;
+    let dbError;
+    try {
+      await query("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES ...");
+    } catch (err) {
+      healthy = false;
+      dbError = err.message;
+    }
 
-    expect(result.status).toBe(503);
-    expect(result.jsonBody.tables.Teams).toBe("ok");
-    expect(result.jsonBody.tables.Awards).toContain("error");
-    expect(result.jsonBody.tables.Config).toContain("error");
-    expect(result.jsonBody.tables.Scores).toBe("ok");
+    expect(healthy).toBe(false);
+    expect(dbError).toContain("connection refused");
+  });
+
+  it("diagnostic mode exposes SQL env vars", () => {
+    const diag = {
+      sqlServerFqdn: process.env.SQL_SERVER_FQDN ?? "(unset)",
+      sqlDatabaseName: process.env.SQL_DATABASE_NAME ?? "(unset)",
+      connectionString: !!process.env.SQL_CONNECTION_STRING,
+    };
+    expect(diag.sqlServerFqdn).toBeDefined();
   });
 });

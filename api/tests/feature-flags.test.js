@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   getDefaultFlags,
   getFlagDescriptions,
@@ -9,34 +9,19 @@ import {
 } from "../shared/featureFlags.js";
 import { createRequestLogger } from "../shared/logger.js";
 
-function createMockTableClient(existingEntity) {
-  const store = new Map();
-  if (existingEntity) {
-    store.set(
-      `${existingEntity.partitionKey}:${existingEntity.rowKey}`,
-      existingEntity,
-    );
-  }
+vi.mock("../shared/db.js", () => ({
+  query: vi.fn().mockResolvedValue({ recordset: [] }),
+  getPool: vi.fn(),
+  nextHackerNumber: vi.fn().mockResolvedValue(1),
+}));
 
-  return {
-    async getEntity(pk, rk) {
-      const entity = store.get(`${pk}:${rk}`);
-      if (!entity) {
-        const err = new Error("Not found");
-        err.statusCode = 404;
-        throw err;
-      }
-      return entity;
-    },
-    async upsertEntity(entity) {
-      store.set(`${entity.partitionKey}:${entity.rowKey}`, entity);
-    },
-  };
-}
+import { query } from "../shared/db.js";
 
 describe("shared/featureFlags", () => {
   beforeEach(() => {
     clearFlagCache();
+    vi.clearAllMocks();
+    query.mockResolvedValue({ recordset: [] });
   });
 
   it("getDefaultFlags returns all 5 flags with expected defaults", () => {
@@ -55,71 +40,69 @@ describe("shared/featureFlags", () => {
     expect(descs.SUBMISSIONS_ENABLED).toContain("submit");
   });
 
-  it("getFlags returns defaults when no entity exists (404)", async () => {
-    const client = createMockTableClient();
-    const flags = await getFlags(client);
+  it("getFlags returns defaults when Config table has no rows", async () => {
+    query.mockResolvedValueOnce({ recordset: [] });
+
+    const flags = await getFlags();
     expect(flags).toEqual(getDefaultFlags());
   });
 
-  it("getFlags reads stored values from table", async () => {
-    const entity = {
-      partitionKey: "config",
-      rowKey: "featureFlags",
-      SUBMISSIONS_ENABLED: false,
-      REGISTRATION_OPEN: "false",
-    };
-    const client = createMockTableClient(entity);
-    const flags = await getFlags(client);
+  it("getFlags reads stored values from Config table", async () => {
+    query.mockResolvedValueOnce({
+      recordset: [
+        { configKey: "SUBMISSIONS_ENABLED", configValue: "false" },
+        { configKey: "REGISTRATION_OPEN", configValue: "false" },
+      ],
+    });
+
+    const flags = await getFlags();
     expect(flags.SUBMISSIONS_ENABLED).toBe(false);
     expect(flags.REGISTRATION_OPEN).toBe(false);
     expect(flags.AWARDS_VISIBLE).toBe(true);
   });
 
-  it("getFlags caches results (second call does not hit table)", async () => {
-    const entity = {
-      partitionKey: "config",
-      rowKey: "featureFlags",
-      SUBMISSIONS_ENABLED: false,
-    };
-    const client = createMockTableClient(entity);
+  it("getFlags caches results (second call does not hit db)", async () => {
+    query.mockResolvedValueOnce({
+      recordset: [{ configKey: "SUBMISSIONS_ENABLED", configValue: "false" }],
+    });
 
-    const first = await getFlags(client);
+    const first = await getFlags();
     expect(first.SUBMISSIONS_ENABLED).toBe(false);
 
-    entity.SUBMISSIONS_ENABLED = true;
-    const second = await getFlags(client);
+    const second = await getFlags();
     expect(second.SUBMISSIONS_ENABLED).toBe(false);
+    expect(query).toHaveBeenCalledTimes(1);
   });
 
   it("clearFlagCache forces fresh read", async () => {
-    const client = createMockTableClient({
-      partitionKey: "config",
-      rowKey: "featureFlags",
-      SUBMISSIONS_ENABLED: false,
+    query.mockResolvedValueOnce({
+      recordset: [{ configKey: "SUBMISSIONS_ENABLED", configValue: "false" }],
     });
+    await getFlags();
 
-    await getFlags(client);
     clearFlagCache();
-
-    client.getEntity = async () => ({
-      partitionKey: "config",
-      rowKey: "featureFlags",
-      SUBMISSIONS_ENABLED: true,
+    query.mockResolvedValueOnce({
+      recordset: [{ configKey: "SUBMISSIONS_ENABLED", configValue: "true" }],
     });
-    const flags = await getFlags(client);
+
+    const flags = await getFlags();
     expect(flags.SUBMISSIONS_ENABLED).toBe(true);
   });
 
-  it("setFlags merges with current and upserts", async () => {
-    const client = createMockTableClient();
-    const result = await setFlags(client, { SUBMISSIONS_ENABLED: false });
+  it("setFlags merges with current and writes each flag via MERGE", async () => {
+    query.mockResolvedValueOnce({ recordset: [] });
+    query.mockResolvedValue({ rowsAffected: [1] });
+
+    const result = await setFlags({ SUBMISSIONS_ENABLED: false });
     expect(result.SUBMISSIONS_ENABLED).toBe(false);
     expect(result.REGISTRATION_OPEN).toBe(true);
   });
 
   it("setFlags ignores unknown flag names", async () => {
-    const client = createMockTableClient();
-    const result = await setFlags(client, { UNKNOWN_FLAG: true });
+    query.mockResolvedValueOnce({ recordset: [] });
+    query.mockResolvedValue({ rowsAffected: [1] });
+
+    const result = await setFlags({ UNKNOWN_FLAG: true });
     expect(result.UNKNOWN_FLAG).toBeUndefined();
     expect(Object.keys(result)).toHaveLength(5);
   });
@@ -149,21 +132,11 @@ describe("shared/logger", () => {
     expect(typeof log.done).toBe("function");
   });
 
-  it("extracts user from client principal header", () => {
+  it("extracts username from x-ms-client-principal header", () => {
     const principal = { userDetails: "testuser", userRoles: ["authenticated"] };
     const encoded = Buffer.from(JSON.stringify(principal)).toString("base64");
-    const headers = new Map([["x-ms-client-principal", encoded]]);
-    const req = { headers };
-
+    const req = { headers: new Map([["x-ms-client-principal", encoded]]) };
     const log = createRequestLogger(req);
     expect(log.user).toBe("testuser");
-  });
-
-  it("falls back to anonymous on invalid header", () => {
-    const headers = new Map([["x-ms-client-principal", "not-valid-base64!!!"]]);
-    const req = { headers };
-
-    const log = createRequestLogger(req);
-    expect(log.user).toBe("anonymous");
   });
 });

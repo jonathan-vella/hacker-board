@@ -1,7 +1,198 @@
 import { app } from "@azure/functions";
-import { getTableClient, nextHackerNumber } from "../../shared/tables.js";
+import { query, nextHackerNumber } from "../../shared/db.js";
 import { getClientPrincipal } from "../../shared/auth.js";
 import { errorResponse } from "../../shared/errors.js";
+
+const DEFAULT_TEAM_COUNT = 6;
+
+/**
+ * Returns teams sorted by current member count ascending, then team number ascending.
+ * Seeds Team01–Team06 on first call if no teams exist.
+ */
+async function getTeamsSortedBySize() {
+  const result = await query(
+    `SELECT id, teamName, teamNumber,
+            (SELECT COUNT(*) FROM dbo.Attendees a WHERE a.teamId = t.id) AS memberCount
+       FROM dbo.Teams t
+      ORDER BY memberCount ASC, teamNumber ASC`,
+  );
+
+  if (result.recordset.length === 0) {
+    await seedDefaultTeams();
+    return getTeamsSortedBySize();
+  }
+
+  return result.recordset;
+}
+
+async function seedDefaultTeams() {
+  for (let i = 1; i <= DEFAULT_TEAM_COUNT; i++) {
+    const n = String(i).padStart(2, "0");
+    try {
+      await query(
+        `INSERT INTO dbo.Teams (teamName, teamNumber, teamMembers, createdAt)
+         VALUES (@teamName, @teamNumber, '[]', @createdAt)`,
+        {
+          teamName: `Team${n}`,
+          teamNumber: i,
+          createdAt: new Date().toISOString(),
+        },
+      );
+    } catch (err) {
+      if (err.number !== 2627 && err.number !== 2601) throw err;
+    }
+  }
+}
+
+async function addMemberToTeam(teamId, hackerAlias) {
+  const teamRow = await query(
+    "SELECT teamMembers FROM dbo.Teams WHERE id = @teamId",
+    { teamId },
+  );
+  const members = JSON.parse(teamRow.recordset[0]?.teamMembers || "[]");
+  members.push(hackerAlias);
+  await query(
+    "UPDATE dbo.Teams SET teamMembers = @teamMembers WHERE id = @teamId",
+    { teamMembers: JSON.stringify(members), teamId },
+  );
+}
+
+async function getAttendees() {
+  const result = await query(
+    `SELECT a.hackerAlias AS alias, a.hackerNumber AS teamNumber,
+            t.teamName, t.id AS teamId, a.registeredAt
+       FROM dbo.Attendees a
+       JOIN dbo.Teams t ON t.id = a.teamId
+      ORDER BY a.hackerNumber`,
+  );
+  return {
+    jsonBody: result.recordset.map((row) => ({
+      alias: row.alias,
+      teamNumber: row.teamNumber,
+      teamId: row.teamId,
+      teamName: row.teamName,
+      registeredAt: row.registeredAt,
+    })),
+  };
+}
+
+async function getMyProfile(request) {
+  const principal = getClientPrincipal(request);
+  if (!principal) {
+    return errorResponse("UNAUTHORIZED", "Authentication required", 401);
+  }
+
+  const gitHubUsername = principal.userDetails;
+  const result = await query(
+    `SELECT a.hackerAlias AS alias, a.hackerNumber AS teamNumber,
+            t.id AS teamId, t.teamName, a.registeredAt
+       FROM dbo.Attendees a
+       JOIN dbo.Teams t ON t.id = a.teamId
+      WHERE a.gitHubUsername = @gitHubUsername`,
+    { gitHubUsername },
+  );
+
+  if (result.recordset.length === 0) {
+    return errorResponse("NOT_FOUND", "User has not registered yet", 404);
+  }
+
+  const row = result.recordset[0];
+  return {
+    jsonBody: {
+      alias: row.alias,
+      teamNumber: row.teamNumber,
+      teamId: row.teamId,
+      teamName: row.teamName,
+      registeredAt: row.registeredAt,
+    },
+  };
+}
+
+async function joinEvent(request) {
+  const principal = getClientPrincipal(request);
+  if (!principal) {
+    return errorResponse("UNAUTHORIZED", "Authentication required", 401);
+  }
+
+  const gitHubUsername = principal.userDetails;
+
+  // Idempotent — return existing registration
+  const existing = await query(
+    `SELECT a.hackerAlias AS alias, a.hackerNumber AS teamNumber,
+            t.id AS teamId, t.teamName, a.registeredAt
+       FROM dbo.Attendees a
+       JOIN dbo.Teams t ON t.id = a.teamId
+      WHERE a.gitHubUsername = @gitHubUsername`,
+    { gitHubUsername },
+  );
+
+  if (existing.recordset.length > 0) {
+    const row = existing.recordset[0];
+    return {
+      status: 200,
+      jsonBody: {
+        alias: row.alias,
+        teamNumber: row.teamNumber,
+        teamId: row.teamId,
+        teamName: row.teamName,
+        registeredAt: row.registeredAt,
+      },
+    };
+  }
+
+  const hackerNumber = await nextHackerNumber();
+  const hackerAlias = `Hacker${String(hackerNumber).padStart(2, "0")}`;
+
+  const teams = await getTeamsSortedBySize();
+  const assignedTeam = teams[0];
+  const fullAlias = `${assignedTeam.teamName}-${hackerAlias}`;
+
+  const now = new Date().toISOString();
+
+  await query(
+    `INSERT INTO dbo.Attendees (hackerAlias, hackerNumber, teamId, gitHubUsername, registeredAt)
+     VALUES (@hackerAlias, @hackerNumber, @teamId, @gitHubUsername, @registeredAt)`,
+    {
+      hackerAlias: fullAlias,
+      hackerNumber,
+      teamId: assignedTeam.id,
+      gitHubUsername,
+      registeredAt: now,
+    },
+  );
+
+  await addMemberToTeam(assignedTeam.id, fullAlias);
+
+  return {
+    status: 201,
+    jsonBody: {
+      alias: fullAlias,
+      teamNumber: assignedTeam.teamNumber,
+      teamId: assignedTeam.id,
+      teamName: assignedTeam.teamName,
+      registeredAt: now,
+    },
+  };
+}
+
+app.http("attendees", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "attendees",
+  handler: getAttendees,
+});
+
+app.http("attendees-me", {
+  methods: ["GET", "POST"],
+  authLevel: "anonymous",
+  route: "attendees/me",
+  handler: async (request, context) => {
+    if (request.method === "GET") {
+      return getMyProfile(request, context);
+    }
+    return joinEvent(request, context);
+  },
+});
 
 const TABLE_NAME = "Attendees";
 const TEAMS_TABLE = "Teams";
