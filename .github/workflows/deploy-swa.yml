@@ -100,15 +100,31 @@ jobs:
     needs: deploy
     if: needs.deploy.result == 'success'
     runs-on: ubuntu-latest
-    env:
-      SWA_URL: ${{ needs.deploy.outputs.static_web_app_url || vars.SWA_HOSTNAME }}
     steps:
+      - name: Resolve SWA hostname
+        id: resolve
+        run: |
+          RAW="${{ needs.deploy.outputs.static_web_app_url }}"
+          # Strip scheme if the deploy action returned a full URL
+          HOSTNAME="${RAW#https://}"
+          HOSTNAME="${HOSTNAME#http://}"
+          # Trim trailing slash
+          HOSTNAME="${HOSTNAME%/}"
+          if [[ -z "$HOSTNAME" ]]; then
+            echo "::error::Could not resolve SWA hostname from deploy output"
+            exit 1
+          fi
+          echo "hostname=$HOSTNAME" >> "$GITHUB_OUTPUT"
+          echo "Resolved SWA hostname: $HOSTNAME"
+
       - name: Wait for deployment to stabilize
         run: sleep 30
 
       - name: Health check
+        env:
+          SWA_HOST: ${{ steps.resolve.outputs.hostname }}
         run: |
-          URL="https://${SWA_URL}/api/health"
+          URL="https://${SWA_HOST}/api/health"
           echo "Checking: $URL"
           RESPONSE=$(curl -s -o /tmp/health.json -w "%{http_code}" "$URL")
           cat /tmp/health.json | python3 -m json.tool || true
@@ -119,8 +135,10 @@ jobs:
           echo "Health check passed"
 
       - name: Verify API reachability
+        env:
+          SWA_HOST: ${{ steps.resolve.outputs.hostname }}
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${SWA_URL}/api/teams")
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${SWA_HOST}/api/teams")
           echo "GET /api/teams returned: $STATUS"
           if [ "$STATUS" -eq 500 ] || [ "$STATUS" -eq 502 ] || [ "$STATUS" -eq 503 ]; then
             echo "::error::API returned server error $STATUS"

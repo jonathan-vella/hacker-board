@@ -48,10 +48,16 @@ module staticWebApp 'br/public:avm/res/web/static-site:0.9.3' = {
   }
 }
 
-// NOTE: The "Deployment authorization policy" (GitHub vs Deployment token) shown
-// in the portal cannot be set via ARM/Bicep — it is only configurable through the
-// portal UI (SWA → Configuration → Deployment configuration → select "GitHub").
-// After provisioning, switch it once to "GitHub" to enable OIDC deployments.
+// NOTE: Azure SWA defaults deploymentAuthPolicy to "DeploymentToken".
+// The ARM/Bicep schema does NOT expose this property — it can only be
+// changed via REST API PATCH and requires a GitHub PAT (repositoryToken)
+// in the same request body.
+//
+// After provisioning, run once to enable OIDC deployments:
+//   ./scripts/configure-swa-auth.sh --rg-name <RG> --github-token <PAT>
+//
+// Or switch manually: Portal → SWA → Settings → Configuration →
+// Deployment configuration → select "GitHub".
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Outputs

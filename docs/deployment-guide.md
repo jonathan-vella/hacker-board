@@ -14,7 +14,7 @@ graph TD
     A[1. Prerequisites] --> B[2. Provision Infrastructure]
     B --> C[3. Create Storage Tables]
     C --> D[4. Configure OIDC Auth]
-    D --> E[5. Set GitHub Secrets]
+    D --> E[5. Verify Readiness]
     E --> F[6. First Deployment]
     F --> G[7. Assign User Roles]
     G --> H[8. Smoke Test]
@@ -99,13 +99,13 @@ cd infra
 ```mermaid
 graph LR
     subgraph Foundation
-        LA[Log Analytics<br/>log-hacker-board-prod]
+        LA[Log Analytics<br/>law-hacker-board-prod]
         SA[Storage Account<br/>st*]
     end
 
     subgraph Application
         AI[App Insights<br/>appi-hacker-board-prod]
-        SWA[Static Web App<br/>stapp-hacker-board-prod]
+        SWA[Static Web App<br/>swa-hacker-board-prod]
     end
 
     LA --> AI
@@ -116,10 +116,10 @@ graph LR
 | Resource             | Name Pattern               | SKU          |
 | -------------------- | -------------------------- | ------------ |
 | Resource Group       | `rg-hacker-board-{env}`    | —            |
-| Log Analytics        | `log-hacker-board-{env}`   | PerGB2018    |
-| Storage Account      | `st{prefix}{env}{suffix}`  | Standard_LRS |
-| Application Insights | `appi-hacker-board-{env}`  | —            |
-| Static Web App       | `stapp-hacker-board-{env}` | Standard     |
+| Log Analytics        | `law-{project}-{env}`      | PerGB2018    |
+| Storage Account      | `st{project}{env}{suffix}` | Standard_LRS |
+| Application Insights | `appi-{project}-{env}`     | —            |
+| Static Web App       | `swa-{project}-{env}`      | Standard     |
 
 The Bicep templates use [Azure Verified Modules](https://aka.ms/avm) and
 automatically configure:
@@ -158,67 +158,79 @@ az storage table list --account-name "$STORAGE_ACCOUNT" --auth-mode login -o tab
 ## Step 3 — Configure OIDC Deployment Auth
 
 The CI/CD workflow uses OIDC (identity tokens) instead of long-lived secrets.
-This requires the SWA deployment authorization policy to be set to **Identity
-token**.
+Azure SWA defaults to **DeploymentToken** auth policy, which rejects OIDC
+deploys. You must switch it to **GitHub** once after initial provisioning.
 
-### Set via Azure Portal
+> **Why can't Bicep do this?** The ARM/Bicep schema does not expose
+> `deploymentAuthPolicy` as a writable property. The only programmatic route is
+> an `az rest` PATCH that sends both the policy change and a GitHub PAT
+> (`repositoryToken`) in the same request body so Azure can verify repo access.
+
+### Option A — Setup Script (Recommended)
+
+```bash
+# Create a GitHub PAT with "repo" scope, then:
+GITHUB_TOKEN="ghp_..." \
+  ./scripts/configure-swa-auth.sh \
+    --rg-name rg-hacker-board-prod
+```
+
+The script verifies the change and exits with an error if it fails.
+Run `./scripts/configure-swa-auth.sh --help` for all options.
+
+### Option B — Azure Portal
 
 1. Navigate to your Static Web App in the Azure Portal
 2. Go to **Settings** → **Configuration** → **Deployment configuration**
-3. Set **Deployment authorization policy** to **Identity token**
+3. Set **Deployment authorization policy** to **GitHub**
 4. Save
 
-### Set via Azure CLI
+### Option C — Direct CLI
 
 ```bash
-SWA_NAME="stapp-hacker-board-prod"
+SWA_NAME="swa-hacker-board-prod"
 RG_NAME="rg-hacker-board-prod"
+SUB_ID="$(az account show --query id -o tsv)"
+GITHUB_TOKEN="ghp_..."   # PAT with repo scope
 
-az rest --method patch \
-  --url "https://management.azure.com/subscriptions/{subscriptionId}/resourceGroups/${RG_NAME}/providers/Microsoft.Web/staticSites/${SWA_NAME}?api-version=2024-04-01" \
-  --body '{"properties": {}}'
+az rest --method PATCH \
+  --url "https://management.azure.com/subscriptions/${SUB_ID}/resourceGroups/${RG_NAME}/providers/Microsoft.Web/staticSites/${SWA_NAME}?api-version=2024-04-01" \
+  --body "{
+    \"properties\": {
+      \"deploymentAuthPolicy\": \"GitHub\",
+      \"repositoryToken\": \"${GITHUB_TOKEN}\",
+      \"repositoryUrl\": \"https://github.com/jonathan-vella/hacker-board\",
+      \"branch\": \"main\"
+    }
+  }"
 ```
-
-> **Note:** As of the 2024-04-01 API, the deployment authorization policy is a
-> portal-level setting. The CLI command above is a no-op PATCH that confirms
-> API access. Set the policy in the portal for now.
 
 ---
 
-## Step 4 — Get and Store the SWA Deployment Token
+## Step 4 — Verify Deployment Readiness
 
-Even with OIDC, the `azure_static_web_apps_api_token` is still required by the
-deploy action.
+With OIDC auth the workflow authenticates using a GitHub-minted identity token
+— no long-lived deployment token secret is required. Verify the setup:
 
 ```bash
-SWA_NAME="stapp-hacker-board-prod"
+SWA_NAME="swa-hacker-board-prod"
 RG_NAME="rg-hacker-board-prod"
+SUB_ID="$(az account show --query id -o tsv)"
 
-# Retrieve the deployment token
-TOKEN=$(az staticwebapp secrets list \
-  --name "$SWA_NAME" \
-  --resource-group "$RG_NAME" \
-  --query "properties.apiKey" -o tsv)
-
-# Store as a GitHub Actions secret
-gh secret set AZURE_STATIC_WEB_APPS_API_TOKEN \
-  --repo jonathan-vella/hacker-board \
-  --body "$TOKEN"
+# Confirm deployment auth policy is GitHub
+az rest --method GET \
+  --url "https://management.azure.com/subscriptions/${SUB_ID}/resourceGroups/${RG_NAME}/providers/Microsoft.Web/staticSites/${SWA_NAME}?api-version=2024-04-01" \
+  --query "properties.{policy:deploymentAuthPolicy, provider:provider, hostname:defaultHostname}" \
+  -o table
 ```
 
-Optionally, store the SWA hostname as a repository variable (used by the
-smoke-test job as a fallback):
+Expected output: `policy = GitHub`, `provider = GitHub`.
 
-```bash
-SWA_HOSTNAME=$(az staticwebapp show \
-  --name "$SWA_NAME" \
-  --resource-group "$RG_NAME" \
-  --query "defaultHostname" -o tsv)
-
-gh variable set SWA_HOSTNAME \
-  --repo jonathan-vella/hacker-board \
-  --body "$SWA_HOSTNAME"
-```
+> **Note on SWA hostname:** The hostname (e.g.,
+> `happy-pond-04878d603.4.azurestaticapps.net`) is generated once at SWA
+> creation time and **stays stable** across redeployments. It only changes if
+> you delete and recreate the resource. For a branded URL, add a custom domain
+> (see [Optional — Custom Domain](#optional--custom-domain)).
 
 ---
 
@@ -281,7 +293,7 @@ leaderboard, awards, and register as attendees.
 ### Invite via CLI
 
 ```bash
-SWA_NAME="stapp-hacker-board-prod"
+SWA_NAME="swa-hacker-board-prod"
 RG_NAME="rg-hacker-board-prod"
 DOMAIN="<your-swa-hostname>.azurestaticapps.net"
 
@@ -350,7 +362,7 @@ echo "https://${SWA_URL}"
 
 ```bash
 az staticwebapp hostname set \
-  --name "stapp-hacker-board-prod" \
+  --name "swa-hacker-board-prod" \
   --resource-group "rg-hacker-board-prod" \
   --hostname "leaderboard.yourdomain.com"
 ```
@@ -404,9 +416,9 @@ npm run test:all
 
 | Symptom                                 | Cause                                             | Fix                                                      |
 | --------------------------------------- | ------------------------------------------------- | -------------------------------------------------------- |
-| Deploy action fails with "unauthorized" | Deployment token invalid or expired               | Re-run Step 4 to reset the token                         |
-| Deploy action fails with OIDC error     | Deployment auth policy not set to Identity token  | Complete Step 3                                          |
-| `/api/*` returns 404                    | API not deployed or `api_location` mismatch       | Verify `api_location: "/api"` in workflow                |
+| Deploy action fails with "unauthorized" | Deployment auth policy not set to GitHub          | Run `scripts/configure-swa-auth.sh` (Step 3)             |
+| Deploy action fails with OIDC error     | Deployment auth policy still on DeploymentToken   | Run `scripts/configure-swa-auth.sh` (Step 3)             |
+| `/api/*` returns 404                    | API not deployed or `api_location` mismatch       | Verify `api_location: "api"` in workflow                 |
 | Health check returns 500                | Storage tables not created or RBAC not configured | Complete Step 2; verify RBAC in Azure Portal             |
 | User gets 401 on admin routes           | Role invitation not accepted                      | Re-send invitation (Step 6)                              |
 | `swa start` fails locally               | Missing SWA CLI or Azurite not running            | Install prerequisites from the Local Development section |
@@ -415,17 +427,16 @@ npm run test:all
 
 ## Quick Reference
 
-| Item            | Value                                                  |
-| --------------- | ------------------------------------------------------ |
-| Resource Group  | `rg-hacker-board-prod`                                 |
-| SWA Resource    | `stapp-hacker-board-prod`                              |
-| Region          | `westeurope`                                           |
-| Workflow File   | `.github/workflows/deploy-swa.yml`                     |
-| GitHub Secret   | `AZURE_STATIC_WEB_APPS_API_TOKEN`                      |
-| GitHub Variable | `SWA_HOSTNAME`                                         |
-| Auth Provider   | GitHub OAuth (SWA built-in)                            |
-| Deploy Auth     | OIDC (identity token)                                  |
-| Storage Tables  | Teams, Attendees, Scores, Submissions, Awards, Rubrics |
+| Item           | Value                                                  |
+| -------------- | ------------------------------------------------------ |
+| Resource Group | `rg-hacker-board-prod`                                 |
+| SWA Resource   | `swa-hacker-board-prod`                                |
+| Region         | `westeurope`                                           |
+| Workflow File  | `.github/workflows/deploy-swa.yml`                     |
+| Deploy Auth    | OIDC (`deploymentAuthPolicy: GitHub`)                  |
+| Auth Provider  | GitHub OAuth (SWA built-in)                            |
+| Setup Script   | `scripts/configure-swa-auth.sh`                        |
+| Storage Tables | Teams, Attendees, Scores, Submissions, Awards, Rubrics |
 
 ## References
 
