@@ -86,15 +86,17 @@ and return findings.
 
 ## Per-Agent Research Focus
 
-| Agent                      | Primary Research Focus                                  |
-| -------------------------- | ------------------------------------------------------- |
-| **HackerBoard Conductor**  | Backlog status, workflow step sequencing, gate readiness |
-| **Implementation Planner** | Existing code, patterns, dependency analysis            |
-| **Azure Architect**        | Azure services, WAF pillars, SKU recommendations        |
-| **Bicep AVM Expert**       | AVM availability, naming conventions, security defaults |
-| **Security Reviewer**      | OWASP patterns, auth flows, input validation            |
-| **UX Designer**            | Accessibility, user journeys, existing UI patterns      |
-| **Task Planner**           | Backlog, dependencies, phased execution planning        |
+| Agent                      | Primary Research Focus                                         |
+| -------------------------- | -------------------------------------------------------------- |
+| **HackerBoard Conductor**  | Backlog status, workflow step sequencing, gate readiness       |
+| **Implementation Planner** | Existing code, patterns, dependency analysis                   |
+| **Azure Architect**        | Azure services, WAF pillars, SKU recommendations               |
+| **Bicep Plan**             | AVM availability, naming conventions, resource dependencies    |
+| **Bicep Code**             | Existing Bicep, security defaults, naming, linting output      |
+| **Diagnose**               | Resource health, AppLens diagnostics, logs, error patterns     |
+| **Security Reviewer**      | OWASP patterns, auth flows, input validation                   |
+| **UX Designer**            | Accessibility, user journeys, existing UI patterns             |
+| **Task Planner**           | Backlog, dependencies, phased execution planning               |
 
 ## Conductor Workflow Awareness
 

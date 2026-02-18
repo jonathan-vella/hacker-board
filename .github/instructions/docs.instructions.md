@@ -167,7 +167,9 @@ Every doc page should include a navigation footer link at the bottom:
 | `hackerboard-conductor`  | Orchestrates the 7-step workflow      |
 | `implementation-planner` | Structured implementation plans       |
 | `azure-architect`        | WAF-based architecture review         |
-| `bicep-avm`              | Bicep IaC with Azure Verified Modules |
+| `bicep-plan`             | Machine-readable Bicep IaC plans      |
+| `bicep-code`             | Near-production-ready Bicep templates |
+| `diagnose`               | Azure resource health diagnostics     |
 | `security-reviewer`      | OWASP and Zero Trust code review      |
 | `ux-designer`            | UX/UI design and accessibility        |
 | `task-planner`           | Task research and dependency analysis |

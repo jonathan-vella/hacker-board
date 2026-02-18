@@ -7,7 +7,7 @@ RUN curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor >
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/microsoft.gpg] https://packages.microsoft.com/debian/12/prod bookworm main" \
        > /etc/apt/sources.list.d/azure-functions.list \
     && apt-get update \
-    && apt-get install -y azure-functions-core-tools-4 \
+    && apt-get install -y azure-functions-core-tools-4 graphviz \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Azurite (Azure Storage emulator) — pure JS, runs on any arch

@@ -77,8 +77,8 @@ HackerBoard is a live, interactive hackathon scoring dashboard built on **Azure 
 ```
 hacker-board/
 ├── .github/
-│   ├── agents/           # 6 agent definitions (.agent.md)
-│   ├── skills/           # 3 skill definitions (SKILL.md)
+│   ├── agents/           # 9 agent definitions (.agent.md)
+│   ├── skills/           # 4 skill definitions (SKILL.md)
 │   ├── instructions/     # File-type-specific coding rules
 │   ├── workflows/        # GitHub Actions CI/CD
 │   └── copilot-instructions.md  # This file
@@ -108,14 +108,17 @@ Agents live in `.github/agents/` as `{name}.agent.md` files. Each agent:
 - Defines a specific role in the development workflow
 - Should include Input/Output contracts for orchestrated handoffs
 
-| Agent                  | Role                                         |
-| ---------------------- | -------------------------------------------- |
-| Task Planner           | Research, plan tasks, dependency analysis    |
-| Implementation Planner | Structured implementation plans, refactoring |
-| Azure Architect        | WAF review, Azure architecture decisions     |
-| Bicep AVM Expert       | Bicep IaC with Azure Verified Modules        |
-| Security Reviewer      | OWASP Top 10, Zero Trust code review         |
-| UX Designer            | JTBD, user journeys, accessibility review    |
+| Agent                  | Role                                                        |
+| ---------------------- | ----------------------------------------------------------- |
+| Task Planner           | Research, plan tasks, dependency analysis                   |
+| Implementation Planner | Structured implementation plans, refactoring                |
+| Azure Architect        | WAF review, Azure architecture decisions                    |
+| Bicep Plan             | Machine-readable Bicep implementation plans, AVM evaluation |
+| Bicep Code             | Near-production-ready Bicep templates, validates and lints  |
+| Diagnose               | Azure resource health diagnostics and remediation guidance  |
+| Security Reviewer      | OWASP Top 10, Zero Trust code review                        |
+| UX Designer            | JTBD, user journeys, accessibility review                   |
+| HackerBoard Conductor  | Orchestrates all agents through the 7-step workflow         |
 
 ### Skill Conventions
 
@@ -125,26 +128,33 @@ Skills live in `.github/skills/{name}/SKILL.md`. Each skill:
 - Defines reusable capabilities invokable by agents or directly by users
 - Includes trigger phrases and step-by-step workflows
 
-| Skill             | Purpose                                     |
-| ----------------- | ------------------------------------------- |
-| docs-writer       | Documentation maintenance, staleness checks |
-| git-commit        | Conventional commits, diff-aware messages   |
-| github-operations | Issues, PRs, Actions via MCP/gh CLI         |
+| Skill             | Purpose                                                          |
+| ----------------- | ---------------------------------------------------------------- |
+| azure-diagrams    | Azure architecture diagrams via Python `diagrams` + Graphviz    |
+| docs-writer       | Documentation maintenance, staleness checks                      |
+| git-commit        | Conventional commits, diff-aware messages                        |
+| github-operations | Issues, PRs, Actions via MCP/gh CLI                              |
 
 ### Instruction Files
 
 Instruction files in `.github/instructions/` provide file-type-specific rules. They use `applyTo` globs to auto-activate:
 
-| File                                  | Applies To                     |
-| ------------------------------------- | ------------------------------ |
-| `accessibility.instructions.md`       | `*.html, *.css, *.js`          |
-| `azure-functions-api.instructions.md` | `api/**/*.js, api/**/*.json`   |
-| `bicep.instructions.md`               | `*.bicep, *.bicepparam`        |
-| `code-comments.instructions.md`       | All files                      |
-| `code-review.instructions.md`         | `*.js, *.html, *.css, *.bicep` |
-| `docs.instructions.md`                | `docs/**/*.md`                 |
-| `html-css-style.instructions.md`      | `*.html, *.css, *.js`          |
-| `security.instructions.md`            | All files                      |
+| File                                          | Applies To                     |
+| --------------------------------------------- | ------------------------------ |
+| `accessibility.instructions.md`               | `*.html, *.css, *.js`          |
+| `agent-research-first.instructions.md`        | `**/*.agent.md`                |
+| `azure-functions-api.instructions.md`         | `api/**/*.js, api/**/*.json`   |
+| `bicep.instructions.md`                       | `*.bicep, *.bicepparam`        |
+| `code-comments.instructions.md`               | All files                      |
+| `code-review.instructions.md`                 | `*.js, *.html, *.css, *.bicep` |
+| `docs.instructions.md`                        | `docs/**/*.md`                 |
+| `execution-plan.instructions.md`              | `**/*.{js,html,css,bicep}`     |
+| `github-actions.instructions.md`              | `.github/workflows/*.yml`      |
+| `html-css-style.instructions.md`              | `*.html, *.css, *.js`          |
+| `markdown.instructions.md`                    | `**/*.md`                      |
+| `security.instructions.md`                    | All files                      |
+| `shell.instructions.md`                       | `**/*.sh`                      |
+| `update-docs-on-code-change.instructions.md`  | `**/*.{js,html,css,bicep,sh}`  |
 
 ## Documentation
 

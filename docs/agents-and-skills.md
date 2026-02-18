@@ -7,8 +7,8 @@
 > Reference guide for HackerBoard's AI agents, skills,
 > orchestration workflow, handoff chains, and prompt examples.
 
-HackerBoard uses 6 specialized AI agents, 1 Conductor
-orchestrator, and 3 reusable skills to streamline development.
+HackerBoard uses 8 specialized AI agents, 1 Conductor
+orchestrator, and 4 reusable skills to streamline development.
 Each agent handles a specific workflow phase and can be used
 standalone or as a subagent delegated by the Conductor.
 Handoff buttons provide guided transitions between agents.
@@ -31,15 +31,17 @@ Agents are interactive AI assistants for specific workflow phases.
 Invoke them with `@agent-name` in GitHub Copilot Chat, or let
 the Conductor delegate to them as subagents.
 
-| Agent                  | Conductor Step | Tools                                      | Description                           | Invocation                |
-| ---------------------- | -------------- | ------------------------------------------ | ------------------------------------- | ------------------------- |
-| Task Planner           | 1 — Plan       | read, search, fetch, problems              | Research and plan tasks               | `@task-planner`           |
-| Azure Architect        | 2 — Architect  | read, search, fetch, problems              | WAF review and design                 | `@azure-architect`        |
-| UX Designer            | 3 — Design     | read, search, fetch                        | User journeys, accessibility          | `@ux-designer`            |
-| Implementation Planner | 4 — Implement  | read, search, edit, fetch, problems        | Structured implementation plans       | `@implementation-planner` |
-| Security Reviewer      | 5 — Review     | read, search, problems                     | OWASP Top 10, Zero Trust code review  | `@security-reviewer`      |
-| Bicep AVM Expert       | 6 — Deploy     | read, search, edit, fetch, problems        | Bicep IaC with Azure Verified Modules | `@bicep-avm`              |
-| HackerBoard Conductor  | Orchestrator   | agent, read, search, edit, fetch, problems | Coordinates all agents                | `@hackerboard-conductor`  |
+| Agent                  | Conductor Step   | Tools                                      | Description                                    | Invocation                |
+| ---------------------- | ---------------- | ------------------------------------------ | ---------------------------------------------- | ------------------------- |
+| Task Planner           | 1 — Plan         | read, search, fetch, problems              | Research and plan tasks                        | `@task-planner`           |
+| Azure Architect        | 2 — Architect    | read, search, fetch, problems              | WAF review and design                          | `@azure-architect`        |
+| UX Designer            | 3 — Design       | read, search, fetch                        | User journeys, accessibility                   | `@ux-designer`            |
+| Implementation Planner | 4 — Implement    | read, search, edit, fetch, problems        | Structured implementation plans                | `@implementation-planner` |
+| Bicep Plan             | 5 — Infra Plan   | read, search, fetch, bicep, azure-mcp      | Machine-readable Bicep plans, AVM evaluation   | `@bicep-plan`             |
+| Bicep Code             | 6 — Infra Code   | read, search, edit, bicep, azure-mcp       | Near-production-ready Bicep templates          | `@bicep-code`             |
+| Security Reviewer      | 7 — Review       | read, search, problems                     | OWASP Top 10, Zero Trust code review           | `@security-reviewer`      |
+| Diagnose               | Supplementary    | read, search, azure-mcp, applens           | Azure resource health diagnostics              | `@diagnose`               |
+| HackerBoard Conductor  | Orchestrator     | agent, read, search, edit, fetch, problems | Coordinates all agents                         | `@hackerboard-conductor`  |
 
 ---
 
@@ -56,9 +58,11 @@ graph LR
     AA -->|"Start UX Design"| UX[UX Designer]
     AA -->|"Skip to Implementation"| IP
     UX -->|"Start Implementation Planning"| IP
-    IP -->|"Start Security Review"| SR[Security Reviewer]
-    SR -->|"Deploy Infrastructure"| BA[Bicep AVM Expert]
+    IP -->|"Start Infra Planning"| BP[Bicep Plan]
+    BP -->|"Generate Bicep Code"| BC[Bicep Code]
+    BC -->|"Start Security Review"| SR[Security Reviewer]
     SR -->|"Fix Issues"| IP
+    SR -->|"Diagnose Azure Resources"| DG[Diagnose]
 ```
 
 The Conductor offers all handoffs from a single entry point,
@@ -86,11 +90,12 @@ only a summary to the Conductor.
 Skills are reusable capabilities invokable by agents or directly
 by users. They activate based on trigger phrases in the prompt.
 
-| Skill             | Category      | Trigger Keywords                 | Description                    |
-| ----------------- | ------------- | -------------------------------- | ------------------------------ |
-| docs-writer       | Documentation | "update docs", "check staleness" | Documentation maintenance      |
-| git-commit        | Workflow      | "commit", "/commit"              | Conventional commit generation |
-| github-operations | Workflow      | "create issue", "create PR"      | GitHub operations via MCP/CLI  |
+| Skill             | Category      | Trigger Keywords                          | Description                                 |
+| ----------------- | ------------- | ----------------------------------------- | ------------------------------------------- |
+| azure-diagrams    | Architecture  | "draw diagram", "architecture diagram"    | Azure diagrams via Python diagrams+Graphviz |
+| docs-writer       | Documentation | "update docs", "check staleness"          | Documentation maintenance                   |
+| git-commit        | Workflow      | "commit", "/commit"                       | Conventional commit generation              |
+| github-operations | Workflow      | "create issue", "create PR"               | GitHub operations via MCP/CLI               |
 
 ---
 
@@ -107,9 +112,11 @@ graph LR
     TP -->|approval| AA[Azure Architect]
     AA -->|approval| UX[UX Designer]
     UX -->|approval| IP[Implementation Planner]
-    IP -->|approval| SR[Security Reviewer]
-    SR -->|approval| BA[Bicep AVM Expert]
-    BA -->|approval| C
+    IP -->|approval| BP[Bicep Plan]
+    BP -->|approval| BC[Bicep Code]
+    BC -->|approval| SR[Security Reviewer]
+    SR -->|approval| C
+    DG[Diagnose] -.->|on-demand| C
 ```
 
 **Two usage modes:**
@@ -216,6 +223,76 @@ score submissions?
 
 ---
 
+### Bicep Plan
+
+The Bicep Plan agent creates comprehensive, machine-readable
+implementation plans for Azure infrastructure. It evaluates AVM
+availability, documents resource dependencies, and produces a
+structured plan for the Bicep Code agent.
+
+**Example 1 — Plan a new resource:**
+
+```text
+@bicep-plan Plan adding Azure Key Vault to the HackerBoard
+infrastructure. Evaluate AVM module availability, naming
+conventions, and RBAC requirements.
+```
+
+**Example 2 — Evaluate AVM options:**
+
+```text
+@bicep-plan Evaluate AVM modules for Azure Service Bus.
+Document parameters, outputs, and integration points with
+the existing infra/main.bicep.
+```
+
+---
+
+### Bicep Code
+
+The Bicep Code agent generates near-production-ready Bicep
+templates from a Bicep Plan output. It validates, lints, and
+ensures all resources follow AVM, naming, and security defaults.
+
+**Example 1 — Implement from a plan:**
+
+```text
+@bicep-code Implement the Key Vault module from the Bicep Plan
+output. Use AVM, follow naming conventions, and rebuild
+azuredeploy.json after.
+```
+
+**Example 2 — Review existing Bicep:**
+
+```text
+@bicep-code Review infra/main.bicep for AVM compliance, naming
+conventions, and security defaults. Flag any hardcoded values.
+```
+
+---
+
+### Diagnose
+
+The Diagnose agent guides users through Azure resource health
+assessment, identifies root causes, and proposes remediation
+steps. It uses AppLens diagnostics and resource health APIs.
+
+**Example 1 — Diagnose a failing resource:**
+
+```text
+@diagnose The Static Web App is returning 503 errors. Check
+resource health and AppLens diagnostics for root cause.
+```
+
+**Example 2 — Performance investigation:**
+
+```text
+@diagnose Application Insights shows p95 latency spiking on
+the /api/scores endpoint. Investigate and suggest remediation.
+```
+
+---
+
 ### Implementation Planner
 
 The Implementation Planner generates structured, actionable plans
@@ -239,33 +316,9 @@ compatibility.
 
 ---
 
-### Bicep AVM Expert
+### Bicep AVM Expert (removed)
 
-The Bicep AVM Expert creates, updates, and reviews Bicep IaC
-using Azure Verified Modules.
-
-**Example 1 — Create a new module:**
-
-```text
-@bicep-avm Create a Bicep module for Azure Key Vault using
-AVM. Include diagnostic settings and a secret for the storage
-connection string.
-```
-
-**Example 2 — Review existing IaC:**
-
-```text
-@bicep-avm Review infra/main.bicep for AVM compliance, naming
-conventions, and security defaults. Flag any hardcoded values.
-```
-
-**Example 3 — Add a resource:**
-
-```text
-@bicep-avm Add Application Insights to the infrastructure
-using the AVM module. Connect it to the existing Log Analytics
-workspace.
-```
+> **Deprecated** — replaced by [Bicep Plan](#bicep-plan) and [Bicep Code](#bicep-code).
 
 ---
 
@@ -319,6 +372,32 @@ review, and end with security review.
 @hackerboard-conductor Coordinate adding a custom domain with
 SSL to the Azure Static Web App. Run through all relevant
 agents.
+```
+
+---
+
+### azure-diagrams Skill
+
+The azure-diagrams skill generates high-quality Azure architecture
+diagrams using Python's `diagrams` library and Graphviz. Produces
+`.py` source files and `.png`/`.svg` outputs stored in
+`agent-output/{project}/`.
+
+**Requires**: `graphviz` (system), `pip install diagrams matplotlib pillow`
+
+**Example 1 — Architecture diagram:**
+
+```text
+Draw an Azure architecture diagram for HackerBoard showing
+the SWA, Functions, Storage, and App Insights resources
+with traffic flows.
+```
+
+**Example 2 — As-built diagram:**
+
+```text
+Generate an as-built diagram from the current infra/main.bicep
+showing deployed resources and their connections.
 ```
 
 ---
