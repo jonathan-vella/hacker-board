@@ -48,6 +48,11 @@ HackerBoard is a live, interactive hackathon scoring dashboard built on **Azure 
 - Use symbolic names for resource references (not `reference()` or `resourceId()`)
 - Never output secrets in Bicep outputs
 - Use Azure Verified Modules (`br/public:avm/res/...`) where available
+- **After every edit to any `infra/*.bicep` file, always rebuild the compiled ARM template:**
+  ```bash
+  az bicep build --file infra/main.bicep --outfile infra/azuredeploy.json
+  ```
+  The Portal "Deploy to Azure" button reads `azuredeploy.json` — it will show stale defaults if this step is skipped. Always commit both `main.bicep` and `azuredeploy.json` together.
 
 ## Security
 

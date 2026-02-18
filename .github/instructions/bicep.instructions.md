@@ -137,8 +137,19 @@ module staticWebApp 'br/public:avm/res/web/static-site:0.5.0' = {
 
 ## Validation Commands
 
+Run these in order after every Bicep change:
+
 ```bash
-bicep build main.bicep
-bicep lint main.bicep
-az deployment group what-if --resource-group rg-example --template-file main.bicep
+# 1. Lint for style and correctness
+bicep lint infra/main.bicep
+
+# 2. Rebuild the compiled ARM template — MANDATORY before committing
+#    The Portal "Deploy to Azure" button reads azuredeploy.json, not main.bicep.
+#    Skipping this causes stale parameter defaults in the Portal.
+az bicep build --file infra/main.bicep --outfile infra/azuredeploy.json
+
+# 3. Optional: validate against a real resource group
+az deployment group what-if --resource-group rg-example --template-file infra/azuredeploy.json
 ```
+
+> **Rule**: Always commit `main.bicep` and `azuredeploy.json` together. Never commit one without the other.
