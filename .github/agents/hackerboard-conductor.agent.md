@@ -1,6 +1,6 @@
 ---
 name: HackerBoard Conductor
-description: Master orchestrator for the HackerBoard development workflow. Coordinates 6 specialized agents through a 7-step process with mandatory human approval gates between steps.
+description: Master orchestrator for the HackerBoard development workflow. Coordinates 8 specialized agents through a 7-step process with mandatory human approval gates between steps.
 argument-hint: "Describe the feature or task to orchestrate"
 tools: ["agent", "read", "search", "edit", "fetch", "problems"]
 agents:
@@ -8,9 +8,11 @@ agents:
     "Task Planner",
     "Implementation Planner",
     "Azure Architect",
-    "Bicep AVM Expert",
+    "Bicep Plan",
+    "Bicep Code",
     "Security Reviewer",
     "UX Designer",
+    "Diagnose",
   ]
 handoffs:
   - label: "Start Planning"
@@ -33,9 +35,9 @@ handoffs:
     agent: Security Reviewer
     prompt: "Review the implementation above for OWASP Top 10 vulnerabilities and Zero Trust compliance."
     send: false
-  - label: "Deploy Infrastructure"
-    agent: Bicep AVM Expert
-    prompt: "Create or update Bicep IaC templates based on the architecture decisions and security review above."
+  - label: "Start Infrastructure Planning"
+    agent: Bicep Plan
+    prompt: "Create an infrastructure implementation plan based on the architecture decisions and security review above. Run governance discovery, evaluate AVM modules, and produce the implementation plan."
     send: false
 ---
 
@@ -92,7 +94,7 @@ Step 2: Architect     → [APPROVAL GATE] → WAF assessment and architecture
 Step 3: Design        →                 → UX design and accessibility review
 Step 4: Implement     → [APPROVAL GATE] → Implementation plan + code
 Step 5: Review        → [APPROVAL GATE] → Security review report
-Step 6: Deploy        → [APPROVAL GATE] → IaC templates + deployment
+Step 6: Deploy        → [APPROVAL GATE] → Infra plan (6a) + Bicep code (6b)
 Step 7: Document      →                 → Updated documentation
 ```
 
@@ -105,7 +107,8 @@ Step 7: Document      →                 → Updated documentation
 | 3    | UX Designer            | User journeys, accessibility, UI design  |
 | 4    | Implementation Planner | Structured implementation plan + code    |
 | 5    | Security Reviewer      | OWASP review, Zero Trust validation      |
-| 6    | Bicep AVM Expert       | Bicep IaC templates, deployment          |
+| 6a   | Bicep Plan             | Governance discovery, AVM evaluation, infra plan |
+| 6b   | Bicep Code             | Bicep template generation and validation |
 | 7    | docs-writer (skill)    | Documentation updates, changelog entries |
 
 ## Subagent Delegation
@@ -169,7 +172,7 @@ Review security findings and confirm to proceed
 
 ```text
 DEPLOYMENT READY
-Artifact: Bicep templates in infra/
+Artifact: Infrastructure plan (Bicep Plan) + Bicep templates (Bicep Code)
 Next: Documentation (Step 7)
 Verify deployment artifacts and confirm to proceed
 ```
@@ -209,4 +212,4 @@ Select models based on each agent's task complexity and reasoning needs:
 | UX Designer            | Creative design and accessibility review |
 | Implementation Planner | Precise code generation and planning     |
 | Security Reviewer      | Thorough vulnerability analysis          |
-| Bicep AVM Expert       | Infrastructure code generation           |
+| Bicep Plan + Bicep Code | Infrastructure planning and code generation |

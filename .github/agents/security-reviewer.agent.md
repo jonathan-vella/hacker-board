@@ -4,9 +4,9 @@ name: "Security Reviewer"
 argument-hint: "Specify the component or files to review"
 tools: ["read", "search", "problems"]
 handoffs:
-  - label: "Deploy Infrastructure"
-    agent: Bicep AVM Expert
-    prompt: "Create or update Bicep IaC templates based on the security review findings above."
+  - label: "Start Infrastructure Planning"
+    agent: Bicep Plan
+    prompt: "Create an infrastructure implementation plan based on the architecture decisions and security review findings above."
     send: false
   - label: "Fix Issues"
     agent: Implementation Planner
@@ -88,7 +88,7 @@ When invoked by the Conductor (Step 5), this agent expects:
 
 ## Output Contract
 
-This agent produces for the next step (Bicep AVM Expert, Step 6):
+This agent produces for the next step (Bicep Plan, Step 6a):
 
 - **Security report**: Structured review with priority-ranked findings
 - **Production readiness**: Yes/No decision with justification

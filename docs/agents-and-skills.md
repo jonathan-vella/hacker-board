@@ -58,11 +58,13 @@ graph LR
     AA -->|"Start UX Design"| UX[UX Designer]
     AA -->|"Skip to Implementation"| IP
     UX -->|"Start Implementation Planning"| IP
-    IP -->|"Start Infra Planning"| BP[Bicep Plan]
-    BP -->|"Generate Bicep Code"| BC[Bicep Code]
-    BC -->|"Start Security Review"| SR[Security Reviewer]
+    IP -->|"Start Security Review"| SR[Security Reviewer]
+    IP -->|"Start Infrastructure Planning"| BP[Bicep Plan]
+    BP -->|"Step 5: Generate Bicep"| BC[Bicep Code]
+    BC -->|"Step 7 - Start Security Review"| SR
     SR -->|"Fix Issues"| IP
-    SR -->|"Diagnose Azure Resources"| DG[Diagnose]
+    SR -->|"Start Infrastructure Planning"| BP
+    DG[Diagnose] -.->|"on-demand"| AA
 ```
 
 The Conductor offers all handoffs from a single entry point,

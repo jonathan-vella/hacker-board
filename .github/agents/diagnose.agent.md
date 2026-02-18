@@ -128,7 +128,7 @@ handoffs:
     prompt: Re-run the resource health assessment to check for status changes after remediation actions.
     send: true
   - label: Escalate to Architect
-    agent: Architect
+    agent: Azure Architect
     prompt: I've completed a resource health assessment that identified architectural issues requiring WAF evaluation. Please review the findings and provide architectural recommendations.
     send: true
   - label: ▶ Generate Workload Documentation

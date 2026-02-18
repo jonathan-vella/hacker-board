@@ -124,9 +124,9 @@ handoffs:
     prompt: Return to implementation planning for revision. The current plan needs adjustment.
     send: true
     model: "Claude Opus 4.6 (copilot)"
-  - label: "Step 6: Deploy"
-    agent: Deploy
-    prompt: Deploy the validated Bicep templates to Azure. Run what-if analysis first.
+  - label: Step 7 - Start Security Review
+    agent: Security Reviewer
+    prompt: Review the Bicep templates and implementation above for OWASP Top 10 vulnerabilities, Zero Trust compliance, and IaC security best practices.
     send: true
   - label: ▶ Generate Implementation Reference
     agent: Bicep Code

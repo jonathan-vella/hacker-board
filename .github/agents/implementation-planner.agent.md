@@ -8,6 +8,10 @@ handoffs:
     agent: Security Reviewer
     prompt: "Review the implementation above for OWASP Top 10 vulnerabilities and Zero Trust compliance."
     send: false
+  - label: "Start Infrastructure Planning"
+    agent: Bicep Plan
+    prompt: "Create an infrastructure implementation plan based on the architecture decisions above. Run governance discovery, evaluate AVM modules, and produce the implementation plan."
+    send: false
 ---
 
 # Implementation Plan Generator

@@ -120,7 +120,7 @@ handoffs:
     prompt: Revise the implementation plan based on new information or feedback. Update 04-implementation-plan.md.
     send: true
   - label: Return to Architect
-    agent: Architect
+    agent: Azure Architect
     prompt: Return to architecture assessment for re-evaluation. Review WAF scores and adjust recommendations.
     send: true
     model: "Claude Opus 4.6 (copilot)"
