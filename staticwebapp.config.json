@@ -54,11 +54,6 @@
       "allowedRoles": ["admin"]
     },
     {
-      "route": "/api/attendees/bulk",
-      "methods": ["POST"],
-      "allowedRoles": ["admin"]
-    },
-    {
       "route": "/api/teams/assign",
       "methods": ["POST"],
       "allowedRoles": ["admin"]
@@ -87,20 +82,6 @@
     "401": {
       "redirect": "/.auth/login/github",
       "statusCode": 302
-    },
-    "403": {
-      "rewrite": "/403.html",
-      "statusCode": 403
-    }
-  },
-  "auth": {
-    "identityProviders": {
-      "github": {
-        "registration": {
-          "clientIdSettingName": "GITHUB_CLIENT_ID",
-          "clientSecretSettingName": "GITHUB_CLIENT_SECRET"
-        }
-      }
     }
   },
   "navigationFallback": {
