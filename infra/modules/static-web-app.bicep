@@ -48,18 +48,10 @@ module staticWebApp 'br/public:avm/res/web/static-site:0.9.3' = {
   }
 }
 
-// Set deployment authorization policy to GitHub OIDC so CI/CD uses GitHub
-// identity instead of a static deployment token. This is a child resource of
-// the SWA that controls whether deployments authenticate via GitHub or a token.
-resource swaBasicAuth 'Microsoft.Web/staticSites/basicAuth@2023-12-01' = {
-  name: '${name}/default'
-  properties: {
-    // 'GitHub' = OIDC via GitHub Actions; 'DisableLocalAuth'/'AllowList' not needed
-    applicableEnvironmentsMode: 'AllEnvironments'
-    environments: []
-  }
-  dependsOn: [staticWebApp]
-}
+// NOTE: The "Deployment authorization policy" (GitHub vs Deployment token) shown
+// in the portal cannot be set via ARM/Bicep — it is only configurable through the
+// portal UI (SWA → Configuration → Deployment configuration → select "GitHub").
+// After provisioning, switch it once to "GitHub" to enable OIDC deployments.
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Outputs
