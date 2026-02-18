@@ -35,10 +35,9 @@ export const api = {
         method: "DELETE",
         body: JSON.stringify({ teamName }),
       }),
-    assign: (teamCount) =>
+    assign: () =>
       apiFetch("/teams/assign", {
         method: "POST",
-        body: JSON.stringify({ teamCount }),
       }),
   },
 
@@ -70,13 +69,7 @@ export const api = {
   attendees: {
     list: () => apiFetch("/attendees"),
     me: () => apiFetch("/attendees/me"),
-    updateMe: (data) =>
-      apiFetch("/attendees/me", { method: "POST", body: JSON.stringify(data) }),
-    bulkImport: (data) =>
-      apiFetch("/attendees/bulk", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+    join: () => apiFetch("/attendees/me", { method: "POST" }),
   },
 
   awards: {

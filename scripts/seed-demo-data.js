@@ -74,37 +74,49 @@ async function clearTable(client, tableName) {
 }
 
 function generateTeams(count) {
-  const adjectives = [
-    "Alpha",
-    "Beta",
-    "Gamma",
-    "Delta",
-    "Epsilon",
-    "Zeta",
-    "Theta",
-    "Lambda",
-  ];
-  return Array.from({ length: count }, (_, i) => ({
-    partitionKey: "team",
-    rowKey: `team-${adjectives[i % adjectives.length].toLowerCase()}`,
-    teamName: `Team ${adjectives[i % adjectives.length]}`,
-    teamMembers: JSON.stringify([]),
-    createdAt: new Date().toISOString(),
-  }));
+  return Array.from({ length: count }, (_, i) => {
+    const n = String(i + 1).padStart(2, "0");
+    return {
+      partitionKey: "team",
+      rowKey: `team-${n}`,
+      teamName: `Team${n}`,
+      teamNumber: i + 1,
+      teamMembers: JSON.stringify([]),
+      createdAt: new Date().toISOString(),
+    };
+  });
 }
 
 function generateAttendees(count, teams) {
-  return Array.from({ length: count }, (_, i) => {
+  const attendees = [];
+  const lookupRows = [];
+
+  for (let i = 0; i < count; i++) {
     const team = teams[i % teams.length];
-    return {
-      partitionKey: "attendee",
-      rowKey: `user-${i + 1}`,
-      displayName: `Hacker ${i + 1}`,
-      githubUsername: `hacker${i + 1}`,
+    const h = String(i + 1).padStart(2, "0");
+    const hackerAlias = `Hacker${h}`;
+    const fullAlias = `${team.teamName}-${hackerAlias}`;
+    const fakeGitHub = `demo-hacker-${i + 1}`;
+
+    attendees.push({
+      partitionKey: "attendees",
+      rowKey: hackerAlias,
+      alias: fullAlias,
+      teamNumber: team.teamNumber,
       teamId: team.rowKey,
+      teamName: team.teamName,
+      _gitHubUsername: fakeGitHub,
       registeredAt: new Date().toISOString(),
-    };
-  });
+    });
+
+    lookupRows.push({
+      partitionKey: "_github",
+      rowKey: fakeGitHub,
+      hackerAlias,
+    });
+  }
+
+  return { attendees, lookupRows };
 }
 
 function generateScores(teams) {
@@ -223,20 +235,29 @@ async function seed() {
   for (const team of teams) {
     await clients.Teams.upsertEntity(team);
   }
-  console.log(`  Created ${teams.length} teams`);
+  console.log(`  Created ${teams.length} teams (Team01–Team${String(TEAM_COUNT).padStart(2, "0")})`);
 
   console.log("\nSeeding attendees...");
-  const attendees = generateAttendees(ATTENDEE_COUNT, teams);
+  const { attendees, lookupRows } = generateAttendees(ATTENDEE_COUNT, teams);
   for (const attendee of attendees) {
     await clients.Attendees.upsertEntity(attendee);
   }
-  console.log(`  Created ${attendees.length} attendees`);
+  for (const row of lookupRows) {
+    await clients.Attendees.upsertEntity(row);
+  }
+  // Seed hacker counter at the correct next value
+  await clients.Attendees.upsertEntity({
+    partitionKey: "_meta",
+    rowKey: "counter",
+    value: ATTENDEE_COUNT,
+  });
+  console.log(`  Created ${attendees.length} anonymous hackers + counter row`);
 
-  // Update team member lists
+  // Update team member lists with hacker aliases
   for (const team of teams) {
     const members = attendees
       .filter((a) => a.teamId === team.rowKey)
-      .map((a) => a.githubUsername);
+      .map((a) => a.rowKey);
     team.teamMembers = JSON.stringify(members);
     await clients.Teams.upsertEntity(team);
   }

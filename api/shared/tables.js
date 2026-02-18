@@ -43,3 +43,56 @@ export async function ensureTable(tableName) {
   await client.createTable();
   ensuredTables.add(tableName);
 }
+
+/**
+ * Atomically increments the global hacker counter and returns the next value.
+ * Uses optimistic concurrency (ETag) on the Attendees table sentinel row.
+ */
+export async function nextHackerNumber() {
+  const client = getTableClient("Attendees");
+  const PARTITION = "_meta";
+  const ROW = "counter";
+  const MAX_RETRIES = 10;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    let current;
+    try {
+      current = await client.getEntity(PARTITION, ROW);
+    } catch (err) {
+      if (err.statusCode !== 404) throw err;
+      // First ever registration — seed the counter row
+      try {
+        await client.createEntity({
+          partitionKey: PARTITION,
+          rowKey: ROW,
+          value: 1,
+        });
+        return 1;
+      } catch (createErr) {
+        // Another request raced us, retry from the top
+        if (createErr.statusCode === 409) continue;
+        throw createErr;
+      }
+    }
+
+    const next = (current.value || 0) + 1;
+    try {
+      await client.updateEntity(
+        {
+          partitionKey: PARTITION,
+          rowKey: ROW,
+          value: next,
+        },
+        "Replace",
+        { ifMatch: current.etag },
+      );
+      return next;
+    } catch (updateErr) {
+      // ETag mismatch — another request incremented first, retry
+      if (updateErr.statusCode === 412) continue;
+      throw updateErr;
+    }
+  }
+
+  throw new Error("Failed to acquire hacker counter after max retries");
+}

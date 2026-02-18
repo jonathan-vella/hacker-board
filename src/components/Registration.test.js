@@ -4,13 +4,9 @@ vi.mock("../services/api.js", () => ({
   api: {
     attendees: {
       me: vi.fn(),
-      updateMe: vi.fn(),
+      join: vi.fn(),
     },
   },
-}));
-
-vi.mock("../services/auth.js", () => ({
-  getUsername: vi.fn(() => "octocat"),
 }));
 
 import { renderRegistration } from "./Registration.js";
@@ -31,40 +27,34 @@ describe("Registration", () => {
     expect(container.textContent).toContain("Sign In Required");
   });
 
-  it("renders registration form for new user", async () => {
+  it("renders Join Event button for new user", async () => {
     const notFound = new Error("Not found");
     notFound.status = 404;
     api.attendees.me.mockRejectedValue(notFound);
 
     await renderRegistration(container, { userRoles: ["authenticated"] });
 
-    expect(container.querySelector("h2").textContent).toBe("Registration");
-    const usernameInput = container.querySelector("#reg-username");
-    expect(usernameInput).toBeTruthy();
-    expect(usernameInput.value).toBe("octocat");
-    expect(usernameInput.readOnly).toBe(true);
-    expect(container.querySelector("#reg-displayname")).toBeTruthy();
-    expect(container.querySelector("#reg-email")).toBeTruthy();
-    expect(container.querySelector('button[type="submit"]').textContent).toBe(
-      "Register",
-    );
+    expect(container.querySelector("h2").textContent).toBe("Join Event");
+    expect(container.querySelector("#join-btn")).toBeTruthy();
+    // No name or email inputs
+    expect(container.querySelector("#reg-displayname")).toBeNull();
+    expect(container.querySelector("#reg-email")).toBeNull();
+    expect(container.querySelector("#reg-username")).toBeNull();
   });
 
-  it("pre-fills form for existing user", async () => {
+  it("shows alias for already-registered user", async () => {
     api.attendees.me.mockResolvedValue({
-      displayName: "Mona Lisa",
-      email: "mona@github.com",
-      teamName: "Team Alpha",
+      alias: "Team03-Hacker07",
+      teamName: "Team03",
+      teamNumber: 3,
     });
 
     await renderRegistration(container, { userRoles: ["authenticated"] });
 
-    expect(container.querySelector("#reg-displayname").value).toBe("Mona Lisa");
-    expect(container.querySelector("#reg-email").value).toBe("mona@github.com");
-    expect(container.textContent).toContain("Team Alpha");
-    expect(container.querySelector('button[type="submit"]').textContent).toBe(
-      "Update Profile",
-    );
+    expect(container.textContent).toContain("Team03-Hacker07");
+    expect(container.textContent).toContain("Team03");
+    // No join button when already registered
+    expect(container.querySelector("#join-btn")).toBeNull();
   });
 
   it("shows error when API fails to load profile", async () => {
@@ -72,22 +62,7 @@ describe("Registration", () => {
 
     await renderRegistration(container, { userRoles: ["authenticated"] });
 
-    expect(container.textContent).toContain("Failed to load profile");
+    expect(container.textContent).toContain("Failed to load");
     expect(container.textContent).toContain("Server error");
-  });
-
-  it("validates display name is required on submit", async () => {
-    const notFound = new Error("Not found");
-    notFound.status = 404;
-    api.attendees.me.mockRejectedValue(notFound);
-
-    await renderRegistration(container, { userRoles: ["authenticated"] });
-
-    container.querySelector("#reg-displayname").value = "";
-    container
-      .querySelector("#reg-form")
-      .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-
-    expect(container.textContent).toContain("Display name is required");
   });
 });

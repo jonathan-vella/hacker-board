@@ -22,7 +22,7 @@ async function getAwards(request, context) {
     awards.push({
       category: entity.rowKey,
       teamName: entity.teamName,
-      assignedBy: entity.assignedBy,
+      // assignedBy kept in storage for audit; not returned to clients
       timestamp: entity.timestamp,
     });
   }

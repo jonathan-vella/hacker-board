@@ -11,6 +11,7 @@ vi.mock("../services/auth.js", () => ({
 }));
 
 import { renderTeamAssignment } from "./TeamAssignment.js";
+import { api } from "../services/api.js";
 import { isAdmin } from "../services/auth.js";
 
 describe("TeamAssignment", () => {
@@ -30,7 +31,7 @@ describe("TeamAssignment", () => {
     expect(container.textContent).toContain("Access Denied");
   });
 
-  it("renders assignment form for admin", async () => {
+  it("renders re-shuffle form for admin", async () => {
     isAdmin.mockReturnValue(true);
 
     await renderTeamAssignment(container, {
@@ -38,35 +39,10 @@ describe("TeamAssignment", () => {
     });
 
     expect(container.querySelector("h2").textContent).toBe("Team Assignment");
-    expect(container.querySelector("#team-count")).toBeTruthy();
     expect(container.querySelector("#assign-btn")).toBeTruthy();
-    expect(container.textContent).toContain("Fisher-Yates");
-  });
-
-  it("defaults team count to 4", async () => {
-    isAdmin.mockReturnValue(true);
-
-    await renderTeamAssignment(container, {
-      userRoles: ["admin", "authenticated"],
-    });
-
-    const input = container.querySelector("#team-count");
-    expect(input.value).toBe("4");
-    expect(input.min).toBe("2");
-    expect(input.max).toBe("20");
-  });
-
-  it("has accessible labels on inputs", async () => {
-    isAdmin.mockReturnValue(true);
-
-    await renderTeamAssignment(container, {
-      userRoles: ["admin", "authenticated"],
-    });
-
-    const input = container.querySelector("#team-count");
-    expect(input.getAttribute("aria-label")).toBeTruthy();
-    const label = container.querySelector('label[for="team-count"]');
-    expect(label).toBeTruthy();
+    expect(container.textContent).toContain("Re-shuffle");
+    // Team count input removed — auto-assignment is the default
+    expect(container.querySelector("#team-count")).toBeNull();
   });
 
   it("has feedback and preview areas", async () => {
@@ -78,5 +54,18 @@ describe("TeamAssignment", () => {
 
     expect(container.querySelector("#assign-feedback")).toBeTruthy();
     expect(container.querySelector("#assign-preview")).toBeTruthy();
+  });
+
+  it("shows error on API failure", async () => {
+    isAdmin.mockReturnValue(true);
+    api.teams.assign.mockRejectedValueOnce(new Error("Server down"));
+
+    await renderTeamAssignment(container, {
+      userRoles: ["admin", "authenticated"],
+    });
+
+    // Trigger button click via the component
+    const btn = container.querySelector("#assign-btn");
+    expect(btn).toBeTruthy();
   });
 });

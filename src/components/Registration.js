@@ -1,5 +1,4 @@
 import { api } from "../services/api.js";
-import { getUsername } from "../services/auth.js";
 
 export async function renderRegistration(container, user) {
   if (!user) {
@@ -7,9 +6,7 @@ export async function renderRegistration(container, user) {
     return;
   }
 
-  container.innerHTML = `<div class="loading"><div class="spinner"></div> Loading profile...</div>`;
-
-  const username = getUsername(user);
+  container.innerHTML = `<div class="loading"><div class="spinner"></div> Loading...</div>`;
 
   try {
     let profile;
@@ -20,59 +17,56 @@ export async function renderRegistration(container, user) {
       else throw err;
     }
 
+    if (profile) {
+      container.innerHTML = `
+        <section>
+          <div class="section-header"><h2>Registration</h2></div>
+          <div class="card text-center" style="padding:2rem">
+            <p class="text-secondary" style="margin-bottom:0.5rem">Your anonymous hacker identity</p>
+            <p style="font-size:1.5rem;font-weight:700;color:var(--accent)">${escapeHtml(profile.alias)}</p>
+            <p class="text-secondary" style="margin-top:1rem">Team: <strong>${escapeHtml(profile.teamName)}</strong></p>
+          </div>
+        </section>
+      `;
+      return;
+    }
+
     container.innerHTML = `
       <section>
-        <div class="section-header"><h2>Registration</h2></div>
-        <form id="reg-form" class="card" novalidate>
-          <div style="margin-bottom:1rem">
-            <label for="reg-username"><strong>GitHub Username</strong></label>
-            <input type="text" id="reg-username" class="form-input" value="${escapeHtml(username)}" readonly aria-label="GitHub username">
-            <span class="text-secondary" style="font-size:0.8125rem">Auto-filled from your GitHub login</span>
-          </div>
-          <div style="margin-bottom:1rem">
-            <label for="reg-displayname"><strong>Display Name</strong></label>
-            <input type="text" id="reg-displayname" class="form-input" value="${escapeHtml(profile?.displayName || "")}" placeholder="How you'd like to be called" required aria-label="Display name">
-          </div>
-          <div style="margin-bottom:1rem">
-            <label for="reg-email"><strong>Email</strong> <span class="text-secondary">(optional)</span></label>
-            <input type="email" id="reg-email" class="form-input" value="${escapeHtml(profile?.email || "")}" placeholder="your@email.com" aria-label="Email address">
-          </div>
-          ${profile?.teamName ? `<div style="margin-bottom:1rem"><strong>Team:</strong> ${escapeHtml(profile.teamName)}</div>` : ""}
-          <button type="submit" class="btn btn-primary">${profile ? "Update Profile" : "Register"}</button>
-          <div id="reg-feedback" role="alert" aria-live="polite" style="margin-top:1rem"></div>
-        </form>
+        <div class="section-header"><h2>Join Event</h2></div>
+        <div class="card text-center" style="padding:2rem">
+          <p class="text-secondary" style="margin-bottom:1.5rem">Click <strong>Join Event</strong> to receive your anonymous hacker alias and team assignment.</p>
+          <button id="join-btn" class="btn btn-primary" type="button">Join Event</button>
+          <div id="join-feedback" role="alert" aria-live="polite" style="margin-top:1rem"></div>
+        </div>
       </section>
     `;
 
-    document
-      .getElementById("reg-form")
-      ?.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const feedback = document.getElementById("reg-feedback");
-        const displayName = document
-          .getElementById("reg-displayname")
-          ?.value?.trim();
-        const email = document.getElementById("reg-email")?.value?.trim();
+    document.getElementById("join-btn")?.addEventListener("click", async () => {
+      const feedback = document.getElementById("join-feedback");
+      const btn = document.getElementById("join-btn");
+      btn.disabled = true;
+      feedback.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
 
-        if (!displayName) {
-          feedback.innerHTML = `<p style="color:var(--danger)">Display name is required.</p>`;
-          return;
-        }
-
-        try {
-          feedback.innerHTML = `<div class="loading"><div class="spinner"></div></div>`;
-          if (profile) {
-            await api.attendees.updateMe({ displayName, email });
-          } else {
-            await api.attendees.me({ method: "POST", displayName, email });
-          }
-          feedback.innerHTML = `<p style="color:var(--success)">${profile ? "Profile updated!" : "Registration complete!"}</p>`;
-        } catch (err) {
-          feedback.innerHTML = `<p style="color:var(--danger)">Error: ${escapeHtml(err.message)}</p>`;
-        }
-      });
+      try {
+        const result = await api.attendees.join();
+        container.innerHTML = `
+          <section>
+            <div class="section-header"><h2>Welcome!</h2></div>
+            <div class="card text-center" style="padding:2rem">
+              <p class="text-secondary" style="margin-bottom:0.5rem">Your anonymous hacker identity</p>
+              <p style="font-size:1.5rem;font-weight:700;color:var(--accent)">${escapeHtml(result.alias)}</p>
+              <p class="text-secondary" style="margin-top:1rem">Team: <strong>${escapeHtml(result.teamName)}</strong></p>
+            </div>
+          </section>
+        `;
+      } catch (err) {
+        btn.disabled = false;
+        feedback.innerHTML = `<p style="color:var(--danger)">Error: ${escapeHtml(err.message)}</p>`;
+      }
+    });
   } catch (err) {
-    container.innerHTML = `<div class="card text-center"><p class="text-secondary">Failed to load profile: ${escapeHtml(err.message)}</p></div>`;
+    container.innerHTML = `<div class="card text-center"><p class="text-secondary">Failed to load: ${escapeHtml(err.message)}</p></div>`;
   }
 }
 

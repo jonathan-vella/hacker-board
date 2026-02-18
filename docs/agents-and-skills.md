@@ -31,17 +31,17 @@ Agents are interactive AI assistants for specific workflow phases.
 Invoke them with `@agent-name` in GitHub Copilot Chat, or let
 the Conductor delegate to them as subagents.
 
-| Agent                  | Conductor Step   | Tools                                      | Description                                    | Invocation                |
-| ---------------------- | ---------------- | ------------------------------------------ | ---------------------------------------------- | ------------------------- |
-| Task Planner           | 1 — Plan         | read, search, fetch, problems              | Research and plan tasks                        | `@task-planner`           |
-| Azure Architect        | 2 — Architect    | read, search, fetch, problems              | WAF review and design                          | `@azure-architect`        |
-| UX Designer            | 3 — Design       | read, search, fetch                        | User journeys, accessibility                   | `@ux-designer`            |
-| Implementation Planner | 4 — Implement    | read, search, edit, fetch, problems        | Structured implementation plans                | `@implementation-planner` |
-| Bicep Plan             | 5 — Infra Plan   | read, search, fetch, bicep, azure-mcp      | Machine-readable Bicep plans, AVM evaluation   | `@bicep-plan`             |
-| Bicep Code             | 6 — Infra Code   | read, search, edit, bicep, azure-mcp       | Near-production-ready Bicep templates          | `@bicep-code`             |
-| Security Reviewer      | 7 — Review       | read, search, problems                     | OWASP Top 10, Zero Trust code review           | `@security-reviewer`      |
-| Diagnose               | Supplementary    | read, search, azure-mcp, applens           | Azure resource health diagnostics              | `@diagnose`               |
-| HackerBoard Conductor  | Orchestrator     | agent, read, search, edit, fetch, problems | Coordinates all agents                         | `@hackerboard-conductor`  |
+| Agent                  | Conductor Step | Tools                                      | Description                                  | Invocation                |
+| ---------------------- | -------------- | ------------------------------------------ | -------------------------------------------- | ------------------------- |
+| Task Planner           | 1 — Plan       | read, search, fetch, problems              | Research and plan tasks                      | `@task-planner`           |
+| Azure Architect        | 2 — Architect  | read, search, fetch, problems              | WAF review and design                        | `@azure-architect`        |
+| UX Designer            | 3 — Design     | read, search, fetch                        | User journeys, accessibility                 | `@ux-designer`            |
+| Implementation Planner | 4 — Implement  | read, search, edit, fetch, problems        | Structured implementation plans              | `@implementation-planner` |
+| Bicep Plan             | 5 — Infra Plan | read, search, fetch, bicep, azure-mcp      | Machine-readable Bicep plans, AVM evaluation | `@bicep-plan`             |
+| Bicep Code             | 6 — Infra Code | read, search, edit, bicep, azure-mcp       | Near-production-ready Bicep templates        | `@bicep-code`             |
+| Security Reviewer      | 7 — Review     | read, search, problems                     | OWASP Top 10, Zero Trust code review         | `@security-reviewer`      |
+| Diagnose               | Supplementary  | read, search, azure-mcp, applens           | Azure resource health diagnostics            | `@diagnose`               |
+| HackerBoard Conductor  | Orchestrator   | agent, read, search, edit, fetch, problems | Coordinates all agents                       | `@hackerboard-conductor`  |
 
 ---
 
@@ -92,12 +92,12 @@ only a summary to the Conductor.
 Skills are reusable capabilities invokable by agents or directly
 by users. They activate based on trigger phrases in the prompt.
 
-| Skill             | Category      | Trigger Keywords                          | Description                                 |
-| ----------------- | ------------- | ----------------------------------------- | ------------------------------------------- |
-| azure-diagrams    | Architecture  | "draw diagram", "architecture diagram"    | Azure diagrams via Python diagrams+Graphviz |
-| docs-writer       | Documentation | "update docs", "check staleness"          | Documentation maintenance                   |
-| git-commit        | Workflow      | "commit", "/commit"                       | Conventional commit generation              |
-| github-operations | Workflow      | "create issue", "create PR"               | GitHub operations via MCP/CLI               |
+| Skill             | Category      | Trigger Keywords                       | Description                                 |
+| ----------------- | ------------- | -------------------------------------- | ------------------------------------------- |
+| azure-diagrams    | Architecture  | "draw diagram", "architecture diagram" | Azure diagrams via Python diagrams+Graphviz |
+| docs-writer       | Documentation | "update docs", "check staleness"       | Documentation maintenance                   |
+| git-commit        | Workflow      | "commit", "/commit"                    | Conventional commit generation              |
+| github-operations | Workflow      | "create issue", "create PR"            | GitHub operations via MCP/CLI               |
 
 ---
 

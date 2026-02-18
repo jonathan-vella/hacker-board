@@ -26,25 +26,25 @@ describe("TeamRoster", () => {
 
   it("renders teams with their members", async () => {
     api.teams.list.mockResolvedValue([
-      { rowKey: "team-1", name: "Team Alpha" },
-      { rowKey: "team-2", name: "Team Beta" },
+      { rowKey: "team-01", name: "Team01", teamName: "Team01" },
+      { rowKey: "team-02", name: "Team02", teamName: "Team02" },
     ]);
     api.attendees.list.mockResolvedValue([
-      { rowKey: "a1", displayName: "Alice", teamName: "Team Alpha" },
-      { rowKey: "a2", displayName: "Bob", teamName: "Team Alpha" },
-      { rowKey: "a3", displayName: "Carol", teamName: "Team Beta" },
+      { rowKey: "Hacker01", alias: "Team01-Hacker01", teamName: "Team01" },
+      { rowKey: "Hacker02", alias: "Team01-Hacker02", teamName: "Team01" },
+      { rowKey: "Hacker03", alias: "Team02-Hacker03", teamName: "Team02" },
     ]);
 
     await renderTeamRoster(container, { userRoles: ["admin", "authenticated"] });
 
     expect(container.querySelector("h2").textContent).toBe("Team Roster");
-    expect(container.textContent).toContain("Team Alpha");
+    expect(container.textContent).toContain("Team01");
     expect(container.textContent).toContain("2 members");
-    expect(container.textContent).toContain("Alice");
-    expect(container.textContent).toContain("Bob");
-    expect(container.textContent).toContain("Team Beta");
+    expect(container.textContent).toContain("Team01-Hacker01");
+    expect(container.textContent).toContain("Team01-Hacker02");
+    expect(container.textContent).toContain("Team02");
     expect(container.textContent).toContain("1 member");
-    expect(container.textContent).toContain("Carol");
+    expect(container.textContent).toContain("Team02-Hacker03");
   });
 
   it("shows empty state when no teams exist", async () => {

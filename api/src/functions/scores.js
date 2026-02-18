@@ -25,7 +25,7 @@ async function getScores(request, context) {
       criterion: entity.criterion,
       points: entity.points,
       maxPoints: entity.maxPoints,
-      scoredBy: entity.scoredBy,
+      // scoredBy kept in storage for audit; not returned to clients
       timestamp: entity.timestamp,
     });
   }

@@ -1,23 +1,100 @@
 import { app } from "@azure/functions";
-import { getTableClient } from "../../shared/tables.js";
+import { getTableClient, nextHackerNumber } from "../../shared/tables.js";
 import { getClientPrincipal } from "../../shared/auth.js";
 import { errorResponse } from "../../shared/errors.js";
 
 const TABLE_NAME = "Attendees";
+const TEAMS_TABLE = "Teams";
+
+// Default teams auto-created for every new event
+const DEFAULT_TEAM_COUNT = 6;
+
+/**
+ * Returns teams sorted by current member count (ascending).
+ * Used to pick the smallest team for balanced auto-assignment.
+ */
+async function getTeamsSortedBySize() {
+  const teamsClient = getTableClient(TEAMS_TABLE);
+  const teams = [];
+  for await (const entity of teamsClient.listEntities({
+    queryOptions: { filter: "PartitionKey eq 'team'" },
+  })) {
+    const members = JSON.parse(entity.teamMembers || "[]");
+    teams.push({
+      rowKey: entity.rowKey,
+      teamName: entity.teamName || entity.rowKey,
+      teamNumber: entity.teamNumber || 0,
+      memberCount: members.length,
+    });
+  }
+
+  if (teams.length === 0) {
+    await seedDefaultTeams(teamsClient);
+    return getTeamsSortedBySize();
+  }
+
+  return teams.sort((a, b) => {
+    if (a.memberCount !== b.memberCount) return a.memberCount - b.memberCount;
+    // Stable tiebreaker: team number ascending
+    return a.teamNumber - b.teamNumber;
+  });
+}
+
+/** Seeds Team01–Team06 when no teams exist yet. */
+async function seedDefaultTeams(teamsClient) {
+  for (let i = 1; i <= DEFAULT_TEAM_COUNT; i++) {
+    const n = String(i).padStart(2, "0");
+    await teamsClient.createEntity({
+      partitionKey: "team",
+      rowKey: `team-${n}`,
+      teamName: `Team${n}`,
+      teamNumber: i,
+      teamMembers: "[]",
+      createdAt: new Date().toISOString(),
+    });
+  }
+}
+
+/** Adds a hacker alias to the teamMembers array for the given team. */
+async function addMemberToTeam(teamsClient, teamRowKey, hackerAlias) {
+  const entity = await teamsClient.getEntity("team", teamRowKey);
+  const members = JSON.parse(entity.teamMembers || "[]");
+  members.push(hackerAlias);
+  await teamsClient.updateEntity(
+    {
+      partitionKey: "team",
+      rowKey: teamRowKey,
+      teamMembers: JSON.stringify(members),
+    },
+    "Merge",
+  );
+}
+
+/** Returns the attendee row key (e.g. "Hacker07") for a GitHub username via lookup. */
+async function resolveAlias(gitHubUsername) {
+  const client = getTableClient(TABLE_NAME);
+  try {
+    const lookup = await client.getEntity("_github", gitHubUsername);
+    return lookup.hackerAlias;
+  } catch (err) {
+    if (err.statusCode === 404) return undefined;
+    throw err;
+  }
+}
 
 async function getAttendees(request, context) {
   const client = getTableClient(TABLE_NAME);
   const attendees = [];
 
-  for await (const entity of client.listEntities()) {
+  for await (const entity of client.listEntities({
+    queryOptions: { filter: "PartitionKey eq 'attendees'" },
+  })) {
     attendees.push({
-      gitHubUsername: entity.gitHubUsername || entity.partitionKey,
-      firstName: entity.firstName,
-      surname: entity.surname,
+      alias: entity.alias,
       teamNumber: entity.teamNumber,
       teamId: entity.teamId,
+      teamName: entity.teamName,
       registeredAt: entity.registeredAt,
-      updatedAt: entity.updatedAt,
     });
   }
 
@@ -30,90 +107,93 @@ async function getMyProfile(request, context) {
     return errorResponse("UNAUTHORIZED", "Authentication required", 401);
   }
 
-  const client = getTableClient(TABLE_NAME);
-  try {
-    const entity = await client.getEntity(principal.userDetails, "profile");
-    return {
-      jsonBody: {
-        gitHubUsername: entity.partitionKey,
-        firstName: entity.firstName,
-        surname: entity.surname,
-        teamNumber: entity.teamNumber,
-        teamId: entity.teamId,
-        registeredAt: entity.registeredAt,
-        updatedAt: entity.updatedAt,
-      },
-    };
-  } catch (err) {
-    if (err.statusCode === 404) {
-      return errorResponse("NOT_FOUND", "User has not registered yet", 404);
-    }
-    throw err;
+  const hackerAlias = await resolveAlias(principal.userDetails);
+  if (!hackerAlias) {
+    return errorResponse("NOT_FOUND", "User has not registered yet", 404);
   }
+
+  const client = getTableClient(TABLE_NAME);
+  const entity = await client.getEntity("attendees", hackerAlias);
+  return {
+    jsonBody: {
+      alias: entity.alias,
+      teamNumber: entity.teamNumber,
+      teamId: entity.teamId,
+      teamName: entity.teamName,
+      registeredAt: entity.registeredAt,
+    },
+  };
 }
 
-async function upsertMyProfile(request, context) {
+async function joinEvent(request, context) {
   const principal = getClientPrincipal(request);
   if (!principal) {
     return errorResponse("UNAUTHORIZED", "Authentication required", 401);
   }
 
-  const body = await request.json();
-  const { firstName, surname, teamNumber } = body;
+  const gitHubUsername = principal.userDetails;
 
-  if (!firstName || !surname) {
-    return errorResponse(
-      "VALIDATION_ERROR",
-      "Missing required fields: firstName, surname",
-    );
+  // Idempotent — return existing alias if already registered
+  const existingAlias = await resolveAlias(gitHubUsername);
+  if (existingAlias) {
+    const client = getTableClient(TABLE_NAME);
+    const entity = await client.getEntity("attendees", existingAlias);
+    return {
+      status: 200,
+      jsonBody: {
+        alias: entity.alias,
+        teamNumber: entity.teamNumber,
+        teamId: entity.teamId,
+        teamName: entity.teamName,
+        registeredAt: entity.registeredAt,
+      },
+    };
   }
 
-  if (
-    teamNumber !== undefined &&
-    (!Number.isInteger(teamNumber) || teamNumber < 1)
-  ) {
-    return errorResponse(
-      "VALIDATION_ERROR",
-      "teamNumber must be a positive integer",
-    );
-  }
+  // Assign globally unique hacker number
+  const hackerNumber = await nextHackerNumber();
+  const hackerAlias = `Hacker${String(hackerNumber).padStart(2, "0")}`;
 
-  const client = getTableClient(TABLE_NAME);
+  // Pick the smallest team
+  const teams = await getTeamsSortedBySize();
+  const assignedTeam = teams[0];
+  const fullAlias = `${assignedTeam.teamName}-${hackerAlias}`;
+
   const now = new Date().toISOString();
+  const client = getTableClient(TABLE_NAME);
+  const teamsClient = getTableClient(TEAMS_TABLE);
 
-  let isNew = false;
-  try {
-    await client.getEntity(principal.userDetails, "profile");
-  } catch (err) {
-    if (err.statusCode === 404) {
-      isNew = true;
-    } else {
-      throw err;
-    }
-  }
+  // Write attendee row
+  await client.createEntity({
+    partitionKey: "attendees",
+    rowKey: hackerAlias,
+    alias: fullAlias,
+    teamNumber: assignedTeam.teamNumber,
+    teamId: assignedTeam.rowKey,
+    teamName: assignedTeam.teamName,
+    // GitHub username stored internally — never returned in API responses
+    _gitHubUsername: gitHubUsername,
+    registeredAt: now,
+  });
 
-  const entity = {
-    partitionKey: principal.userDetails,
-    rowKey: "profile",
-    firstName,
-    surname,
-    gitHubUsername: principal.userDetails,
-    teamNumber: teamNumber || 0,
-    registeredAt: isNew ? now : undefined,
-    updatedAt: now,
-  };
+  // Write reverse-lookup row so subsequent logins resolve instantly
+  await client.createEntity({
+    partitionKey: "_github",
+    rowKey: gitHubUsername,
+    hackerAlias,
+  });
 
-  await client.upsertEntity(entity);
+  // Add alias to the team's member list
+  await addMemberToTeam(teamsClient, assignedTeam.rowKey, hackerAlias);
 
   return {
-    status: isNew ? 201 : 200,
+    status: 201,
     jsonBody: {
-      gitHubUsername: principal.userDetails,
-      firstName,
-      surname,
-      teamNumber: teamNumber || 0,
-      registeredAt: entity.registeredAt,
-      updatedAt: now,
+      alias: fullAlias,
+      teamNumber: assignedTeam.teamNumber,
+      teamId: assignedTeam.rowKey,
+      teamName: assignedTeam.teamName,
+      registeredAt: now,
     },
   };
 }
@@ -126,13 +206,14 @@ app.http("attendees", {
 });
 
 app.http("attendees-me", {
-  methods: ["GET", "POST", "PUT"],
+  methods: ["GET", "POST"],
   authLevel: "anonymous",
   route: "attendees/me",
   handler: async (request, context) => {
     if (request.method === "GET") {
       return getMyProfile(request, context);
     }
-    return upsertMyProfile(request, context);
+    // POST = join event (idempotent)
+    return joinEvent(request, context);
   },
 });

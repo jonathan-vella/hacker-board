@@ -24,11 +24,10 @@ async function getSubmissions(request, context) {
     submissions.push({
       submissionId: entity.rowKey,
       teamName: entity.partitionKey,
-      submittedBy: entity.submittedBy,
       submittedAt: entity.submittedAt,
       status: entity.status,
       calculatedTotal: entity.calculatedTotal,
-      reviewedBy: entity.reviewedBy,
+      // submittedBy / reviewedBy kept in storage for audit; not returned to clients
       reviewedAt: entity.reviewedAt,
       reason: entity.reason,
     });

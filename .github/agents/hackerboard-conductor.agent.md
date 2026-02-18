@@ -100,16 +100,16 @@ Step 7: Document      →                 → Updated documentation
 
 ## Agent Assignments
 
-| Step | Agent (Subagent)       | Responsibility                           |
-| ---- | ---------------------- | ---------------------------------------- |
-| 1    | Task Planner           | Research codebase, plan phased tasks     |
-| 2    | Azure Architect        | WAF assessment, Azure service decisions  |
-| 3    | UX Designer            | User journeys, accessibility, UI design  |
-| 4    | Implementation Planner | Structured implementation plan + code    |
-| 5    | Security Reviewer      | OWASP review, Zero Trust validation      |
+| Step | Agent (Subagent)       | Responsibility                                   |
+| ---- | ---------------------- | ------------------------------------------------ |
+| 1    | Task Planner           | Research codebase, plan phased tasks             |
+| 2    | Azure Architect        | WAF assessment, Azure service decisions          |
+| 3    | UX Designer            | User journeys, accessibility, UI design          |
+| 4    | Implementation Planner | Structured implementation plan + code            |
+| 5    | Security Reviewer      | OWASP review, Zero Trust validation              |
 | 6a   | Bicep Plan             | Governance discovery, AVM evaluation, infra plan |
-| 6b   | Bicep Code             | Bicep template generation and validation |
-| 7    | docs-writer (skill)    | Documentation updates, changelog entries |
+| 6b   | Bicep Code             | Bicep template generation and validation         |
+| 7    | docs-writer (skill)    | Documentation updates, changelog entries         |
 
 ## Subagent Delegation
 
@@ -205,11 +205,11 @@ Skills are invoked at specific points during the workflow:
 
 Select models based on each agent's task complexity and reasoning needs:
 
-| Agent                  | Rationale                                |
-| ---------------------- | ---------------------------------------- |
-| Task Planner           | Deep codebase understanding required     |
-| Azure Architect        | WAF analysis and trade-off reasoning     |
-| UX Designer            | Creative design and accessibility review |
-| Implementation Planner | Precise code generation and planning     |
-| Security Reviewer      | Thorough vulnerability analysis          |
+| Agent                   | Rationale                                   |
+| ----------------------- | ------------------------------------------- |
+| Task Planner            | Deep codebase understanding required        |
+| Azure Architect         | WAF analysis and trade-off reasoning        |
+| UX Designer             | Creative design and accessibility review    |
+| Implementation Planner  | Precise code generation and planning        |
+| Security Reviewer       | Thorough vulnerability analysis             |
 | Bicep Plan + Bicep Code | Infrastructure planning and code generation |

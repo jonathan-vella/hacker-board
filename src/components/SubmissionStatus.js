@@ -19,8 +19,7 @@ export async function renderSubmissionStatus(container, user) {
       <tr>
         <td>${escapeHtml(s.teamName || s.partitionKey)}</td>
         <td><span class="badge badge-${s.status}">${escapeHtml(s.status)}</span></td>
-        <td>${escapeHtml(s.submittedBy || "—")}</td>
-        <td>${new Date(s.timestamp).toLocaleString()}</td>
+        <td>${new Date(s.submittedAt || s.timestamp).toLocaleString()}</td>
         <td>${s.reason ? escapeHtml(s.reason) : "—"}</td>
       </tr>
     `,
@@ -36,13 +35,12 @@ export async function renderSubmissionStatus(container, user) {
               <tr>
                 <th>Team</th>
                 <th>Status</th>
-                <th>Submitted By</th>
                 <th>Date</th>
                 <th>Notes</th>
               </tr>
             </thead>
             <tbody>
-              ${rows || '<tr><td colspan="5" class="text-center text-secondary" style="padding:2rem">No submissions found</td></tr>'}
+              ${rows || '<tr><td colspan="4" class="text-center text-secondary" style="padding:2rem">No submissions found</td></tr>'}
             </tbody>
           </table>
         </div>

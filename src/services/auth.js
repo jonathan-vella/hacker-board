@@ -1,4 +1,5 @@
 let cachedUser;
+let cachedAlias;
 
 export async function getCurrentUser() {
   if (cachedUser) return cachedUser;
@@ -13,16 +14,27 @@ export async function getCurrentUser() {
   }
 }
 
+/**
+ * Returns the caller's anonymous alias (e.g. "Team03-Hacker07").
+ * Returns undefined if the user hasn't joined the event yet.
+ */
+export async function getMyAlias(apiFetch) {
+  if (cachedAlias) return cachedAlias;
+  try {
+    const profile = await apiFetch("/attendees/me");
+    cachedAlias = profile?.alias;
+    return cachedAlias;
+  } catch {
+    return undefined;
+  }
+}
+
 export function isAdmin(user) {
   return user?.userRoles?.includes("admin") || false;
 }
 
 export function isMember(user) {
   return user?.userRoles?.includes("member") || false;
-}
-
-export function getUsername(user) {
-  return user?.userDetails || "Anonymous";
 }
 
 export function loginUrl() {
@@ -35,4 +47,5 @@ export function logoutUrl() {
 
 export function clearCache() {
   cachedUser = undefined;
+  cachedAlias = undefined;
 }

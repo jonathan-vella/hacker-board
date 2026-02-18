@@ -31,7 +31,7 @@ export async function renderTeamRoster(container, user) {
           <p class="text-secondary" style="font-size:0.8125rem;margin:0.25rem 0">${members.length} member${members.length !== 1 ? "s" : ""}</p>
           ${
             members.length
-              ? `<ul style="list-style:none;padding:0;margin-top:0.75rem">${members.map((m) => `<li style="padding:0.25rem 0;border-bottom:1px solid var(--border)">${escapeHtml(m.displayName || m.rowKey)}</li>`).join("")}</ul>`
+              ? `<ul style="list-style:none;padding:0;margin-top:0.75rem">${members.map((m) => `<li style="padding:0.25rem 0;border-bottom:1px solid var(--border)">${escapeHtml(m.alias || m.rowKey)}</li>`).join("")}</ul>`
               : `<p class="text-secondary" style="margin-top:0.75rem">No members assigned</p>`
           }
         </div>

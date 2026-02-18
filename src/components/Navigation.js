@@ -1,12 +1,21 @@
-import { isAdmin, getUsername, loginUrl, logoutUrl } from "../services/auth.js";
+import { isAdmin, getMyAlias, loginUrl, logoutUrl } from "../services/auth.js";
 import { api } from "../services/api.js";
 import { updatePendingBadge } from "../services/notifications.js";
 
 let searchDebounceTimer;
 
-export function renderNavigation(container, user) {
+export async function renderNavigation(container, user) {
   const admin = isAdmin(user);
-  const username = getUsername(user);
+
+  // Resolve alias asynchronously — show placeholder while loading
+  let alias = "";
+  if (user) {
+    try {
+      alias = (await getMyAlias((path) => fetch(`/api${path}`).then((r) => r.json()))) || "";
+    } catch {
+      alias = "";
+    }
+  }
 
   container.innerHTML = `
     <div class="header-inner">
@@ -28,13 +37,13 @@ export function renderNavigation(container, user) {
       </nav>
       <div class="header-actions">
         <div class="search-wrapper">
-          <label for="global-search" class="sr-only">Search teams or attendees</label>
+          <label for="global-search" class="sr-only">Search teams or hackers</label>
           <input
             type="search"
             id="global-search"
             class="search-input"
             placeholder="Search teams..."
-            aria-label="Search teams or attendees"
+            aria-label="Search teams or hackers"
             autocomplete="off"
           />
           <div id="search-results" class="search-results hidden" role="listbox" aria-label="Search results"></div>
@@ -44,7 +53,7 @@ export function renderNavigation(container, user) {
         </button>
         ${
           user
-            ? `<span class="text-secondary" style="font-size:0.875rem">${username}</span>
+            ? `${alias ? `<span class="text-secondary" style="font-size:0.875rem">${alias}</span>` : ""}
                <a href="${logoutUrl()}" class="btn btn-sm">Sign Out</a>`
             : `<a href="${loginUrl()}" class="btn btn-primary btn-sm">Sign In</a>`
         }
@@ -155,14 +164,12 @@ async function performSearch(query, resultsEl) {
 
     if (attendees.status === "fulfilled" && Array.isArray(attendees.value)) {
       attendees.value
-        .filter((a) =>
-          (a.name || a.displayName || "").toLowerCase().includes(query),
-        )
+        .filter((a) => (a.alias || "").toLowerCase().includes(query))
         .slice(0, 5)
         .forEach((a) =>
           results.push({
-            type: "Attendee",
-            name: a.name || a.displayName,
+            type: "Hacker",
+            name: a.alias,
             href: "#/teams",
           }),
         );

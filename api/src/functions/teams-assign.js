@@ -5,9 +5,117 @@ import { randomInt } from "node:crypto";
 
 const TABLE_NAME = "Attendees";
 
-async function assignTeams(request, context) {
-  const body = await request.json();
-  const { teamCount } = body;
+/**
+ * Admin endpoint: randomly reassigns all registered hackers across existing teams.
+ * Uses Fisher-Yates shuffle and round-robin distribution.
+ */
+async function reassignTeams(request, context) {
+  const attendeesClient = getTableClient(TABLE_NAME);
+  const teamsClient = getTableClient("Teams");
+
+  // Load all hacker rows (not lookup or meta rows)
+  const hackers = [];
+  for await (const entity of attendeesClient.listEntities({
+    queryOptions: { filter: "PartitionKey eq 'attendees'" },
+  })) {
+    hackers.push({
+      hackerAlias: entity.rowKey,
+      currentTeamId: entity.teamId,
+    });
+  }
+
+  if (hackers.length === 0) {
+    return errorResponse("VALIDATION_ERROR", "No registered hackers to assign");
+  }
+
+  // Load all teams
+  const teams = [];
+  for await (const entity of teamsClient.listEntities({
+    queryOptions: { filter: "PartitionKey eq 'team'" },
+  })) {
+    teams.push({
+      rowKey: entity.rowKey,
+      teamName: entity.teamName || entity.rowKey,
+      teamNumber: entity.teamNumber || 0,
+    });
+  }
+
+  if (teams.length === 0) {
+    return errorResponse("VALIDATION_ERROR", "No teams exist to assign hackers to");
+  }
+
+  // Fisher-Yates shuffle
+  for (let i = hackers.length - 1; i > 0; i--) {
+    const j = randomInt(0, i + 1);
+    [hackers[i], hackers[j]] = [hackers[j], hackers[i]];
+  }
+
+  // Clear all team member lists
+  for (const team of teams) {
+    await teamsClient.updateEntity(
+      { partitionKey: "team", rowKey: team.rowKey, teamMembers: "[]" },
+      "Merge",
+    );
+  }
+
+  // Round-robin assign and update each hacker row
+  for (let i = 0; i < hackers.length; i++) {
+    const team = teams[i % teams.length];
+    const { hackerAlias } = hackers[i];
+    const fullAlias = `${team.teamName}-${hackerAlias}`;
+
+    await attendeesClient.updateEntity(
+      {
+        partitionKey: "attendees",
+        rowKey: hackerAlias,
+        teamNumber: team.teamNumber,
+        teamId: team.rowKey,
+        teamName: team.teamName,
+        alias: fullAlias,
+      },
+      "Merge",
+    );
+  }
+
+  // Rebuild each team's member list
+  const teamMemberMap = new Map(teams.map((t) => [t.rowKey, []]));
+  for (let i = 0; i < hackers.length; i++) {
+    const team = teams[i % teams.length];
+    teamMemberMap.get(team.rowKey).push(hackers[i].hackerAlias);
+  }
+
+  for (const team of teams) {
+    const members = teamMemberMap.get(team.rowKey);
+    await teamsClient.updateEntity(
+      {
+        partitionKey: "team",
+        rowKey: team.rowKey,
+        teamMembers: JSON.stringify(members),
+      },
+      "Merge",
+    );
+  }
+
+  const result = teams.map((t) => ({
+    teamName: t.teamName,
+    members: teamMemberMap.get(t.rowKey),
+  }));
+
+  return {
+    jsonBody: {
+      teams: result,
+      totalHackers: hackers.length,
+      teamCount: teams.length,
+    },
+  };
+}
+
+app.http("teams-assign", {
+  methods: ["POST"],
+  authLevel: "anonymous",
+  route: "teams/assign",
+  handler: reassignTeams,
+});
 
   if (!teamCount || !Number.isInteger(teamCount) || teamCount < 1) {
     return errorResponse(

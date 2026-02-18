@@ -31,13 +31,13 @@
 
 | Metric                  | Value                                     |
 | ----------------------- | ----------------------------------------- |
-| **Current Phase**       | Phase 11 — Ops Readiness (deploy pending) |
-| **Last Updated**        | 2026-02-17                                |
+| **Current Phase**       | Phase 13 — Attendee Anonymization (complete) |
+| **Last Updated**        | 2026-02-18                                |
 | **Days Remaining**      | 5                                         |
-| **Tasks Done**          | 186 / 201                                 |
-| **API Endpoints**       | 11 files / 17 routes                      |
-| **Frontend Components** | 13 components + 5 services                |
-| **Tests Passing**       | 69 (API unit) + 70 (frontend DOM)         |
+| **Tasks Done**          | 203 / 218                                 |
+| **API Endpoints**       | 10 files / 16 routes                      |
+| **Frontend Components** | 12 components + 5 services                |
+| **Tests Passing**       | 74 (API unit) + 61 (frontend DOM)         |
 | **Open Problems**       | 0                                         |
 | **Open Decisions**      | 0                                         |
 
@@ -637,6 +637,38 @@ monitoring shows data, feature flags toggle correctly.
 
 ---
 
+## Phase 13 — Attendee Anonymization 🔴
+
+> Fully anonymize all attendee identity: no name, no surname, no GitHub links in any UI or API response. Aliases are `Team01-Hacker01` style.
+
+### 13.1 — Data Model & API
+
+- [x] Add `nextHackerNumber()` atomic counter with ETag optimistic concurrency to `shared/tables.js`
+- [x] Rewrite `attendees.js`: join flow, alias schema (`HackerNN` rowKey, `_github` lookup rows, `_meta/counter`), no PII in responses
+- [x] Rewrite `teams.js`: auto-seed 6 default teams (Team01–Team06) on first GET, auto-number new teams, block delete if members exist, remove PUT/rename
+- [x] Rewrite `teams-assign.js`: Fisher-Yates shuffle over all `attendees` partition rows, no `teamCount` param, member list stored as hacker aliases
+- [x] Strip audit PII from API responses: `scoredBy`, `submittedBy`/`reviewedBy`, `assignedBy`
+- [x] Delete `attendees-bulk.js` (bulk import removed)
+
+### 13.2 — Frontend
+
+- [x] Rewrite `Registration.js`: minimal "Join Event" form, shows alias+team on success
+- [x] Rewrite `Navigation.js`: async, shows alias via `getMyAlias()`, search by alias
+- [x] Update `TeamRoster.js`: render `m.alias` instead of `m.displayName`
+- [x] Rewrite `TeamAssignment.js`: "Re-shuffle Teams" button only, no team count input
+- [x] Update `SubmissionStatus.js`: remove "Submitted By" column
+- [x] Delete `AttendeeBulkEntry.js` and `.test.js`
+- [x] Update `auth.js`: remove `getUsername()`, add `getMyAlias(apiFetch)` with caching
+- [x] Update `api.js`: add `attendees.join()`, remove `updateMe`/`bulkImport`, fix `teams.assign()` (no args)
+- [x] Remove bulk entry route and import from `app.js`
+
+### 13.3 — Seed & Tests
+
+- [x] Rewrite `scripts/seed-demo-data.js` with alias schema
+- [x] Update all affected tests (attendees-awards, Registration, TeamAssignment, TeamRoster, Navigation, SubmissionStatus)
+
+---
+
 ## Decision Log
 
 > Record architectural and design decisions here.
@@ -652,6 +684,10 @@ monitoring shows data, feature flags toggle correctly.
 | D6  | 2026-02-16 | Templatized scoring rubric                 | Rubric from azure-agentic-infraops-workshop is source of truth; template + prompt enables reuse across hackathons                  | **Approved**         |
 | D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere | **Approved**         |
 | D8  | 2026-02-17 | PRD Section 10 coding prompt superseded    | Section references React/TypeScript/Tailwind but D3 chose Vanilla JS SPA; marked as historical reference only                      | **Approved**         |
+| D9  | 2026-02-18 | Full attendee anonymization                | No PII in any UI or API response; GitHub identity stays server-side in `_gitHubUsername` storage field only; alias = `TeamNN-HackerNN` | **Approved**         |
+| D10 | 2026-02-18 | Bulk import removed                        | Self-register via GitHub OAuth + "Join Event" is sufficient; CSV import increases PII risk surface                                  | **Approved**         |
+| D11 | 2026-02-18 | Hacker numbers globally sequential         | Simpler counter logic; avoids per-team numbering collisions; counter ETag-protected in `_meta/counter` row                          | **Approved**         |
+| D12 | 2026-02-18 | 6 default teams auto-seeded on first GET   | Every event starts with Team01–Team06 without admin action; coaches can add/delete but not rename                                   | **Approved**         |
 
 <!-- TEMPLATE for new decisions:
 | D{N} | YYYY-MM-DD | {decision} | {rationale} | **{status}** |
@@ -729,6 +765,33 @@ monitoring shows data, feature flags toggle correctly.
 
 > Each Copilot session MUST update this section before ending.
 > This ensures the next session has full context.
+
+### Session: 2026-02-18 — Attendee Anonymization
+
+**What was done**:
+
+- Rewrote the entire attendee identity system to eliminate PII from all UI and API surfaces.
+- New data model: `attendees` partition with `HackerNN` rowKeys; `_github` lookup rows; `_meta/counter` ETag-guarded atomic counter.
+- Alias format: `TeamNN-HackerNN` (e.g. `Team03-Hacker07`) shown everywhere instead of real name or GitHub username.
+- Teams auto-seed 6 defaults (Team01–Team06); fixed names; coaches can add/delete but not rename.
+- Deleted `attendees-bulk.js`, `AttendeeBulkEntry.js`, `.test.js` — self-service join via GitHub OAuth replaces CSV import.
+- All audit fields (`scoredBy`, `submittedBy`, `reviewedBy`, `assignedBy`) retained in storage but stripped from API responses.
+- Updated 12 source files and 6 test files; 135 tests all pass (74 API + 61 UI).
+- Updated `docs/backlog.md`: Phase 13 tasks, D9–D12 decisions, session handoff.
+
+**What's next**:
+
+- Deploy to Azure Static Web Apps and smoke-test the join → alias → leaderboard flow end-to-end.
+- Verify `_gitHubUsername` is not accidentally surfaced by any table query in production logs.
+- Consider an admin "Alias Manifest" page (alias ↔ GitHub username mapping, `admin` role only) for event organizers.
+
+**Open questions**:
+
+- Should the alias manifest (PII bridge) be available to admins in-app, or remain purely in Table Storage?
+
+**Known issues**:
+
+- None.
 
 ### Session: 2026-02-17 — Agent Modernization (VS Code Custom Agents & Subagents)
 
