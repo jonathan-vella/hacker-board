@@ -117,9 +117,7 @@ async function main() {
     console.log("");
     console.log("🔐 Granting db_owner to SWA managed identity...");
     try {
-      await pool
-        .request()
-        .query(`IF NOT EXISTS (
+      await pool.request().query(`IF NOT EXISTS (
   SELECT 1 FROM sys.database_principals WHERE name = '${SWA_NAME}'
 )
 BEGIN
@@ -130,8 +128,12 @@ ALTER ROLE db_owner ADD MEMBER [${SWA_NAME}];`);
     } catch (err) {
       // Non-fatal: the SWA identity may not have propagated yet.
       // The operator can re-run or grant manually.
-      console.warn(`  ⚠️  Could not grant db_owner to [${SWA_NAME}]: ${err.message}`);
-      console.warn("     Re-run deploy-schema.js with SWA_NAME once the SWA is fully provisioned.");
+      console.warn(
+        `  ⚠️  Could not grant db_owner to [${SWA_NAME}]: ${err.message}`,
+      );
+      console.warn(
+        "     Re-run deploy-schema.js with SWA_NAME once the SWA is fully provisioned.",
+      );
     }
   }
 

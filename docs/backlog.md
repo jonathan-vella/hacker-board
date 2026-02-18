@@ -29,8 +29,8 @@
 
 ## Current Status
 
-| Metric                  | Value                                              |
-| ----------------------- | -------------------------------------------------- |
+| Metric                  | Value                                                     |
+| ----------------------- | --------------------------------------------------------- |
 | **Current Phase**       | Phase 16 — CI/CD + Post-Deploy Verification (in progress) |
 | **Last Updated**        | 2026-02-18                                                |
 | **Days Remaining**      | 5                                                         |
@@ -719,7 +719,7 @@ monitoring shows data, feature flags toggle correctly.
 > RG: `hb-e2e-gha-<yyyyMMdd>` · Workflow: `.github/workflows/deploy-swa.yml`
 
 - [ ] Set `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub secret  
-      Token: available from last `deploy.ps1` run output
+       Token: available from last `deploy.ps1` run output
 - [ ] Push to `main` (or `workflow_dispatch`) to trigger `deploy-swa.yml`
 - [ ] Confirm app code deploys successfully and SWA functions are live
 - [ ] Verify `GET /api/health` → 200
@@ -757,7 +757,7 @@ monitoring shows data, feature flags toggle correctly.
 ### 16.1 — GitHub Actions CI/CD
 
 - [ ] 🔴 Set `AZURE_STATIC_WEB_APPS_API_TOKEN` secret in GitHub repo  
-      Value: `dc510cffc351acb2825588030eca7e26702c214fe731a5fe103fbbd2487d554006-b6497bce-b453-4d81-be7d-e6b520bd9bd7003192800d8a4103`
+       Value: `dc510cffc351acb2825588030eca7e26702c214fe731a5fe103fbbd2487d554006-b6497bce-b453-4d81-be7d-e6b520bd9bd7003192800d8a4103`
 - [ ] Push to `main` to trigger `deploy-swa.yml` workflow
 - [ ] Confirm workflow completes: build → deploy → smoke test
 - [ ] Verify `GET /api/health` → 200
@@ -765,9 +765,7 @@ monitoring shows data, feature flags toggle correctly.
 
 ### 16.2 — Production Post-Deploy Verification
 
-- [ ] Run `deploy.ps1` again (same params) to apply new automation:
-      - In-VNet ACI deploymentScript (`sql-grant.bicep`) runs schema + db_owner grant
-      - `az rest` step in `deploy.ps1` assigns Directory Readers to SQL server MI
+- [ ] Run `deploy.ps1` again (same params) to apply new automation: - In-VNet ACI deploymentScript (`sql-grant.bicep`) runs schema + db_owner grant - `az rest` step in `deploy.ps1` assigns Directory Readers to SQL server MI
 - [ ] Confirm SQL MI has Directory Readers role in Entra ID
 - [ ] Confirm SWA managed identity has `db_owner` on `hackerboard` database
 - [ ] Confirm `CREATE USER ... FROM EXTERNAL PROVIDER` no longer errors in `sql-grant.bicep` logs
@@ -788,25 +786,25 @@ monitoring shows data, feature flags toggle correctly.
 > Record architectural and design decisions here.
 > Format: `| ID | Date | Decision | Rationale | Status |`
 
-| ID  | Date       | Decision                                                | Rationale                                                                                                                              | Status               |
-| --- | ---------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| D1  | 2026-02-16 | Use ESM modules throughout                              | `copilot-instructions.md` mandates ESM; Functions v4 supports it; fresh codebase                                                       | **Approved**         |
-| D2  | 2026-02-16 | Use Vitest for all testing                              | Per `copilot-instructions.md`; fast, ESM-native, no config overhead                                                                    | **Approved**         |
-| D3  | 2026-02-16 | Vanilla JS SPA with hash router                         | Per PRD — no framework; single `index.html`; minimal build tooling                                                                     | **Approved**         |
-| D4  | 2026-02-16 | GitHub username ↔ Attendee mapping                      | Self-service claim (Option A from PRD F7/F10) — user claims on first login                                                             | **Approved**         |
-| D5  | 2026-02-16 | Add Playwright for E2E testing                          | Critical flows (submit→approve→leaderboard) need browser-level validation; Chromium-only to stay lean                                  | **Superseded by D7** |
-| D6  | 2026-02-16 | Templatized scoring rubric                              | Rubric from azure-agentic-infraops-workshop is source of truth; template + prompt enables reuse across hackathons                      | **Approved**         |
-| D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom              | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere     | **Approved**         |
-| D8  | 2026-02-17 | PRD Section 10 coding prompt superseded                 | Section references React/TypeScript/Tailwind but D3 chose Vanilla JS SPA; marked as historical reference only                          | **Approved**         |
-| D9  | 2026-02-18 | Full attendee anonymization                             | No PII in any UI or API response; GitHub identity stays server-side in `_gitHubUsername` storage field only; alias = `TeamNN-HackerNN` | **Approved**         |
-| D10 | 2026-02-18 | Bulk import removed                                     | Self-register via GitHub OAuth + "Join Event" is sufficient; CSV import increases PII risk surface                                     | **Approved**         |
-| D11 | 2026-02-18 | Hacker numbers globally sequential                      | Simpler counter logic; avoids per-team numbering collisions; counter ETag-protected in `_meta/counter` row                             | **Approved**         |
-| D12 | 2026-02-18 | 6 default teams auto-seeded on first GET                | Every event starts with Team01–Team06 without admin action; coaches can add/delete but not rename                                      | **Approved**         |
-| D13 | 2026-02-18 | SWA deploy auth: token-based (`SWA_DEPLOYMENT_TOKEN`)   | Simplest common denominator for all three E2E test paths; OIDC used for production CI only                                             | **Approved**         |
-| D14 | 2026-02-18 | E2E test environments use `enablePrivateEndpoint=false` | GitHub Actions hosted runners cannot reach private SQL endpoints; private endpoints are production-only                                | **Approved**         |
-| D15 | 2026-02-18 | Canonical SWA role model: `admin`/`member`              | `staticwebapp.config.json` uses `admin`/`member`; `writer`/`reader` references in scripts were contract drift — corrected              | **Approved**         |
-| D16 | 2026-02-18 | SQL schema + db_owner grant via in-VNet ACI deploymentScript | Public SQL endpoint is not acceptable with private-endpoint topology; schema and grants run inside the VNet via Azure Container Instance in Bicep `deploymentScript` resource (`sql-grant.bicep`) | **Approved** |
-| D17 | 2026-02-18 | Directory Readers assigned via `az rest` in `deploy.ps1`, not Bicep | Bicep `extension microsoftGraph` (built-in) is retired (BCP407); dynamic OCI ref (`br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0`) compiled but `roleAssignments` type not found (BCP029); fell back to idempotent `az rest POST /roleManagement/directory/roleAssignments` after deploy | **Approved** |
+| ID  | Date       | Decision                                                            | Rationale                                                                                                                                                                                                                                                                                                  | Status               |
+| --- | ---------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| D1  | 2026-02-16 | Use ESM modules throughout                                          | `copilot-instructions.md` mandates ESM; Functions v4 supports it; fresh codebase                                                                                                                                                                                                                           | **Approved**         |
+| D2  | 2026-02-16 | Use Vitest for all testing                                          | Per `copilot-instructions.md`; fast, ESM-native, no config overhead                                                                                                                                                                                                                                        | **Approved**         |
+| D3  | 2026-02-16 | Vanilla JS SPA with hash router                                     | Per PRD — no framework; single `index.html`; minimal build tooling                                                                                                                                                                                                                                         | **Approved**         |
+| D4  | 2026-02-16 | GitHub username ↔ Attendee mapping                                  | Self-service claim (Option A from PRD F7/F10) — user claims on first login                                                                                                                                                                                                                                 | **Approved**         |
+| D5  | 2026-02-16 | Add Playwright for E2E testing                                      | Critical flows (submit→approve→leaderboard) need browser-level validation; Chromium-only to stay lean                                                                                                                                                                                                      | **Superseded by D7** |
+| D6  | 2026-02-16 | Templatized scoring rubric                                          | Rubric from azure-agentic-infraops-workshop is source of truth; template + prompt enables reuse across hackathons                                                                                                                                                                                          | **Approved**         |
+| D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom                          | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere                                                                                                                                                                         | **Approved**         |
+| D8  | 2026-02-17 | PRD Section 10 coding prompt superseded                             | Section references React/TypeScript/Tailwind but D3 chose Vanilla JS SPA; marked as historical reference only                                                                                                                                                                                              | **Approved**         |
+| D9  | 2026-02-18 | Full attendee anonymization                                         | No PII in any UI or API response; GitHub identity stays server-side in `_gitHubUsername` storage field only; alias = `TeamNN-HackerNN`                                                                                                                                                                     | **Approved**         |
+| D10 | 2026-02-18 | Bulk import removed                                                 | Self-register via GitHub OAuth + "Join Event" is sufficient; CSV import increases PII risk surface                                                                                                                                                                                                         | **Approved**         |
+| D11 | 2026-02-18 | Hacker numbers globally sequential                                  | Simpler counter logic; avoids per-team numbering collisions; counter ETag-protected in `_meta/counter` row                                                                                                                                                                                                 | **Approved**         |
+| D12 | 2026-02-18 | 6 default teams auto-seeded on first GET                            | Every event starts with Team01–Team06 without admin action; coaches can add/delete but not rename                                                                                                                                                                                                          | **Approved**         |
+| D13 | 2026-02-18 | SWA deploy auth: token-based (`SWA_DEPLOYMENT_TOKEN`)               | Simplest common denominator for all three E2E test paths; OIDC used for production CI only                                                                                                                                                                                                                 | **Approved**         |
+| D14 | 2026-02-18 | E2E test environments use `enablePrivateEndpoint=false`             | GitHub Actions hosted runners cannot reach private SQL endpoints; private endpoints are production-only                                                                                                                                                                                                    | **Approved**         |
+| D15 | 2026-02-18 | Canonical SWA role model: `admin`/`member`                          | `staticwebapp.config.json` uses `admin`/`member`; `writer`/`reader` references in scripts were contract drift — corrected                                                                                                                                                                                  | **Approved**         |
+| D16 | 2026-02-18 | SQL schema + db_owner grant via in-VNet ACI deploymentScript        | Public SQL endpoint is not acceptable with private-endpoint topology; schema and grants run inside the VNet via Azure Container Instance in Bicep `deploymentScript` resource (`sql-grant.bicep`)                                                                                                          | **Approved**         |
+| D17 | 2026-02-18 | Directory Readers assigned via `az rest` in `deploy.ps1`, not Bicep | Bicep `extension microsoftGraph` (built-in) is retired (BCP407); dynamic OCI ref (`br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0`) compiled but `roleAssignments` type not found (BCP029); fell back to idempotent `az rest POST /roleManagement/directory/roleAssignments` after deploy | **Approved**         |
 
 <!-- TEMPLATE for new decisions:
 | D{N} | YYYY-MM-DD | {decision} | {rationale} | **{status}** |
@@ -819,18 +817,18 @@ monitoring shows data, feature flags toggle correctly.
 > Track issues, blockers, and their resolution.
 > Format: `| ID | Date | Phase | Problem | Impact | Status | Resolution |`
 
-| ID  | Date       | Phase | Problem                                                                      | Impact | Status        | Resolution                                                                 |
-| --- | ---------- | ----- | ---------------------------------------------------------------------------- | ------ | ------------- | -------------------------------------------------------------------------- |
-| P1  | 2026-02-16 | P3    | All API function files used wrong import paths                               | High   | **Resolved**  | Changed `../shared/` to `../../shared/` in all 9 function files            |
-| P2  | 2026-02-17 | P11   | Handoff checklist Phase 4.3 missing Rubrics table (only 5 of 6 tables)       | Med    | **Resolved**  | Added `Rubrics` table to handoff checklist Phase 4.3                       |
-| P3  | 2026-02-17 | P11   | Handoff checklist Phase 6.2 smoke tests missing rubric/flags API endpoints   | Med    | **Resolved**  | Added rubric + flags endpoints to handoff checklist Phase 6.2              |
-| P4  | 2026-02-17 | P11   | Handoff completion table shows all ⬜ despite dev-team steps being completed | Low    | **Mitigated** | Updated dev-team items to ✅; platform-team items need manual verification |
-| P5  | 2026-02-18 | P15   | `deploy.ps1` `[CmdletBinding(SupportsShouldProcess)]` conflicts with manual `[switch]$WhatIf` | High | **Resolved** | Removed `SupportsShouldProcess`; kept explicit `[switch]$WhatIf` in `param()` block |
-| P6  | 2026-02-18 | P15   | `invite-admin.sh` failed: missing `--domain` flag for `az staticwebapp users invite` | Med | **Resolved** | Script now auto-fetches SWA hostname and passes `--domain` flag |
-| P7  | 2026-02-18 | P15   | Schema migration blocked: `mssql` not in root `node_modules`; `NODE_PATH` not honoured by ESM | Med | **Resolved** | Added `mssql` and `@azure/identity` as root `devDependencies`; ran `npm install` |
-| P8  | 2026-02-18 | P15   | PowerShell line continuation used `\` (bash style) instead of `` ` `` | Med | **Resolved** | Changed all continuation characters in `deploy.ps1` to backtick |
-| P9  | 2026-02-18 | P15   | `deploy.ps1` silenced deployment errors with `2>$null` | Med | **Resolved** | Changed to `2>&1` so errors surface in terminal output |
-| P10 | 2026-02-18 | P15   | Bicep `extension microsoftGraph` retired (BCP407); dynamic OCI type `roleAssignments` not found (BCP029) | High | **Resolved** | Replaced with idempotent `az rest` call in `deploy.ps1`; `azuredeploy.json` rebuilds clean with zero warnings |
+| ID  | Date       | Phase | Problem                                                                                                  | Impact | Status        | Resolution                                                                                                    |
+| --- | ---------- | ----- | -------------------------------------------------------------------------------------------------------- | ------ | ------------- | ------------------------------------------------------------------------------------------------------------- |
+| P1  | 2026-02-16 | P3    | All API function files used wrong import paths                                                           | High   | **Resolved**  | Changed `../shared/` to `../../shared/` in all 9 function files                                               |
+| P2  | 2026-02-17 | P11   | Handoff checklist Phase 4.3 missing Rubrics table (only 5 of 6 tables)                                   | Med    | **Resolved**  | Added `Rubrics` table to handoff checklist Phase 4.3                                                          |
+| P3  | 2026-02-17 | P11   | Handoff checklist Phase 6.2 smoke tests missing rubric/flags API endpoints                               | Med    | **Resolved**  | Added rubric + flags endpoints to handoff checklist Phase 6.2                                                 |
+| P4  | 2026-02-17 | P11   | Handoff completion table shows all ⬜ despite dev-team steps being completed                             | Low    | **Mitigated** | Updated dev-team items to ✅; platform-team items need manual verification                                    |
+| P5  | 2026-02-18 | P15   | `deploy.ps1` `[CmdletBinding(SupportsShouldProcess)]` conflicts with manual `[switch]$WhatIf`            | High   | **Resolved**  | Removed `SupportsShouldProcess`; kept explicit `[switch]$WhatIf` in `param()` block                           |
+| P6  | 2026-02-18 | P15   | `invite-admin.sh` failed: missing `--domain` flag for `az staticwebapp users invite`                     | Med    | **Resolved**  | Script now auto-fetches SWA hostname and passes `--domain` flag                                               |
+| P7  | 2026-02-18 | P15   | Schema migration blocked: `mssql` not in root `node_modules`; `NODE_PATH` not honoured by ESM            | Med    | **Resolved**  | Added `mssql` and `@azure/identity` as root `devDependencies`; ran `npm install`                              |
+| P8  | 2026-02-18 | P15   | PowerShell line continuation used `\` (bash style) instead of `` ` ``                                    | Med    | **Resolved**  | Changed all continuation characters in `deploy.ps1` to backtick                                               |
+| P9  | 2026-02-18 | P15   | `deploy.ps1` silenced deployment errors with `2>$null`                                                   | Med    | **Resolved**  | Changed to `2>&1` so errors surface in terminal output                                                        |
+| P10 | 2026-02-18 | P15   | Bicep `extension microsoftGraph` retired (BCP407); dynamic OCI type `roleAssignments` not found (BCP029) | High   | **Resolved**  | Replaced with idempotent `az rest` call in `deploy.ps1`; `azuredeploy.json` rebuilds clean with zero warnings |
 
 <!-- TEMPLATE for new problems:
 | P{N} | YYYY-MM-DD | P{phase} | {description} | {High/Med/Low} | {Open/Resolved/Mitigated} | {what fixed it} |
@@ -856,39 +854,39 @@ monitoring shows data, feature flags toggle correctly.
 
 > Every phase has validation criteria. This matrix tracks pass/fail.
 
-| Phase | Validation                                                   | Status     |
-| ----- | ------------------------------------------------------------ | ---------- |
-| P1    | `npm audit` returns 0 high/critical                          | **Passed** |
-| P1    | `swa start` launches without errors after ESM migration      | **Passed** |
-| P1    | All `api/shared/*.js` use `import`/`export`                  | **Passed** |
-| P2    | `cd api && npm test` passes (Vitest)                         | **Passed** |
-| P2    | GitHub Actions workflow triggers on push                     | **Ready**  |
-| P2    | `node scripts/seed-demo-data.js --reset` populates Azurite   | **Passed** |
-| P3    | All API core tests pass (`npm test`)                         | **Passed** |
-| P3    | `curl` confirms auth enforcement on protected routes         | **Passed** |
-| P4    | All attendee/team/awards tests pass                          | **Passed** |
-| P5    | Rubric parser handles well-formed + malformed markdown       | **Passed** |
-| P5    | `GET /api/rubrics/active` returns default rubric on fresh DB | **Passed** |
-| P6    | Leaderboard renders seeded data in browser                   | **Passed** |
-| P6    | Theme toggle works + persists across reload                  | **Passed** |
-| P6    | Responsive at sm/md/lg/xl breakpoints                        | **Passed** |
-| P7    | Submit score → admin approve → leaderboard updates           | **Passed** |
-| P7    | Upload JSON → preview → submit works                         | **Passed** |
-| P8    | Bulk import → team assignment → roster displays              | **Passed** |
-| P9    | Upload rubric → preview → activate → form adapts             | **Passed** |
-| P10   | axe-core reports 0 violations                                | **Passed** |
-| P10   | Integration test flows covered by E2E specs                  | **Passed** |
-| P10   | Frontend DOM tests pass (Vitest + happy-dom)                 | **Passed** |
-| P11   | Production deploy + smoke test passes                        | Not run    |
-| P11   | Feature flags toggle correctly                               | **Passed** |
-| P11   | Frontend component test coverage (8 components)              | **Passed** |
-| P12   | OpenAPI spec exists and validates as OpenAPI 3.0             | **Passed** |
+| Phase | Validation                                                   | Status                                               |
+| ----- | ------------------------------------------------------------ | ---------------------------------------------------- |
+| P1    | `npm audit` returns 0 high/critical                          | **Passed**                                           |
+| P1    | `swa start` launches without errors after ESM migration      | **Passed**                                           |
+| P1    | All `api/shared/*.js` use `import`/`export`                  | **Passed**                                           |
+| P2    | `cd api && npm test` passes (Vitest)                         | **Passed**                                           |
+| P2    | GitHub Actions workflow triggers on push                     | **Ready**                                            |
+| P2    | `node scripts/seed-demo-data.js --reset` populates Azurite   | **Passed**                                           |
+| P3    | All API core tests pass (`npm test`)                         | **Passed**                                           |
+| P3    | `curl` confirms auth enforcement on protected routes         | **Passed**                                           |
+| P4    | All attendee/team/awards tests pass                          | **Passed**                                           |
+| P5    | Rubric parser handles well-formed + malformed markdown       | **Passed**                                           |
+| P5    | `GET /api/rubrics/active` returns default rubric on fresh DB | **Passed**                                           |
+| P6    | Leaderboard renders seeded data in browser                   | **Passed**                                           |
+| P6    | Theme toggle works + persists across reload                  | **Passed**                                           |
+| P6    | Responsive at sm/md/lg/xl breakpoints                        | **Passed**                                           |
+| P7    | Submit score → admin approve → leaderboard updates           | **Passed**                                           |
+| P7    | Upload JSON → preview → submit works                         | **Passed**                                           |
+| P8    | Bulk import → team assignment → roster displays              | **Passed**                                           |
+| P9    | Upload rubric → preview → activate → form adapts             | **Passed**                                           |
+| P10   | axe-core reports 0 violations                                | **Passed**                                           |
+| P10   | Integration test flows covered by E2E specs                  | **Passed**                                           |
+| P10   | Frontend DOM tests pass (Vitest + happy-dom)                 | **Passed**                                           |
+| P11   | Production deploy + smoke test passes                        | Not run                                              |
+| P11   | Feature flags toggle correctly                               | **Passed**                                           |
+| P11   | Frontend component test coverage (8 components)              | **Passed**                                           |
+| P12   | OpenAPI spec exists and validates as OpenAPI 3.0             | **Passed**                                           |
 | P15   | Path A (PS): all provisioning outputs present + health 200   | **Partial** — infra deployed, app code pending CI/CD |
-| P15   | Path B (GHA): workflow completes + smoke checks pass         | Not run — blocked on GitHub secret   |
-| P15   | Path C (Button): ARM deployment + follow-up steps succeed    | Not run    |
-| P16   | CI/CD deploys app code; `/api/health` returns 200            | Not run    |
-| P16   | Directory Readers assigned to SQL MI via `az rest`           | Not run — requires re-deploy         |
-| P16   | db_owner granted to SWA MI via in-VNet ACI script            | Not run — requires re-deploy         |
+| P15   | Path B (GHA): workflow completes + smoke checks pass         | Not run — blocked on GitHub secret                   |
+| P15   | Path C (Button): ARM deployment + follow-up steps succeed    | Not run                                              |
+| P16   | CI/CD deploys app code; `/api/health` returns 200            | Not run                                              |
+| P16   | Directory Readers assigned to SQL MI via `az rest`           | Not run — requires re-deploy                         |
+| P16   | db_owner granted to SWA MI via in-VNet ACI script            | Not run — requires re-deploy                         |
 
 ---
 
