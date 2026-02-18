@@ -79,4 +79,3 @@ describe("Navigation", () => {
     expect(container.querySelector('[href="#/attendees"]')).toBeNull();
   });
 });
-

@@ -29,17 +29,17 @@
 
 ## Current Status
 
-| Metric                  | Value                                     |
-| ----------------------- | ----------------------------------------- |
+| Metric                  | Value                                        |
+| ----------------------- | -------------------------------------------- |
 | **Current Phase**       | Phase 13 — Attendee Anonymization (complete) |
-| **Last Updated**        | 2026-02-18                                |
-| **Days Remaining**      | 5                                         |
-| **Tasks Done**          | 203 / 218                                 |
-| **API Endpoints**       | 10 files / 16 routes                      |
-| **Frontend Components** | 12 components + 5 services                |
-| **Tests Passing**       | 74 (API unit) + 61 (frontend DOM)         |
-| **Open Problems**       | 0                                         |
-| **Open Decisions**      | 0                                         |
+| **Last Updated**        | 2026-02-18                                   |
+| **Days Remaining**      | 5                                            |
+| **Tasks Done**          | 203 / 218                                    |
+| **API Endpoints**       | 10 files / 16 routes                         |
+| **Frontend Components** | 12 components + 5 services                   |
+| **Tests Passing**       | 74 (API unit) + 61 (frontend DOM)            |
+| **Open Problems**       | 0                                            |
+| **Open Decisions**      | 0                                            |
 
 ---
 
@@ -674,20 +674,20 @@ monitoring shows data, feature flags toggle correctly.
 > Record architectural and design decisions here.
 > Format: `| ID | Date | Decision | Rationale | Status |`
 
-| ID  | Date       | Decision                                   | Rationale                                                                                                                          | Status               |
-| --- | ---------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| D1  | 2026-02-16 | Use ESM modules throughout                 | `copilot-instructions.md` mandates ESM; Functions v4 supports it; fresh codebase                                                   | **Approved**         |
-| D2  | 2026-02-16 | Use Vitest for all testing                 | Per `copilot-instructions.md`; fast, ESM-native, no config overhead                                                                | **Approved**         |
-| D3  | 2026-02-16 | Vanilla JS SPA with hash router            | Per PRD — no framework; single `index.html`; minimal build tooling                                                                 | **Approved**         |
-| D4  | 2026-02-16 | GitHub username ↔ Attendee mapping         | Self-service claim (Option A from PRD F7/F10) — user claims on first login                                                         | **Approved**         |
-| D5  | 2026-02-16 | Add Playwright for E2E testing             | Critical flows (submit→approve→leaderboard) need browser-level validation; Chromium-only to stay lean                              | **Superseded by D7** |
-| D6  | 2026-02-16 | Templatized scoring rubric                 | Rubric from azure-agentic-infraops-workshop is source of truth; template + prompt enables reuse across hackathons                  | **Approved**         |
-| D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere | **Approved**         |
-| D8  | 2026-02-17 | PRD Section 10 coding prompt superseded    | Section references React/TypeScript/Tailwind but D3 chose Vanilla JS SPA; marked as historical reference only                      | **Approved**         |
+| ID  | Date       | Decision                                   | Rationale                                                                                                                              | Status               |
+| --- | ---------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| D1  | 2026-02-16 | Use ESM modules throughout                 | `copilot-instructions.md` mandates ESM; Functions v4 supports it; fresh codebase                                                       | **Approved**         |
+| D2  | 2026-02-16 | Use Vitest for all testing                 | Per `copilot-instructions.md`; fast, ESM-native, no config overhead                                                                    | **Approved**         |
+| D3  | 2026-02-16 | Vanilla JS SPA with hash router            | Per PRD — no framework; single `index.html`; minimal build tooling                                                                     | **Approved**         |
+| D4  | 2026-02-16 | GitHub username ↔ Attendee mapping         | Self-service claim (Option A from PRD F7/F10) — user claims on first login                                                             | **Approved**         |
+| D5  | 2026-02-16 | Add Playwright for E2E testing             | Critical flows (submit→approve→leaderboard) need browser-level validation; Chromium-only to stay lean                                  | **Superseded by D7** |
+| D6  | 2026-02-16 | Templatized scoring rubric                 | Rubric from azure-agentic-infraops-workshop is source of truth; template + prompt enables reuse across hackathons                      | **Approved**         |
+| D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere     | **Approved**         |
+| D8  | 2026-02-17 | PRD Section 10 coding prompt superseded    | Section references React/TypeScript/Tailwind but D3 chose Vanilla JS SPA; marked as historical reference only                          | **Approved**         |
 | D9  | 2026-02-18 | Full attendee anonymization                | No PII in any UI or API response; GitHub identity stays server-side in `_gitHubUsername` storage field only; alias = `TeamNN-HackerNN` | **Approved**         |
-| D10 | 2026-02-18 | Bulk import removed                        | Self-register via GitHub OAuth + "Join Event" is sufficient; CSV import increases PII risk surface                                  | **Approved**         |
-| D11 | 2026-02-18 | Hacker numbers globally sequential         | Simpler counter logic; avoids per-team numbering collisions; counter ETag-protected in `_meta/counter` row                          | **Approved**         |
-| D12 | 2026-02-18 | 6 default teams auto-seeded on first GET   | Every event starts with Team01–Team06 without admin action; coaches can add/delete but not rename                                   | **Approved**         |
+| D10 | 2026-02-18 | Bulk import removed                        | Self-register via GitHub OAuth + "Join Event" is sufficient; CSV import increases PII risk surface                                     | **Approved**         |
+| D11 | 2026-02-18 | Hacker numbers globally sequential         | Simpler counter logic; avoids per-team numbering collisions; counter ETag-protected in `_meta/counter` row                             | **Approved**         |
+| D12 | 2026-02-18 | 6 default teams auto-seeded on first GET   | Every event starts with Team01–Team06 without admin action; coaches can add/delete but not rename                                      | **Approved**         |
 
 <!-- TEMPLATE for new decisions:
 | D{N} | YYYY-MM-DD | {decision} | {rationale} | **{status}** |

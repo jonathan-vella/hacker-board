@@ -35,7 +35,9 @@ describe("TeamRoster", () => {
       { rowKey: "Hacker03", alias: "Team02-Hacker03", teamName: "Team02" },
     ]);
 
-    await renderTeamRoster(container, { userRoles: ["admin", "authenticated"] });
+    await renderTeamRoster(container, {
+      userRoles: ["admin", "authenticated"],
+    });
 
     expect(container.querySelector("h2").textContent).toBe("Team Roster");
     expect(container.textContent).toContain("Team01");
@@ -51,7 +53,9 @@ describe("TeamRoster", () => {
     api.teams.list.mockResolvedValue([]);
     api.attendees.list.mockResolvedValue([]);
 
-    await renderTeamRoster(container, { userRoles: ["admin", "authenticated"] });
+    await renderTeamRoster(container, {
+      userRoles: ["admin", "authenticated"],
+    });
 
     expect(container.textContent).toContain("No teams created yet");
   });
@@ -59,7 +63,9 @@ describe("TeamRoster", () => {
   it("shows error when API fails", async () => {
     api.teams.list.mockRejectedValue(new Error("Connection lost"));
 
-    await renderTeamRoster(container, { userRoles: ["admin", "authenticated"] });
+    await renderTeamRoster(container, {
+      userRoles: ["admin", "authenticated"],
+    });
 
     expect(container.textContent).toContain("Failed to load teams");
     expect(container.textContent).toContain("Connection lost");
@@ -71,7 +77,9 @@ describe("TeamRoster", () => {
     ]);
     api.attendees.list.mockResolvedValue([]);
 
-    await renderTeamRoster(container, { userRoles: ["admin", "authenticated"] });
+    await renderTeamRoster(container, {
+      userRoles: ["admin", "authenticated"],
+    });
 
     expect(container.textContent).toContain("Empty Team");
     expect(container.textContent).toContain("No members assigned");

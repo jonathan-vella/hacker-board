@@ -105,15 +105,55 @@ describe("Team Assignment", () => {
 
   beforeEach(() => {
     mockAttendeesClient = createMockTableClient([
-      { partitionKey: "attendees", rowKey: "Hacker01", alias: "Team01-Hacker01", teamId: "team-01", teamName: "Team01", teamNumber: 1 },
-      { partitionKey: "attendees", rowKey: "Hacker02", alias: "Team02-Hacker02", teamId: "team-02", teamName: "Team02", teamNumber: 2 },
-      { partitionKey: "attendees", rowKey: "Hacker03", alias: "Team01-Hacker03", teamId: "team-01", teamName: "Team01", teamNumber: 1 },
-      { partitionKey: "attendees", rowKey: "Hacker04", alias: "Team02-Hacker04", teamId: "team-02", teamName: "Team02", teamNumber: 2 },
+      {
+        partitionKey: "attendees",
+        rowKey: "Hacker01",
+        alias: "Team01-Hacker01",
+        teamId: "team-01",
+        teamName: "Team01",
+        teamNumber: 1,
+      },
+      {
+        partitionKey: "attendees",
+        rowKey: "Hacker02",
+        alias: "Team02-Hacker02",
+        teamId: "team-02",
+        teamName: "Team02",
+        teamNumber: 2,
+      },
+      {
+        partitionKey: "attendees",
+        rowKey: "Hacker03",
+        alias: "Team01-Hacker03",
+        teamId: "team-01",
+        teamName: "Team01",
+        teamNumber: 1,
+      },
+      {
+        partitionKey: "attendees",
+        rowKey: "Hacker04",
+        alias: "Team02-Hacker04",
+        teamId: "team-02",
+        teamName: "Team02",
+        teamNumber: 2,
+      },
     ]);
 
     mockTeamsClient = createMockTableClient([
-      { partitionKey: "team", rowKey: "team-01", teamName: "Team01", teamNumber: 1, teamMembers: "[\"Hacker01\",\"Hacker03\"]" },
-      { partitionKey: "team", rowKey: "team-02", teamName: "Team02", teamNumber: 2, teamMembers: "[\"Hacker02\",\"Hacker04\"]" },
+      {
+        partitionKey: "team",
+        rowKey: "team-01",
+        teamName: "Team01",
+        teamNumber: 1,
+        teamMembers: '["Hacker01","Hacker03"]',
+      },
+      {
+        partitionKey: "team",
+        rowKey: "team-02",
+        teamName: "Team02",
+        teamNumber: 2,
+        teamMembers: '["Hacker02","Hacker04"]',
+      },
     ]);
 
     getTableClient.mockImplementation((tableName) => {
@@ -161,7 +201,12 @@ describe("Awards API", () => {
 
   beforeEach(() => {
     mockTeamsClient = createMockTableClient([
-      { partitionKey: "team", rowKey: "team-01", teamName: "Team01", teamMembers: "[]" },
+      {
+        partitionKey: "team",
+        rowKey: "team-01",
+        teamName: "Team01",
+        teamMembers: "[]",
+      },
     ]);
 
     mockAwardsClient = createMockTableClient([]);
@@ -226,7 +271,6 @@ describe("Awards API", () => {
     expect(awards).toHaveLength(2);
   });
 });
-
 
 describe("Team Assignment", () => {
   let mockAttendeesClient;

@@ -11,7 +11,10 @@ export async function renderNavigation(container, user) {
   let alias = "";
   if (user) {
     try {
-      alias = (await getMyAlias((path) => fetch(`/api${path}`).then((r) => r.json()))) || "";
+      alias =
+        (await getMyAlias((path) =>
+          fetch(`/api${path}`).then((r) => r.json()),
+        )) || "";
     } catch {
       alias = "";
     }

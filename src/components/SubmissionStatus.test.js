@@ -59,9 +59,11 @@ describe("SubmissionStatus", () => {
     // submittedBy (GitHub username) must not appear in the UI
     expect(container.textContent).not.toContain("alice");
     expect(container.textContent).not.toContain("bob");
-    expect(container.querySelector('th')).not.toBeNull();
+    expect(container.querySelector("th")).not.toBeNull();
     // Column header should not include "Submitted By"
-    const headers = [...container.querySelectorAll("th")].map((t) => t.textContent);
+    const headers = [...container.querySelectorAll("th")].map(
+      (t) => t.textContent,
+    );
     expect(headers).not.toContain("Submitted By");
   });
 

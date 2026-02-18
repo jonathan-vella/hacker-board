@@ -84,7 +84,11 @@ async function createTeam(request, context) {
     });
   } catch (err) {
     if (err.statusCode === 409) {
-      return errorResponse("TEAM_EXISTS", `Team '${teamName}' already exists`, 409);
+      return errorResponse(
+        "TEAM_EXISTS",
+        `Team '${teamName}' already exists`,
+        409,
+      );
     }
     throw err;
   }
@@ -124,7 +128,11 @@ async function deleteTeam(request, context) {
   }
 
   if (!rowKey) {
-    return errorResponse("TEAM_NOT_FOUND", `Team '${teamName}' does not exist`, 404);
+    return errorResponse(
+      "TEAM_NOT_FOUND",
+      `Team '${teamName}' does not exist`,
+      404,
+    );
   }
 
   if (memberCount > 0) {
@@ -171,7 +179,10 @@ app.http("teams", {
           result = {
             status: 405,
             jsonBody: {
-              error: { code: "METHOD_NOT_ALLOWED", message: "Method not allowed" },
+              error: {
+                code: "METHOD_NOT_ALLOWED",
+                message: "Method not allowed",
+              },
             },
           };
       }

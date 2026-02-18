@@ -235,7 +235,9 @@ async function seed() {
   for (const team of teams) {
     await clients.Teams.upsertEntity(team);
   }
-  console.log(`  Created ${teams.length} teams (Team01–Team${String(TEAM_COUNT).padStart(2, "0")})`);
+  console.log(
+    `  Created ${teams.length} teams (Team01–Team${String(TEAM_COUNT).padStart(2, "0")})`,
+  );
 
   console.log("\nSeeding attendees...");
   const { attendees, lookupRows } = generateAttendees(ATTENDEE_COUNT, teams);
