@@ -32,6 +32,7 @@ module staticWebApp 'br/public:avm/res/web/static-site:0.9.3' = {
     sku: 'Standard'
     repositoryUrl: !empty(repositoryUrl) ? repositoryUrl : null
     branch: !empty(repositoryUrl) ? repositoryBranch : null
+    stagingEnvironmentPolicy: 'Disabled'
     managedIdentities: {
       systemAssigned: true
     }

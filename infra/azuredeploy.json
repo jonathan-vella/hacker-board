@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "2471237665584799451"
+      "templateHash": "5788875472308662459"
     }
   },
   "parameters": {
@@ -4143,7 +4143,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "8960672829179633633"
+              "templateHash": "9696702960161623454"
             }
           },
           "parameters": {
@@ -4198,9 +4198,6 @@
                   },
                   "allowBlobPublicAccess": {
                     "value": false
-                  },
-                  "supportsHttpsTrafficOnly": {
-                    "value": true
                   },
                   "minimumTlsVersion": {
                     "value": "TLS1_2"
@@ -12142,12 +12139,12 @@
               },
               "value": "[reference('storageAccount').outputs.name.value]"
             },
-            "primaryTableEndpoint": {
-              "type": "string",
+            "serviceEndpoints": {
+              "type": "object",
               "metadata": {
-                "description": "Primary table endpoint URL."
+                "description": "All service endpoints (blob, table, queue, file, etc.)."
               },
-              "value": "[reference('storageAccount').outputs.primaryBlobEndpoint.value]"
+              "value": "[reference('storageAccount').outputs.serviceEndpoints.value]"
             }
           }
         }
@@ -12192,7 +12189,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "7312812500367949923"
+              "templateHash": "13123228276273579135"
             }
           },
           "parameters": {
@@ -12266,6 +12263,9 @@
                   },
                   "repositoryUrl": "[if(not(empty(parameters('repositoryUrl'))), createObject('value', parameters('repositoryUrl')), createObject('value', null()))]",
                   "branch": "[if(not(empty(parameters('repositoryUrl'))), createObject('value', parameters('repositoryBranch')), createObject('value', null()))]",
+                  "stagingEnvironmentPolicy": {
+                    "value": "Disabled"
+                  },
                   "managedIdentities": {
                     "value": {
                       "systemAssigned": true
