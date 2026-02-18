@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "5788875472308662459"
+      "templateHash": "6820160713040149834"
     }
   },
   "parameters": {
@@ -86,6 +86,13 @@
       "metadata": {
         "description": "GitHub repository branch for Static Web App."
       }
+    },
+    "deploymentTimestamp": {
+      "type": "string",
+      "defaultValue": "[utcNow('yyyyMMddHHmmss')]",
+      "metadata": {
+        "description": "UTC timestamp used to generate unique sub-deployment names. Prevents DeploymentActive conflicts on re-deploy."
+      }
     }
   },
   "variables": {
@@ -102,7 +109,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "log-analytics",
+      "name": "[format('log-analytics-{0}', parameters('deploymentTimestamp'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -3282,7 +3289,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "app-insights",
+      "name": "[format('app-insights-{0}', parameters('deploymentTimestamp'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -3299,7 +3306,7 @@
             "value": "[variables('tags')]"
           },
           "workspaceResourceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'log-analytics'), '2025-04-01').outputs.workspaceId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('log-analytics-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.workspaceId.value]"
           }
         },
         "template": {
@@ -4112,13 +4119,13 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'log-analytics')]"
+        "[resourceId('Microsoft.Resources/deployments', format('log-analytics-{0}', parameters('deploymentTimestamp')))]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "storage",
+      "name": "[format('storage-{0}', parameters('deploymentTimestamp'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -12153,7 +12160,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "static-web-app",
+      "name": "[format('static-web-app-{0}', parameters('deploymentTimestamp'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -12176,10 +12183,10 @@
             "value": "[parameters('repositoryBranch')]"
           },
           "appInsightsConnectionString": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'app-insights'), '2025-04-01').outputs.connectionString.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('app-insights-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.connectionString.value]"
           },
           "storageAccountName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.storageAccountName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.storageAccountName.value]"
           }
         },
         "template": {
@@ -17476,14 +17483,14 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'app-insights')]",
-        "[resourceId('Microsoft.Resources/deployments', 'storage')]"
+        "[resourceId('Microsoft.Resources/deployments', format('app-insights-{0}', parameters('deploymentTimestamp')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('deploymentTimestamp')))]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "storage-rbac",
+      "name": "[format('storage-rbac-{0}', parameters('deploymentTimestamp'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -17491,10 +17498,10 @@
         "mode": "Incremental",
         "parameters": {
           "storageAccountId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.storageAccountId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.storageAccountId.value]"
           },
           "principalId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'static-web-app'), '2025-04-01').outputs.principalId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('static-web-app-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.principalId.value]"
           }
         },
         "template": {
@@ -17540,8 +17547,8 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'static-web-app')]",
-        "[resourceId('Microsoft.Resources/deployments', 'storage')]"
+        "[resourceId('Microsoft.Resources/deployments', format('static-web-app-{0}', parameters('deploymentTimestamp')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('deploymentTimestamp')))]"
       ]
     }
   ],
@@ -17551,28 +17558,28 @@
       "metadata": {
         "description": "Default hostname of the deployed Static Web App."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'static-web-app'), '2025-04-01').outputs.defaultHostname.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('static-web-app-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.defaultHostname.value]"
     },
     "swaName": {
       "type": "string",
       "metadata": {
         "description": "Name of the Static Web App resource."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'static-web-app'), '2025-04-01').outputs.staticWebAppName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('static-web-app-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.staticWebAppName.value]"
     },
     "appInsightsConnectionString": {
       "type": "string",
       "metadata": {
         "description": "Application Insights connection string."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'app-insights'), '2025-04-01').outputs.connectionString.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('app-insights-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.connectionString.value]"
     },
     "storageAccountName": {
       "type": "string",
       "metadata": {
         "description": "Name of the Storage Account."
       },
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'storage'), '2025-04-01').outputs.storageAccountName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('storage-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.storageAccountName.value]"
     }
   }
 }

@@ -46,6 +46,9 @@ param repositoryUrl string = 'https://github.com/jonathan-vella/hacker-board'
 @description('GitHub repository branch for Static Web App.')
 param repositoryBranch string = 'main'
 
+@description('UTC timestamp used to generate unique sub-deployment names. Prevents DeploymentActive conflicts on re-deploy.')
+param deploymentTimestamp string = utcNow('yyyyMMddHHmmss')
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Variables
 // ──────────────────────────────────────────────────────────────────────────────
@@ -65,7 +68,7 @@ var tags = {
 // ──────────────────────────────────────────────────────────────────────────────
 
 module logAnalytics 'modules/log-analytics.bicep' = {
-  name: 'log-analytics'
+  name: 'log-analytics-${deploymentTimestamp}'
   params: {
     name: 'law-${suffix}'
     location: location
@@ -74,7 +77,7 @@ module logAnalytics 'modules/log-analytics.bicep' = {
 }
 
 module appInsights 'modules/app-insights.bicep' = {
-  name: 'app-insights'
+  name: 'app-insights-${deploymentTimestamp}'
   params: {
     name: 'appi-${suffix}'
     location: location
@@ -84,7 +87,7 @@ module appInsights 'modules/app-insights.bicep' = {
 }
 
 module storage 'modules/storage.bicep' = {
-  name: 'storage'
+  name: 'storage-${deploymentTimestamp}'
   params: {
     name: replace('st${projectName}${environment}', '-', '')
     location: location
@@ -93,7 +96,7 @@ module storage 'modules/storage.bicep' = {
 }
 
 module staticWebApp 'modules/static-web-app.bicep' = {
-  name: 'static-web-app'
+  name: 'static-web-app-${deploymentTimestamp}'
   params: {
     name: 'swa-${suffix}'
     location: location
@@ -106,7 +109,7 @@ module staticWebApp 'modules/static-web-app.bicep' = {
 }
 
 module storageRbac 'modules/storage-rbac.bicep' = {
-  name: 'storage-rbac'
+  name: 'storage-rbac-${deploymentTimestamp}'
   params: {
     storageAccountId: storage.outputs.storageAccountId
     principalId: staticWebApp.outputs.principalId
