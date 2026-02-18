@@ -15,13 +15,13 @@ param environment string = 'prod'
 param location string = 'westeurope'
 
 @description('Resource owner identifier.')
-param owner string = 'microhack-agentic-infraops'
+param owner string = 'imperial-infraops'
 
 @description('Cost center code required by Azure Policy.')
-param costCenter string = 'microhack-agentic-infraops'
+param costCenter string = 'CC-DEATHSTAR'
 
 @description('Technical contact email required by Azure Policy.')
-param technicalContact string
+param technicalContact string = 'darth.vader@empire.gov'
 
 @description('GitHub repository URL for Static Web App source linkage.')
 param repositoryUrl string = 'https://github.com/jonathan-vella/hacker-board'

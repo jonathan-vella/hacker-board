@@ -19,7 +19,6 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        "GitHub.copilot",
         "GitHub.copilot-chat",
         "github.vscode-github-actions",
         "ms-azuretools.vscode-azure-github-copilot",
