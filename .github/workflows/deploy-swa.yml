@@ -64,7 +64,6 @@ jobs:
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
     outputs:
       static_web_app_url: ${{ steps.deploy-swa.outputs.static_web_app_url }}
@@ -72,28 +71,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install OIDC Client
-        run: npm install @actions/core@1.6.0 @actions/http-client
-
-      - name: Get ID Token
-        uses: actions/github-script@v7
-        id: idtoken
-        with:
-          script: |
-            const core = require('@actions/core');
-            return await core.getIDToken();
-          result-encoding: string
-
       - name: Deploy to SWA
         id: deploy-swa
         uses: Azure/static-web-apps-deploy@v1
         with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOYMENT_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "src"
           api_location: "api"
           output_location: ""
-          github_id_token: ${{ steps.idtoken.outputs.result }}
 
   smoke-test:
     name: Post-Deploy Smoke Test
@@ -152,45 +139,32 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
       pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install OIDC Client
-        run: npm install @actions/core@1.6.0 @actions/http-client
-
-      - name: Get ID Token
-        uses: actions/github-script@v7
-        id: idtoken
-        with:
-          script: |
-            const core = require('@actions/core');
-            return await core.getIDToken();
-          result-encoding: string
-
       - name: Deploy preview environment
         uses: Azure/static-web-apps-deploy@v1
         with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOYMENT_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "src"
           api_location: "api"
           output_location: ""
-          github_id_token: ${{ steps.idtoken.outputs.result }}
 
   close-pull-request:
     name: Close PR Environment
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
     steps:
       - name: Close Pull Request
         uses: Azure/static-web-apps-deploy@v1
         with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOYMENT_TOKEN }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "close"
