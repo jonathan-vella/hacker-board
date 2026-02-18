@@ -31,15 +31,15 @@
 
 | Metric                  | Value                                              |
 | ----------------------- | -------------------------------------------------- |
-| **Current Phase**       | Phase 15 — E2E Deployment Validation (in progress) |
-| **Last Updated**        | 2026-02-18                                         |
-| **Days Remaining**      | 5                                                  |
-| **Tasks Done**          | 218 / 218                                          |
-| **API Endpoints**       | 10 files / 16 routes                               |
-| **Frontend Components** | 12 components + 5 services                         |
-| **Tests Passing**       | 69 (API unit) + 61 (frontend DOM)                  |
-| **Open Problems**       | 0                                                  |
-| **Open Decisions**      | 0                                                  |
+| **Current Phase**       | Phase 16 — CI/CD + Post-Deploy Verification (in progress) |
+| **Last Updated**        | 2026-02-18                                                |
+| **Days Remaining**      | 5                                                         |
+| **Tasks Done**          | 218 / 218 (P1–P14) + Phase 15 partial                     |
+| **API Endpoints**       | 10 files / 16 routes                                      |
+| **Frontend Components** | 12 components + 5 services                                |
+| **Tests Passing**       | 69 (API unit) + 61 (frontend DOM)                         |
+| **Open Problems**       | 0                                                         |
+| **Open Decisions**      | 0                                                         |
 
 ---
 
@@ -702,26 +702,29 @@ monitoring shows data, feature flags toggle correctly.
 
 ### 15.2 — Path A: PowerShell Script
 
-> RG: `hb-e2e-ps-<yyyyMMdd>` · Script: `infra/deploy.ps1`
+> RG: `rg-hacker-board-prod` · Script: `infra/deploy.ps1`  
+> _Note: Path A was run against production (not a disposable RG) as the first real deployment._
 
-- [ ] Execute with `enablePrivateEndpoint=false` in disposable RG
-- [ ] Capture all 4 provisioning outputs: `swaHostname`, `swaName`, `sqlServerFqdn`, `sqlDatabaseName`
-- [ ] Run schema migration: `node scripts/deploy-schema.js`
-- [ ] Verify `GET /api/health` → 200
-- [ ] Verify `GET /api/teams` → 200, no 5xx
-- [ ] Confirm admin-invite step runs (was silently skipped before D13 fix)
-- [ ] Teardown RG after evidence captured
+- [x] Execute with `enablePrivateEndpoint=true` against `rg-hacker-board-prod`
+- [x] Capture all provisioning outputs: `swaHostname`, `swaName`, `sqlServerFqdn`, `sqlDatabaseName`
+- [x] Schema migration run manually (9 batches; private endpoint + temp public access)
+- [x] Confirm admin-invite step ran and sent invite to `vella.jonathan@outlook.com`
+- [x] Verify SWA returns HTTP 200 — `https://gentle-moss-00d8a4103.6.azurestaticapps.net`
+- [ ] Verify `GET /api/health` → 200 (blocked: app code not deployed until CI/CD runs)
+- [ ] Verify `GET /api/teams` → 200, no 5xx (blocked: same)
+- [ ] Teardown disposable RGs after Path B/C evidence captured
 
 ### 15.3 — Path B: GitHub Actions
 
 > RG: `hb-e2e-gha-<yyyyMMdd>` · Workflow: `.github/workflows/deploy-swa.yml`
 
-- [ ] Confirm `SWA_DEPLOYMENT_TOKEN` secret is set
-- [ ] Trigger workflow via `workflow_dispatch`
-- [ ] Collect: run URL, `static_web_app_url` job output, smoke test step logs
-- [ ] Verify schema migration job succeeds (requires `enablePrivateEndpoint=false`)
-- [ ] Verify `/api/health` and `/api/teams` from workflow smoke step
-- [ ] Teardown RG after evidence captured
+- [ ] Set `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub secret  
+      Token: available from last `deploy.ps1` run output
+- [ ] Push to `main` (or `workflow_dispatch`) to trigger `deploy-swa.yml`
+- [ ] Confirm app code deploys successfully and SWA functions are live
+- [ ] Verify `GET /api/health` → 200
+- [ ] Verify `GET /api/teams` → 200, no 5xx
+- [ ] Teardown disposable RG after evidence captured
 
 ### 15.4 — Path C: Deploy to Azure Button
 
@@ -739,6 +742,44 @@ monitoring shows data, feature flags toggle correctly.
 - [ ] Apply any remaining contract-drift fixes found during runs
 - [ ] Rebuild compiled ARM template if Bicep changes: `az bicep build --file infra/main.bicep --outfile infra/azuredeploy.json`
 - [ ] Update session handoff notes with outcomes
+
+---
+
+## Phase 16 — CI/CD + Post-Deploy Verification 🔴
+
+> **Goal**: App code deployed to live SWA via GitHub Actions; db_owner and Directory Readers
+> confirmed on production resources; all smoke tests green.
+>
+> **Depends on**: Phase 15.2 (infra live), Phase 15.3 (CI/CD token set)
+> **Definition of Done**: `GET /api/health` and `GET /api/teams` return 200 from
+> `https://gentle-moss-00d8a4103.6.azurestaticapps.net` with full app code deployed.
+
+### 16.1 — GitHub Actions CI/CD
+
+- [ ] 🔴 Set `AZURE_STATIC_WEB_APPS_API_TOKEN` secret in GitHub repo  
+      Value: `dc510cffc351acb2825588030eca7e26702c214fe731a5fe103fbbd2487d554006-b6497bce-b453-4d81-be7d-e6b520bd9bd7003192800d8a4103`
+- [ ] Push to `main` to trigger `deploy-swa.yml` workflow
+- [ ] Confirm workflow completes: build → deploy → smoke test
+- [ ] Verify `GET /api/health` → 200
+- [ ] Verify `GET /api/teams` → 200
+
+### 16.2 — Production Post-Deploy Verification
+
+- [ ] Run `deploy.ps1` again (same params) to apply new automation:
+      - In-VNet ACI deploymentScript (`sql-grant.bicep`) runs schema + db_owner grant
+      - `az rest` step in `deploy.ps1` assigns Directory Readers to SQL server MI
+- [ ] Confirm SQL MI has Directory Readers role in Entra ID
+- [ ] Confirm SWA managed identity has `db_owner` on `hackerboard` database
+- [ ] Confirm `CREATE USER ... FROM EXTERNAL PROVIDER` no longer errors in `sql-grant.bicep` logs
+- [ ] Accept admin invitation email (sent to `vella.jonathan@outlook.com`; 24 h TTL)
+
+### 16.3 — Smoke Tests
+
+- [ ] `GET /api/health` → `{"status":"ok"}` with 200
+- [ ] `GET /api/teams` → `[{"id":...}]` with 200 (6 default teams auto-seeded)
+- [ ] Login with GitHub OAuth → JWT cookie set, no 401 on protected routes
+- [ ] Submit a score via the UI → appears in leaderboard
+- [ ] Confirm no PII in any API response (`_gitHubUsername` not surfaced)
 
 ---
 
@@ -764,6 +805,8 @@ monitoring shows data, feature flags toggle correctly.
 | D13 | 2026-02-18 | SWA deploy auth: token-based (`SWA_DEPLOYMENT_TOKEN`)   | Simplest common denominator for all three E2E test paths; OIDC used for production CI only                                             | **Approved**         |
 | D14 | 2026-02-18 | E2E test environments use `enablePrivateEndpoint=false` | GitHub Actions hosted runners cannot reach private SQL endpoints; private endpoints are production-only                                | **Approved**         |
 | D15 | 2026-02-18 | Canonical SWA role model: `admin`/`member`              | `staticwebapp.config.json` uses `admin`/`member`; `writer`/`reader` references in scripts were contract drift — corrected              | **Approved**         |
+| D16 | 2026-02-18 | SQL schema + db_owner grant via in-VNet ACI deploymentScript | Public SQL endpoint is not acceptable with private-endpoint topology; schema and grants run inside the VNet via Azure Container Instance in Bicep `deploymentScript` resource (`sql-grant.bicep`) | **Approved** |
+| D17 | 2026-02-18 | Directory Readers assigned via `az rest` in `deploy.ps1`, not Bicep | Bicep `extension microsoftGraph` (built-in) is retired (BCP407); dynamic OCI ref (`br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0`) compiled but `roleAssignments` type not found (BCP029); fell back to idempotent `az rest POST /roleManagement/directory/roleAssignments` after deploy | **Approved** |
 
 <!-- TEMPLATE for new decisions:
 | D{N} | YYYY-MM-DD | {decision} | {rationale} | **{status}** |
@@ -782,6 +825,12 @@ monitoring shows data, feature flags toggle correctly.
 | P2  | 2026-02-17 | P11   | Handoff checklist Phase 4.3 missing Rubrics table (only 5 of 6 tables)       | Med    | **Resolved**  | Added `Rubrics` table to handoff checklist Phase 4.3                       |
 | P3  | 2026-02-17 | P11   | Handoff checklist Phase 6.2 smoke tests missing rubric/flags API endpoints   | Med    | **Resolved**  | Added rubric + flags endpoints to handoff checklist Phase 6.2              |
 | P4  | 2026-02-17 | P11   | Handoff completion table shows all ⬜ despite dev-team steps being completed | Low    | **Mitigated** | Updated dev-team items to ✅; platform-team items need manual verification |
+| P5  | 2026-02-18 | P15   | `deploy.ps1` `[CmdletBinding(SupportsShouldProcess)]` conflicts with manual `[switch]$WhatIf` | High | **Resolved** | Removed `SupportsShouldProcess`; kept explicit `[switch]$WhatIf` in `param()` block |
+| P6  | 2026-02-18 | P15   | `invite-admin.sh` failed: missing `--domain` flag for `az staticwebapp users invite` | Med | **Resolved** | Script now auto-fetches SWA hostname and passes `--domain` flag |
+| P7  | 2026-02-18 | P15   | Schema migration blocked: `mssql` not in root `node_modules`; `NODE_PATH` not honoured by ESM | Med | **Resolved** | Added `mssql` and `@azure/identity` as root `devDependencies`; ran `npm install` |
+| P8  | 2026-02-18 | P15   | PowerShell line continuation used `\` (bash style) instead of `` ` `` | Med | **Resolved** | Changed all continuation characters in `deploy.ps1` to backtick |
+| P9  | 2026-02-18 | P15   | `deploy.ps1` silenced deployment errors with `2>$null` | Med | **Resolved** | Changed to `2>&1` so errors surface in terminal output |
+| P10 | 2026-02-18 | P15   | Bicep `extension microsoftGraph` retired (BCP407); dynamic OCI type `roleAssignments` not found (BCP029) | High | **Resolved** | Replaced with idempotent `az rest` call in `deploy.ps1`; `azuredeploy.json` rebuilds clean with zero warnings |
 
 <!-- TEMPLATE for new problems:
 | P{N} | YYYY-MM-DD | P{phase} | {description} | {High/Med/Low} | {Open/Resolved/Mitigated} | {what fixed it} |
@@ -834,9 +883,12 @@ monitoring shows data, feature flags toggle correctly.
 | P11   | Feature flags toggle correctly                               | **Passed** |
 | P11   | Frontend component test coverage (8 components)              | **Passed** |
 | P12   | OpenAPI spec exists and validates as OpenAPI 3.0             | **Passed** |
-| P15   | Path A (PS): all provisioning outputs present + health 200   | Not run    |
-| P15   | Path B (GHA): workflow completes + smoke checks pass         | Not run    |
+| P15   | Path A (PS): all provisioning outputs present + health 200   | **Partial** — infra deployed, app code pending CI/CD |
+| P15   | Path B (GHA): workflow completes + smoke checks pass         | Not run — blocked on GitHub secret   |
 | P15   | Path C (Button): ARM deployment + follow-up steps succeed    | Not run    |
+| P16   | CI/CD deploys app code; `/api/health` returns 200            | Not run    |
+| P16   | Directory Readers assigned to SQL MI via `az rest`           | Not run — requires re-deploy         |
+| P16   | db_owner granted to SWA MI via in-VNet ACI script            | Not run — requires re-deploy         |
 
 ---
 
@@ -869,7 +921,52 @@ monitoring shows data, feature flags toggle correctly.
 
 **Open questions**:
 
-- Does `main.bicepparam` need `adminEmail` set for the parametered deploy path, or is it always passed as an override?
+- Does `main.bicepparam` need `adminEmail` set for the parametered deploy path, or is it always passed as an override? _(Answer: always passed as `--parameters adminEmail=...` override; `.bicepparam` does not need it.)_
+
+---
+
+### Session: 2026-02-18 — In-VNet SQL Automation + Directory Readers
+
+**What was done**:
+
+- Executed **Path A (PowerShell)** — full production deployment to `rg-hacker-board-prod` / `westeurope`:
+  - SWA: `swa-hacker-board-prod` → `https://gentle-moss-00d8a4103.6.azurestaticapps.net`
+  - SQL Server: `sql-hacker-board-prod.database.windows.net` / DB: `hackerboard`
+  - 9 schema batches executed; admin invite sent to `vella.jonathan@outlook.com`
+  - Smoke test: SWA 200, API `/api/health` 404 (app code not yet deployed — CI/CD token unset)
+- Fixed 4 bugs discovered during the deployment run (P5–P8 above); committed as `d04e773`.
+- Designed and implemented **in-VNet ACI deploymentScript** (`infra/modules/sql-grant.bicep`) to replace manual schema migration and db_owner grant (D16):
+  - New subnet `snet-scripts` (10.0.3.0/24) with `Microsoft.ContainerInstance/containerGroups` delegation
+  - New UAMI `id-deploy-{suffix}` used as SQL Entra admin (`principalType='Application'`)
+  - `sql-grant.bicep` runs inside the VNet: installs mssql-tools18, loads `init.sql` (base64), grants `db_owner` to SWA MI and operator
+  - Committed as `735186a`.
+- Attempted **Bicep `extension microsoftGraph`** for Directory Readers automation:
+  - Built-in extension retired (BCP407); dynamic OCI ref compiled but `roleAssignments` type not found (BCP029) — see D17
+  - Fell back to idempotent **`az rest POST`** call in `deploy.ps1` (idempotent, non-breaking, reads `sqlMiPrincipalId` from deployment outputs)
+  - Fixed BCP321 in `sql-server.bicep` with `!` non-null assertion
+  - Bicep builds clean: zero errors, zero warnings
+  - Committed as `9454163`.
+- Removed all manual PREREQUISITE warning blocks from `sql-grant.bicep` and `deploy.ps1`.
+- `deploy.ps1` next-steps reduced to 3 items (no manual Entra steps).
+
+**What's next**:
+
+- **IMMEDIATE**: Set `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub secret (token in P15.3 task above) and push to `main` → app code deploys via CI/CD.
+- **Re-run `deploy.ps1`** against `rg-hacker-board-prod` with same params to:
+  - Execute `sql-grant.bicep` (in-VNet ACI) — applies schema + db_owner grant via private endpoint
+  - Trigger `az rest` Directory Readers step for SQL server MI
+- Verify `/api/health` and `/api/teams` return 200 from deployed SWA.
+- Accept admin invitation email (sent; 24 h TTL — re-send via `invite-admin.sh` if expired).
+- Run Path B (GitHub Actions) and Path C (Deploy button) validation in disposable RGs.
+
+**Open questions**:
+
+- Should `sql-grant.bicep` delete its ACI container after completion to reduce cost, or leave for debugging? Currently `cleanupPreference: 'OnSuccess'`.
+
+**Known issues**:
+
+- The existing live deployment (`rg-hacker-board-prod`) does NOT yet have the in-VNet script or Directory Readers grant applied — requires a re-deploy.
+- Admin invite TTL is 24 h from first deployment; will need re-sending if not accepted.
 
 **Known issues**:
 
