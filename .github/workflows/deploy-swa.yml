@@ -81,6 +81,7 @@ jobs:
           app_location: "src"
           api_location: "api"
           output_location: ""
+          config_file_location: "."
 
   smoke-test:
     name: Post-Deploy Smoke Test
@@ -154,6 +155,7 @@ jobs:
           app_location: "src"
           api_location: "api"
           output_location: ""
+          config_file_location: "."
 
   close-pull-request:
     name: Close PR Environment
