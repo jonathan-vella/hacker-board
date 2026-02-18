@@ -10,6 +10,10 @@
       "statusCode": 404
     },
     {
+      "route": "/.auth/login/x",
+      "statusCode": 404
+    },
+    {
       "route": "/.auth/login/aad",
       "statusCode": 404
     },
@@ -82,10 +86,14 @@
     "401": {
       "redirect": "/.auth/login/github",
       "statusCode": 302
+    },
+    "403": {
+      "rewrite": "/index.html",
+      "statusCode": 403
     }
   },
   "navigationFallback": {
-    "rewrite": "/index.html",
+    "rewrite": "index.html",
     "exclude": ["/api/*", "/images/*", "/*.{css,js,svg,png,ico,json}"]
   },
   "globalHeaders": {
@@ -95,5 +103,8 @@
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+  },
+  "platform": {
+    "apiRuntime": "node:20"
   }
 }
