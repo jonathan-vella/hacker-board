@@ -77,15 +77,17 @@ fi
 # ── Invite ────────────────────────────────────────────────────────────────────
 echo "📧 Generating invitation link..."
 
-INVITE_URL=$(az staticwebapp users invite \
+# Fetch the SWA default hostname — required by the CLI invite command
+SWA_DOMAIN=$(az staticwebapp show \
   --name "$APP_NAME" \
   --resource-group "$RESOURCE_GROUP" \
-  --authentication-provider GitHub \
-  --user-details "$EMAIL" \
-  --role "$ROLE" \
-  --invitation-expiration-in-hours 24 \
-  --query "properties.expirationDate" \
-  --output tsv 2>/dev/null || true)
+  --query "defaultHostname" \
+  --output tsv)
+
+if [[ -z "$SWA_DOMAIN" ]]; then
+  echo "❌  Could not retrieve SWA hostname for $APP_NAME."
+  exit 1
+fi
 
 # The command returns the expiration date; get the full output as JSON for the link
 RESULT=$(az staticwebapp users invite \
@@ -94,6 +96,7 @@ RESULT=$(az staticwebapp users invite \
   --authentication-provider GitHub \
   --user-details "$EMAIL" \
   --role "$ROLE" \
+  --domain "$SWA_DOMAIN" \
   --invitation-expiration-in-hours 24 \
   --output json)
 

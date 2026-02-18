@@ -9,7 +9,7 @@ param tags object
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Virtual Network via AVM — two subnets:
-//   snet-swa    : SWA VNet integration (delegated to Microsoft.Web/staticSites)
+//   snet-swa    : SWA VNet integration (no delegation required for Standard SWA)
 //   snet-sql-pe : SQL Private Endpoint placement
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -26,8 +26,8 @@ module vnet 'br/public:avm/res/network/virtual-network:0.7.0' = {
       {
         name: 'snet-swa'
         addressPrefix: '10.0.1.0/24'
-        // Delegated to SWA for VNet integration
-        delegation: 'Microsoft.Web/staticSites'
+        // No subnet delegation needed — Azure Static Web Apps Standard uses VNet
+        // integration without requiring a delegated subnet on the caller's VNet.
       }
       {
         name: 'snet-sql-pe'

@@ -50,7 +50,7 @@
     ./deploy.ps1 -WhatIf -CostCenter "microhack" -TechnicalContact "team@contoso.com"
 #>
 
-[CmdletBinding(SupportsShouldProcess)]
+[CmdletBinding()]
 param(
     [string]$ResourceGroupName = 'rg-hacker-board-prod',
     [string]$Location = 'westeurope',
@@ -282,9 +282,9 @@ if ($deploymentResult.properties.outputs) {
         Write-Host ""
         Write-Host "  📧 Sending admin invitation to $AdminEmail..." -ForegroundColor Yellow
         $scriptRoot = Split-Path -Parent $PSScriptRoot
-        bash "$scriptRoot/scripts/invite-admin.sh" \
-            --app "$($o.swaName.value)" \
-            --rg "$ResourceGroupName" \
+        bash "$scriptRoot/scripts/invite-admin.sh" `
+            --app "$($o.swaName.value)" `
+            --rg "$ResourceGroupName" `
             --email "$AdminEmail"
         if ($LASTEXITCODE -eq 0) {
             Write-Host "  ✅ Admin invitation sent" -ForegroundColor Green
