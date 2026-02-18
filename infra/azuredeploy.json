@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "14887772869840977045"
+      "templateHash": "10775671596522538226"
     }
   },
   "parameters": {
@@ -31,8 +31,25 @@
     "location": {
       "type": "string",
       "defaultValue": "westeurope",
+      "allowedValues": [
+        "centralus",
+        "eastus",
+        "eastus2",
+        "westus2",
+        "westus3",
+        "northeurope",
+        "westeurope",
+        "uksouth",
+        "swedencentral",
+        "eastasia",
+        "southeastasia",
+        "japaneast",
+        "australiaeast",
+        "southcentralus",
+        "brazilsouth"
+      ],
       "metadata": {
-        "description": "Primary Azure region for all resources."
+        "description": "Primary Azure region for all resources. Must be a region where Azure Static Web Apps is available."
       }
     },
     "owner": {
