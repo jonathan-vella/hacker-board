@@ -27,7 +27,7 @@ other sections.
 
 ### Link Style
 
-- Use relative links for internal docs (e.g., `[API Spec](../api-spec.md)` from a `docs/` subfolder, or `[API Spec](api-spec.md)` from within `docs/`)
+- Use relative links for internal docs (e.g., `[API Spec](api-spec.md)` when linking between files inside `docs/`)
 - Use reference-style links for external URLs
 - No broken links — verify all relative links resolve to existing files
 
@@ -63,10 +63,10 @@ Use emoji + link + description columns for consistent scanning.
 
 | Area | Link                                         | Description                                       |
 | ---- | -------------------------------------------- | ------------------------------------------------- |
-| 🧩   | [Architecture](docs/app-design.md)           | SPA + Functions + Table Storage system design     |
-| 🔌   | [API Spec](docs/api-spec.md)                 | Endpoint contracts, payloads, and error envelopes |
-| 🤖   | [Agents & Skills](docs/agents-and-skills.md) | Agent inventory and skill usage guidance          |
-| 📋   | [Backlog](docs/backlog.md)                   | Current phase status, decisions, and blockers     |
+| 🧩   | \[Architecture\](app-design.md)           | SPA + Functions + Table Storage system design     |
+| 🔌   | \[API Spec\](api-spec.md)                 | Endpoint contracts, payloads, and error envelopes |
+| 🤖   | \[Agents & Skills\](agents-and-skills.md) | Agent inventory and skill usage guidance          |
+| 📋   | \[Backlog\](backlog.md)                   | Current phase status, decisions, and blockers     |
 ```
 
 ## Collapsible Sections
@@ -141,7 +141,7 @@ Every doc page should include a navigation footer link at the bottom:
 ```markdown
 ---
 
-[← Back to Documentation](docs/README.md)
+\[← Back to Documentation\](README.md)
 ```
 
 ## Current Architecture
