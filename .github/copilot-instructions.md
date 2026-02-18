@@ -162,7 +162,7 @@ Instruction files in `.github/instructions/` provide file-type-specific rules. T
 - Use shields.io badges for status, type, and tech metadata at the top of doc files
 - Use tables over bullet lists for inventories and structured data
 - Use Mermaid diagrams for architecture and workflow visualization
-- Add `[← Back to Documentation](README.md)` navigation footer to each doc page
+- Add `[← Back to Documentation](../docs/README.md)` navigation footer to each doc page
 - Keep docs current: update when code changes (see `update-docs-on-code-change.instructions.md`)
 
 ## Execution Plan
