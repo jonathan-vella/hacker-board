@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "15170821895817066319"
+      "templateHash": "14887772869840977045"
     }
   },
   "parameters": {
@@ -19,7 +19,11 @@
     "environment": {
       "type": "string",
       "defaultValue": "prod",
-      "allowedValues": ["dev", "staging", "prod"],
+      "allowedValues": [
+        "dev",
+        "staging",
+        "prod"
+      ],
       "metadata": {
         "description": "Deployment environment."
       }
@@ -33,20 +37,21 @@
     },
     "owner": {
       "type": "string",
-      "defaultValue": "microhack-agentic-infraops",
+      "defaultValue": "imperial-infraops",
       "metadata": {
         "description": "Resource owner identifier."
       }
     },
     "costCenter": {
       "type": "string",
-      "defaultValue": "microhack-agentic-infraops",
+      "defaultValue": "CC-DEATHSTAR",
       "metadata": {
         "description": "Cost center code required by Azure Policy."
       }
     },
     "technicalContact": {
       "type": "string",
+      "defaultValue": "darth.vader@empire.gov",
       "metadata": {
         "description": "Technical contact email required by Azure Policy."
       }
@@ -68,7 +73,11 @@
     "phase": {
       "type": "string",
       "defaultValue": "all",
-      "allowedValues": ["all", "foundation", "application"],
+      "allowedValues": [
+        "all",
+        "foundation",
+        "application"
+      ],
       "metadata": {
         "description": "Deployment phase — use to deploy incrementally."
       }
@@ -266,7 +275,10 @@
                         },
                         "logAnalyticsDestinationType": {
                           "type": "string",
-                          "allowedValues": ["AzureDiagnostics", "Dedicated"],
+                          "allowedValues": [
+                            "AzureDiagnostics",
+                            "Dedicated"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. A string indicating whether the export to Log Analytics should use the default destination type, i.e. AzureDiagnostics, or use a destination type."
@@ -798,7 +810,12 @@
                         },
                         "dataTypeHint": {
                           "type": "string",
-                          "allowedValues": ["armPath", "guid", "ip", "uri"],
+                          "allowedValues": [
+                            "armPath",
+                            "guid",
+                            "ip",
+                            "uri"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. The column data type logical hint."
@@ -871,7 +888,11 @@
                         },
                         "kind": {
                           "type": "string",
-                          "allowedValues": ["CanNotDelete", "None", "ReadOnly"],
+                          "allowedValues": [
+                            "CanNotDelete",
+                            "None",
+                            "ReadOnly"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Specify the type of lock."
@@ -1004,7 +1025,9 @@
                         },
                         "conditionVersion": {
                           "type": "string",
-                          "allowedValues": ["2.0"],
+                          "allowedValues": [
+                            "2.0"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Version of the condition."
@@ -1501,7 +1524,9 @@
                         "marketplacePartnerId": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'marketplacePartnerResourceId')]",
                         "logAnalyticsDestinationType": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'logAnalyticsDestinationType')]"
                       },
-                      "dependsOn": ["logAnalyticsWorkspace"]
+                      "dependsOn": [
+                        "logAnalyticsWorkspace"
+                      ]
                     },
                     "logAnalyticsWorkspace_sentinelOnboarding": {
                       "condition": "[and(not(empty(filter(coalesce(parameters('gallerySolutions'), createArray()), lambda('item', startsWith(lambdaVariables('item').name, 'SecurityInsights'))))), parameters('onboardWorkspaceToSentinel'))]",
@@ -1510,7 +1535,9 @@
                       "scope": "[format('Microsoft.OperationalInsights/workspaces/{0}', parameters('name'))]",
                       "name": "default",
                       "properties": {},
-                      "dependsOn": ["logAnalyticsWorkspace"]
+                      "dependsOn": [
+                        "logAnalyticsWorkspace"
+                      ]
                     },
                     "logAnalyticsWorkspace_lock": {
                       "condition": "[and(not(empty(coalesce(parameters('lock'), createObject()))), not(equals(tryGet(parameters('lock'), 'kind'), 'None')))]",
@@ -1522,7 +1549,9 @@
                         "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
                         "notes": "[coalesce(tryGet(parameters('lock'), 'notes'), if(equals(tryGet(parameters('lock'), 'kind'), 'CanNotDelete'), 'Cannot delete resource or child resources.', 'Cannot delete or modify the resource or child resources.'))]"
                       },
-                      "dependsOn": ["logAnalyticsWorkspace"]
+                      "dependsOn": [
+                        "logAnalyticsWorkspace"
+                      ]
                     },
                     "logAnalyticsWorkspace_roleAssignments": {
                       "copy": {
@@ -1542,7 +1571,9 @@
                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                       },
-                      "dependsOn": ["logAnalyticsWorkspace"]
+                      "dependsOn": [
+                        "logAnalyticsWorkspace"
+                      ]
                     },
                     "logAnalyticsWorkspace_storageInsightConfigs": {
                       "copy": {
@@ -1688,7 +1719,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["logAnalyticsWorkspace"]
+                      "dependsOn": [
+                        "logAnalyticsWorkspace"
+                      ]
                     },
                     "logAnalyticsWorkspace_linkedServices": {
                       "copy": {
@@ -1811,7 +1844,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["logAnalyticsWorkspace"]
+                      "dependsOn": [
+                        "logAnalyticsWorkspace"
+                      ]
                     },
                     "logAnalyticsWorkspace_linkedStorageAccounts": {
                       "copy": {
@@ -1921,7 +1956,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["logAnalyticsWorkspace"]
+                      "dependsOn": [
+                        "logAnalyticsWorkspace"
+                      ]
                     },
                     "logAnalyticsWorkspace_savedSearches": {
                       "copy": {
@@ -2263,7 +2300,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["logAnalyticsWorkspace"]
+                      "dependsOn": [
+                        "logAnalyticsWorkspace"
+                      ]
                     },
                     "logAnalyticsWorkspace_dataSources": {
                       "copy": {
@@ -2509,7 +2548,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["logAnalyticsWorkspace"]
+                      "dependsOn": [
+                        "logAnalyticsWorkspace"
+                      ]
                     },
                     "logAnalyticsWorkspace_tables": {
                       "copy": {
@@ -2788,7 +2829,9 @@
                                 },
                                 "conditionVersion": {
                                   "type": "string",
-                                  "allowedValues": ["2.0"],
+                                  "allowedValues": [
+                                    "2.0"
+                                  ],
                                   "nullable": true,
                                   "metadata": {
                                     "description": "Optional. Version of the condition."
@@ -2826,7 +2869,10 @@
                             "plan": {
                               "type": "string",
                               "defaultValue": "Analytics",
-                              "allowedValues": ["Basic", "Analytics"],
+                              "allowedValues": [
+                                "Basic",
+                                "Analytics"
+                              ],
                               "metadata": {
                                 "description": "Optional. Instruct the system how to handle and charge the logs ingested to this table."
                               }
@@ -2939,7 +2985,9 @@
                                 "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                 "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                               },
-                              "dependsOn": ["table"]
+                              "dependsOn": [
+                                "table"
+                              ]
                             }
                           },
                           "outputs": {
@@ -2967,7 +3015,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["logAnalyticsWorkspace"]
+                      "dependsOn": [
+                        "logAnalyticsWorkspace"
+                      ]
                     },
                     "logAnalyticsWorkspace_solutions": {
                       "copy": {
@@ -3153,7 +3203,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["logAnalyticsWorkspace"]
+                      "dependsOn": [
+                        "logAnalyticsWorkspace"
+                      ]
                     }
                   },
                   "outputs": {
@@ -3495,7 +3547,10 @@
                         },
                         "defaultAction": {
                           "type": "string",
-                          "allowedValues": ["Allow", "Deny"],
+                          "allowedValues": [
+                            "Allow",
+                            "Deny"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Specifies the default action of allow or deny when no other rules match."
@@ -4232,7 +4287,11 @@
                         },
                         "publicAccess": {
                           "type": "string",
-                          "allowedValues": ["Blob", "Container", "None"],
+                          "allowedValues": [
+                            "Blob",
+                            "Container",
+                            "None"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Specifies whether data in the container may be accessed publicly and the level of access."
@@ -4370,7 +4429,10 @@
                         },
                         "logAnalyticsDestinationType": {
                           "type": "string",
-                          "allowedValues": ["AzureDiagnostics", "Dedicated"],
+                          "allowedValues": [
+                            "AzureDiagnostics",
+                            "Dedicated"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. A string indicating whether the export to Log Analytics should use the default destination type, i.e. AzureDiagnostics, or use a destination type."
@@ -4456,7 +4518,10 @@
                         },
                         "logAnalyticsDestinationType": {
                           "type": "string",
-                          "allowedValues": ["AzureDiagnostics", "Dedicated"],
+                          "allowedValues": [
+                            "AzureDiagnostics",
+                            "Dedicated"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. A string indicating whether the export to Log Analytics should use the default destination type, i.e. AzureDiagnostics, or use a destination type."
@@ -4592,7 +4657,10 @@
                         },
                         "enabledProtocols": {
                           "type": "string",
-                          "allowedValues": ["NFS", "SMB"],
+                          "allowedValues": [
+                            "NFS",
+                            "SMB"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. The authentication protocol that is used for the file share. Can only be specified when creating a share."
@@ -4647,7 +4715,11 @@
                         },
                         "kind": {
                           "type": "string",
-                          "allowedValues": ["CanNotDelete", "None", "ReadOnly"],
+                          "allowedValues": [
+                            "CanNotDelete",
+                            "None",
+                            "ReadOnly"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Specify the type of lock."
@@ -5077,7 +5149,9 @@
                         },
                         "conditionVersion": {
                           "type": "string",
-                          "allowedValues": ["2.0"],
+                          "allowedValues": [
+                            "2.0"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Version of the condition."
@@ -5307,7 +5381,12 @@
                     "accessTier": {
                       "type": "string",
                       "defaultValue": "Hot",
-                      "allowedValues": ["Premium", "Hot", "Cool", "Cold"],
+                      "allowedValues": [
+                        "Premium",
+                        "Hot",
+                        "Cool",
+                        "Cold"
+                      ],
                       "metadata": {
                         "description": "Conditional. Required if the Storage Account kind is set to BlobStorage. The access tier is used for billing. The \"Premium\" access tier is the default value for premium block blobs storage account type and it cannot be changed for the premium block blobs storage account type."
                       }
@@ -5315,7 +5394,10 @@
                     "largeFileSharesState": {
                       "type": "string",
                       "defaultValue": "Disabled",
-                      "allowedValues": ["Disabled", "Enabled"],
+                      "allowedValues": [
+                        "Disabled",
+                        "Enabled"
+                      ],
                       "metadata": {
                         "description": "Optional. Allow large file shares if set to 'Enabled'. It cannot be disabled once it is enabled. Only supported on locally redundant and zone redundant file shares. It cannot be set on FileStorage storage accounts (storage accounts for premium file shares)."
                       }
@@ -5402,7 +5484,10 @@
                     "dnsEndpointType": {
                       "type": "string",
                       "nullable": true,
-                      "allowedValues": ["AzureDnsZone", "Standard"],
+                      "allowedValues": [
+                        "AzureDnsZone",
+                        "Standard"
+                      ],
                       "metadata": {
                         "description": "Optional. Allows you to specify the type of endpoint. Set this to AzureDNSZone to create a large number of accounts in a single subscription, which creates accounts in an Azure DNS Zone and the endpoint URL will have an alphanumeric DNS Zone identifier."
                       }
@@ -5445,7 +5530,9 @@
                     "minimumTlsVersion": {
                       "type": "string",
                       "defaultValue": "TLS1_2",
-                      "allowedValues": ["TLS1_2"],
+                      "allowedValues": [
+                        "TLS1_2"
+                      ],
                       "metadata": {
                         "description": "Optional. Set the minimum TLS version on request to storage. The TLS versions 1.0 and 1.1 are deprecated and not supported anymore."
                       }
@@ -5525,7 +5612,10 @@
                     "allowedCopyScope": {
                       "type": "string",
                       "nullable": true,
-                      "allowedValues": ["AAD", "PrivateLink"],
+                      "allowedValues": [
+                        "AAD",
+                        "PrivateLink"
+                      ],
                       "metadata": {
                         "description": "Optional. Restrict copy to and from Storage Accounts within an AAD tenant or with Private Links to the same VNet."
                       }
@@ -5566,7 +5656,10 @@
                     "sasExpirationAction": {
                       "type": "string",
                       "defaultValue": "Log",
-                      "allowedValues": ["Block", "Log"],
+                      "allowedValues": [
+                        "Block",
+                        "Log"
+                      ],
                       "metadata": {
                         "description": "Optional. The SAS expiration action. Allowed values are Block and Log."
                       }
@@ -5574,7 +5667,10 @@
                     "keyType": {
                       "type": "string",
                       "nullable": true,
-                      "allowedValues": ["Account", "Service"],
+                      "allowedValues": [
+                        "Account",
+                        "Service"
+                      ],
                       "metadata": {
                         "description": "Optional. The keyType to use with Queue & Table services."
                       }
@@ -5711,7 +5807,10 @@
                       "identity": "[variables('identity')]",
                       "tags": "[parameters('tags')]",
                       "properties": "[shallowMerge(createArray(createObject('allowSharedKeyAccess', parameters('allowSharedKeyAccess'), 'defaultToOAuthAuthentication', parameters('defaultToOAuthAuthentication'), 'allowCrossTenantReplication', parameters('allowCrossTenantReplication'), 'allowedCopyScope', parameters('allowedCopyScope'), 'customDomain', createObject('name', parameters('customDomainName'), 'useSubDomainName', parameters('customDomainUseSubDomainName')), 'dnsEndpointType', parameters('dnsEndpointType'), 'isLocalUserEnabled', parameters('isLocalUserEnabled'), 'encryption', union(createObject('keySource', if(not(empty(parameters('customerManagedKey'))), 'Microsoft.Keyvault', 'Microsoft.Storage'), 'services', createObject('blob', if(variables('supportsBlobService'), createObject('enabled', true()), null()), 'file', if(variables('supportsFileService'), createObject('enabled', true()), null()), 'table', createObject('enabled', true(), 'keyType', parameters('keyType')), 'queue', createObject('enabled', true(), 'keyType', parameters('keyType'))), 'keyvaultproperties', if(not(empty(parameters('customerManagedKey'))), createObject('keyname', parameters('customerManagedKey').keyName, 'keyvaulturi', if(not(variables('isHSMManagedCMK')), reference('cMKKeyVault').vaultUri, format('https://{0}.managedhsm.azure.net/', last(split(parameters('customerManagedKey').keyVaultResourceId, '/')))), 'keyversion', if(not(empty(tryGet(parameters('customerManagedKey'), 'keyVersion'))), parameters('customerManagedKey').keyVersion, if(coalesce(tryGet(parameters('customerManagedKey'), 'autoRotationEnabled'), true()), null(), if(not(variables('isHSMManagedCMK')), last(split(reference('cMKKeyVault::cMKKey').keyUriWithVersion, '/')), fail('Managed HSM CMK encryption requires either specifying the ''keyVersion'' or omitting the ''autoRotationEnabled'' property. Setting ''autoRotationEnabled'' to false without a ''keyVersion'' is not allowed.'))))), null()), 'identity', createObject('userAssignedIdentity', if(not(empty(tryGet(parameters('customerManagedKey'), 'userAssignedIdentityResourceId'))), extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', split(tryGet(parameters('customerManagedKey'), 'userAssignedIdentityResourceId'), '/')[2], split(tryGet(parameters('customerManagedKey'), 'userAssignedIdentityResourceId'), '/')[4]), 'Microsoft.ManagedIdentity/userAssignedIdentities', last(split(tryGet(parameters('customerManagedKey'), 'userAssignedIdentityResourceId'), '/'))), null()))), if(parameters('requireInfrastructureEncryption'), createObject('requireInfrastructureEncryption', if(not(equals(parameters('kind'), 'Storage')), parameters('requireInfrastructureEncryption'), null())), createObject())), 'accessTier', if(and(not(equals(parameters('kind'), 'Storage')), not(equals(parameters('kind'), 'BlockBlobStorage'))), parameters('accessTier'), null()), 'sasPolicy', if(not(empty(parameters('sasExpirationPeriod'))), createObject('expirationAction', parameters('sasExpirationAction'), 'sasExpirationPeriod', parameters('sasExpirationPeriod')), null()), 'supportsHttpsTrafficOnly', parameters('supportsHttpsTrafficOnly'), 'isSftpEnabled', parameters('enableSftp'), 'isNfsV3Enabled', if(parameters('enableNfsV3'), parameters('enableNfsV3'), ''), 'largeFileSharesState', if(or(equals(parameters('skuName'), 'Standard_LRS'), equals(parameters('skuName'), 'Standard_ZRS')), parameters('largeFileSharesState'), null()), 'minimumTlsVersion', parameters('minimumTlsVersion'), 'networkAcls', if(not(empty(parameters('networkAcls'))), union(createObject('resourceAccessRules', tryGet(parameters('networkAcls'), 'resourceAccessRules'), 'defaultAction', coalesce(tryGet(parameters('networkAcls'), 'defaultAction'), 'Deny'), 'virtualNetworkRules', tryGet(parameters('networkAcls'), 'virtualNetworkRules'), 'ipRules', tryGet(parameters('networkAcls'), 'ipRules')), if(contains(parameters('networkAcls'), 'bypass'), createObject('bypass', tryGet(parameters('networkAcls'), 'bypass')), createObject())), createObject('bypass', 'AzureServices', 'defaultAction', 'Deny')), 'allowBlobPublicAccess', parameters('allowBlobPublicAccess'), 'publicNetworkAccess', if(not(empty(parameters('publicNetworkAccess'))), parameters('publicNetworkAccess'), if(and(not(empty(parameters('privateEndpoints'))), empty(parameters('networkAcls'))), 'Disabled', null()))), if(not(empty(parameters('azureFilesIdentityBasedAuthentication'))), createObject('azureFilesIdentityBasedAuthentication', parameters('azureFilesIdentityBasedAuthentication')), createObject()), if(not(equals(parameters('enableHierarchicalNamespace'), null())), createObject('isHnsEnabled', parameters('enableHierarchicalNamespace')), createObject()), createObject('immutableStorageWithVersioning', parameters('immutableStorageWithVersioning'))))]",
-                      "dependsOn": ["cMKKeyVault", "cMKKeyVault::cMKKey"]
+                      "dependsOn": [
+                        "cMKKeyVault",
+                        "cMKKeyVault::cMKKey"
+                      ]
                     },
                     "storageAccount_diagnosticSettings": {
                       "copy": {
@@ -5741,7 +5840,9 @@
                         "marketplacePartnerId": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'marketplacePartnerResourceId')]",
                         "logAnalyticsDestinationType": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'logAnalyticsDestinationType')]"
                       },
-                      "dependsOn": ["storageAccount"]
+                      "dependsOn": [
+                        "storageAccount"
+                      ]
                     },
                     "storageAccount_lock": {
                       "condition": "[and(not(empty(coalesce(parameters('lock'), createObject()))), not(equals(tryGet(parameters('lock'), 'kind'), 'None')))]",
@@ -5753,7 +5854,9 @@
                         "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
                         "notes": "[coalesce(tryGet(parameters('lock'), 'notes'), if(equals(tryGet(parameters('lock'), 'kind'), 'CanNotDelete'), 'Cannot delete resource or child resources.', 'Cannot delete or modify the resource or child resources.'))]"
                       },
-                      "dependsOn": ["storageAccount"]
+                      "dependsOn": [
+                        "storageAccount"
+                      ]
                     },
                     "storageAccount_roleAssignments": {
                       "copy": {
@@ -5773,7 +5876,9 @@
                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                       },
-                      "dependsOn": ["storageAccount"]
+                      "dependsOn": [
+                        "storageAccount"
+                      ]
                     },
                     "storageAccount_privateEndpoints": {
                       "copy": {
@@ -5982,7 +6087,9 @@
                                 },
                                 "conditionVersion": {
                                   "type": "string",
-                                  "allowedValues": ["2.0"],
+                                  "allowedValues": [
+                                    "2.0"
+                                  ],
                                   "nullable": true,
                                   "metadata": {
                                     "description": "Optional. Version of the condition."
@@ -6201,7 +6308,9 @@
                                 "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
                                 "notes": "[coalesce(tryGet(parameters('lock'), 'notes'), if(equals(tryGet(parameters('lock'), 'kind'), 'CanNotDelete'), 'Cannot delete resource or child resources.', 'Cannot delete or modify the resource or child resources.'))]"
                               },
-                              "dependsOn": ["privateEndpoint"]
+                              "dependsOn": [
+                                "privateEndpoint"
+                              ]
                             },
                             "privateEndpoint_roleAssignments": {
                               "copy": {
@@ -6221,7 +6330,9 @@
                                 "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                 "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                               },
-                              "dependsOn": ["privateEndpoint"]
+                              "dependsOn": [
+                                "privateEndpoint"
+                              ]
                             },
                             "privateEndpoint_privateDnsZoneGroup": {
                               "condition": "[not(empty(parameters('privateDnsZoneGroup')))]",
@@ -6359,7 +6470,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["privateEndpoint"]
+                              "dependsOn": [
+                                "privateEndpoint"
+                              ]
                             }
                           },
                           "outputs": {
@@ -6423,7 +6536,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["storageAccount"]
+                      "dependsOn": [
+                        "storageAccount"
+                      ]
                     },
                     "storageAccount_managementPolicies": {
                       "condition": "[not(empty(coalesce(variables('formattedManagementPolicies'), createArray())))]",
@@ -6722,7 +6837,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["storageAccount"]
+                      "dependsOn": [
+                        "storageAccount"
+                      ]
                     },
                     "storageAccount_blobServices": {
                       "condition": "[not(empty(parameters('blobServices')))]",
@@ -7159,7 +7276,9 @@
                                 },
                                 "conditionVersion": {
                                   "type": "string",
-                                  "allowedValues": ["2.0"],
+                                  "allowedValues": [
+                                    "2.0"
+                                  ],
                                   "nullable": true,
                                   "metadata": {
                                     "description": "Optional. Version of the condition."
@@ -7359,7 +7478,9 @@
                                 "lastAccessTimeTrackingPolicy": "[if(and(not(equals(reference('storageAccount', '2025-01-01', 'full').kind, 'Storage')), empty(tryGet(reference('storageAccount', '2025-01-01', 'full'), 'extendedLocation'))), createObject('enable', parameters('lastAccessTimeTrackingPolicyEnabled'), 'name', if(equals(parameters('lastAccessTimeTrackingPolicyEnabled'), true()), 'AccessTimeTracking', null()), 'trackingGranularityInDays', if(equals(parameters('lastAccessTimeTrackingPolicyEnabled'), true()), 1, null())), null())]",
                                 "restorePolicy": "[if(parameters('restorePolicyEnabled'), createObject('enabled', true(), 'days', parameters('restorePolicyDays')), null())]"
                               },
-                              "dependsOn": ["storageAccount"]
+                              "dependsOn": [
+                                "storageAccount"
+                              ]
                             },
                             "blobServices_diagnosticSettings": {
                               "copy": {
@@ -7398,7 +7519,9 @@
                                 "marketplacePartnerId": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'marketplacePartnerResourceId')]",
                                 "logAnalyticsDestinationType": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'logAnalyticsDestinationType')]"
                               },
-                              "dependsOn": ["blobServices"]
+                              "dependsOn": [
+                                "blobServices"
+                              ]
                             },
                             "blobServices_container": {
                               "copy": {
@@ -7550,7 +7673,9 @@
                                         },
                                         "conditionVersion": {
                                           "type": "string",
-                                          "allowedValues": ["2.0"],
+                                          "allowedValues": [
+                                            "2.0"
+                                          ],
                                           "nullable": true,
                                           "metadata": {
                                             "description": "Optional. Version of the condition."
@@ -7764,7 +7889,9 @@
                                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                                       },
-                                      "dependsOn": ["container"]
+                                      "dependsOn": [
+                                        "container"
+                                      ]
                                     },
                                     "container_immutabilityPolicy": {
                                       "condition": "[not(empty(coalesce(parameters('immutabilityPolicy'), createObject())))]",
@@ -7878,7 +8005,9 @@
                                           }
                                         }
                                       },
-                                      "dependsOn": ["container"]
+                                      "dependsOn": [
+                                        "container"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -7906,7 +8035,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["blobServices"]
+                              "dependsOn": [
+                                "blobServices"
+                              ]
                             }
                           },
                           "outputs": {
@@ -7934,7 +8065,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["storageAccount"]
+                      "dependsOn": [
+                        "storageAccount"
+                      ]
                     },
                     "storageAccount_fileServices": {
                       "condition": "[not(empty(parameters('fileServices')))]",
@@ -8064,7 +8197,10 @@
                                 },
                                 "enabledProtocols": {
                                   "type": "string",
-                                  "allowedValues": ["NFS", "SMB"],
+                                  "allowedValues": [
+                                    "NFS",
+                                    "SMB"
+                                  ],
                                   "nullable": true,
                                   "metadata": {
                                     "description": "Optional. The authentication protocol that is used for the file share. Can only be specified when creating a share."
@@ -8279,7 +8415,9 @@
                                 },
                                 "conditionVersion": {
                                   "type": "string",
-                                  "allowedValues": ["2.0"],
+                                  "allowedValues": [
+                                    "2.0"
+                                  ],
                                   "nullable": true,
                                   "metadata": {
                                     "description": "Optional. Version of the condition."
@@ -8427,7 +8565,9 @@
                                 "marketplacePartnerId": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'marketplacePartnerResourceId')]",
                                 "logAnalyticsDestinationType": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'logAnalyticsDestinationType')]"
                               },
-                              "dependsOn": ["fileServices"]
+                              "dependsOn": [
+                                "fileServices"
+                              ]
                             },
                             "fileServices_shares": {
                               "copy": {
@@ -8537,7 +8677,9 @@
                                         },
                                         "conditionVersion": {
                                           "type": "string",
-                                          "allowedValues": ["2.0"],
+                                          "allowedValues": [
+                                            "2.0"
+                                          ],
                                           "nullable": true,
                                           "metadata": {
                                             "description": "Optional. Version of the condition."
@@ -8603,7 +8745,10 @@
                                     "enabledProtocols": {
                                       "type": "string",
                                       "defaultValue": "SMB",
-                                      "allowedValues": ["NFS", "SMB"],
+                                      "allowedValues": [
+                                        "NFS",
+                                        "SMB"
+                                      ],
                                       "metadata": {
                                         "description": "Optional. The authentication protocol that is used for the file share. Can only be specified when creating a share."
                                       }
@@ -8804,7 +8949,9 @@
                                             },
                                             "conditionVersion": {
                                               "type": "string",
-                                              "allowedValues": ["2.0"],
+                                              "allowedValues": [
+                                                "2.0"
+                                              ],
                                               "defaultValue": "2.0",
                                               "metadata": {
                                                 "description": "Optional. Version of the condition."
@@ -8837,7 +8984,9 @@
                                           ]
                                         }
                                       },
-                                      "dependsOn": ["fileShare"]
+                                      "dependsOn": [
+                                        "fileShare"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -8865,7 +9014,10 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["fileServices", "storageAccount"]
+                              "dependsOn": [
+                                "fileServices",
+                                "storageAccount"
+                              ]
                             }
                           },
                           "outputs": {
@@ -8893,7 +9045,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["storageAccount"]
+                      "dependsOn": [
+                        "storageAccount"
+                      ]
                     },
                     "storageAccount_queueServices": {
                       "condition": "[not(empty(parameters('queueServices')))]",
@@ -9202,7 +9356,9 @@
                                 },
                                 "conditionVersion": {
                                   "type": "string",
-                                  "allowedValues": ["2.0"],
+                                  "allowedValues": [
+                                    "2.0"
+                                  ],
                                   "nullable": true,
                                   "metadata": {
                                     "description": "Optional. Version of the condition."
@@ -9318,7 +9474,9 @@
                                 "marketplacePartnerId": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'marketplacePartnerResourceId')]",
                                 "logAnalyticsDestinationType": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'logAnalyticsDestinationType')]"
                               },
-                              "dependsOn": ["queueServices"]
+                              "dependsOn": [
+                                "queueServices"
+                              ]
                             },
                             "queueServices_queues": {
                               "copy": {
@@ -9413,7 +9571,9 @@
                                         },
                                         "conditionVersion": {
                                           "type": "string",
-                                          "allowedValues": ["2.0"],
+                                          "allowedValues": [
+                                            "2.0"
+                                          ],
                                           "nullable": true,
                                           "metadata": {
                                             "description": "Optional. Version of the condition."
@@ -9533,7 +9693,9 @@
                                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                                       },
-                                      "dependsOn": ["queue"]
+                                      "dependsOn": [
+                                        "queue"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -9588,7 +9750,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["storageAccount"]
+                      "dependsOn": [
+                        "storageAccount"
+                      ]
                     },
                     "storageAccount_tableServices": {
                       "condition": "[not(empty(parameters('tableServices')))]",
@@ -9887,7 +10051,9 @@
                                 },
                                 "conditionVersion": {
                                   "type": "string",
-                                  "allowedValues": ["2.0"],
+                                  "allowedValues": [
+                                    "2.0"
+                                  ],
                                   "nullable": true,
                                   "metadata": {
                                     "description": "Optional. Version of the condition."
@@ -10003,7 +10169,9 @@
                                 "marketplacePartnerId": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'marketplacePartnerResourceId')]",
                                 "logAnalyticsDestinationType": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'logAnalyticsDestinationType')]"
                               },
-                              "dependsOn": ["tableServices"]
+                              "dependsOn": [
+                                "tableServices"
+                              ]
                             },
                             "tableServices_tables": {
                               "copy": {
@@ -10095,7 +10263,9 @@
                                         },
                                         "conditionVersion": {
                                           "type": "string",
-                                          "allowedValues": ["2.0"],
+                                          "allowedValues": [
+                                            "2.0"
+                                          ],
                                           "nullable": true,
                                           "metadata": {
                                             "description": "Optional. Version of the condition."
@@ -10200,7 +10370,9 @@
                                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                                       },
-                                      "dependsOn": ["table"]
+                                      "dependsOn": [
+                                        "table"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -10255,7 +10427,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["storageAccount"]
+                      "dependsOn": [
+                        "storageAccount"
+                      ]
                     },
                     "secretsExport": {
                       "condition": "[not(equals(parameters('secretsExportConfiguration'), null()))]",
@@ -10400,7 +10574,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["storageAccount"]
+                      "dependsOn": [
+                        "storageAccount"
+                      ]
                     },
                     "storageAccount_objectReplicationPolicies": {
                       "copy": {
@@ -10981,7 +11157,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["destinationPolicy"]
+                              "dependsOn": [
+                                "destinationPolicy"
+                              ]
                             }
                           },
                           "outputs": {
@@ -11328,7 +11506,10 @@
                         },
                         "logAnalyticsDestinationType": {
                           "type": "string",
-                          "allowedValues": ["AzureDiagnostics", "Dedicated"],
+                          "allowedValues": [
+                            "AzureDiagnostics",
+                            "Dedicated"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. A string indicating whether the export to Log Analytics should use the default destination type, i.e. AzureDiagnostics, or use a destination type."
@@ -11389,7 +11570,11 @@
                         },
                         "kind": {
                           "type": "string",
-                          "allowedValues": ["CanNotDelete", "None", "ReadOnly"],
+                          "allowedValues": [
+                            "CanNotDelete",
+                            "None",
+                            "ReadOnly"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Specify the type of lock."
@@ -11462,7 +11647,9 @@
                         },
                         "conditionVersion": {
                           "type": "string",
-                          "allowedValues": ["2.0"],
+                          "allowedValues": [
+                            "2.0"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Version of the condition."
@@ -11494,7 +11681,10 @@
                     "applicationType": {
                       "type": "string",
                       "defaultValue": "web",
-                      "allowedValues": ["web", "other"],
+                      "allowedValues": [
+                        "web",
+                        "other"
+                      ],
                       "metadata": {
                         "description": "Optional. Application type."
                       }
@@ -11536,7 +11726,10 @@
                     "publicNetworkAccessForIngestion": {
                       "type": "string",
                       "defaultValue": "Enabled",
-                      "allowedValues": ["Enabled", "Disabled"],
+                      "allowedValues": [
+                        "Enabled",
+                        "Disabled"
+                      ],
                       "metadata": {
                         "description": "Optional. The network access type for accessing Application Insights ingestion. - Enabled or Disabled."
                       }
@@ -11544,7 +11737,10 @@
                     "publicNetworkAccessForQuery": {
                       "type": "string",
                       "defaultValue": "Enabled",
-                      "allowedValues": ["Enabled", "Disabled"],
+                      "allowedValues": [
+                        "Enabled",
+                        "Disabled"
+                      ],
                       "metadata": {
                         "description": "Optional. The network access type for accessing Application Insights query. - Enabled or Disabled."
                       }
@@ -11553,7 +11749,15 @@
                       "type": "int",
                       "defaultValue": 365,
                       "allowedValues": [
-                        30, 60, 90, 120, 180, 270, 365, 550, 730
+                        30,
+                        60,
+                        90,
+                        120,
+                        180,
+                        270,
+                        365,
+                        550,
+                        730
                       ],
                       "metadata": {
                         "description": "Optional. Retention period in days."
@@ -11742,7 +11946,9 @@
                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                       },
-                      "dependsOn": ["appInsights"]
+                      "dependsOn": [
+                        "appInsights"
+                      ]
                     },
                     "appInsights_lock": {
                       "condition": "[and(not(empty(coalesce(parameters('lock'), createObject()))), not(equals(tryGet(parameters('lock'), 'kind'), 'None')))]",
@@ -11754,7 +11960,9 @@
                         "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
                         "notes": "[coalesce(tryGet(parameters('lock'), 'notes'), if(equals(tryGet(parameters('lock'), 'kind'), 'CanNotDelete'), 'Cannot delete resource or child resources.', 'Cannot delete or modify the resource or child resources.'))]"
                       },
-                      "dependsOn": ["appInsights"]
+                      "dependsOn": [
+                        "appInsights"
+                      ]
                     },
                     "appInsights_diagnosticSettings": {
                       "copy": {
@@ -11793,7 +12001,9 @@
                         "marketplacePartnerId": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'marketplacePartnerResourceId')]",
                         "logAnalyticsDestinationType": "[tryGet(coalesce(parameters('diagnosticSettings'), createArray())[copyIndex()], 'logAnalyticsDestinationType')]"
                       },
-                      "dependsOn": ["appInsights"]
+                      "dependsOn": [
+                        "appInsights"
+                      ]
                     },
                     "linkedStorageAccount": {
                       "condition": "[not(empty(parameters('linkedStorageAccountResourceId')))]",
@@ -11874,7 +12084,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["appInsights"]
+                      "dependsOn": [
+                        "appInsights"
+                      ]
                     }
                   },
                   "outputs": {
@@ -12169,7 +12381,11 @@
                         },
                         "kind": {
                           "type": "string",
-                          "allowedValues": ["CanNotDelete", "None", "ReadOnly"],
+                          "allowedValues": [
+                            "CanNotDelete",
+                            "None",
+                            "ReadOnly"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Specify the type of lock."
@@ -12351,7 +12567,9 @@
                         },
                         "conditionVersion": {
                           "type": "string",
-                          "allowedValues": ["2.0"],
+                          "allowedValues": [
+                            "2.0"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Version of the condition."
@@ -12384,7 +12602,11 @@
                         },
                         "kind": {
                           "type": "string",
-                          "allowedValues": ["CanNotDelete", "None", "ReadOnly"],
+                          "allowedValues": [
+                            "CanNotDelete",
+                            "None",
+                            "ReadOnly"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Specify the type of lock."
@@ -12630,7 +12852,9 @@
                         },
                         "conditionVersion": {
                           "type": "string",
-                          "allowedValues": ["2.0"],
+                          "allowedValues": [
+                            "2.0"
+                          ],
                           "nullable": true,
                           "metadata": {
                             "description": "Optional. Version of the condition."
@@ -12664,7 +12888,10 @@
                     "sku": {
                       "type": "string",
                       "defaultValue": "Free",
-                      "allowedValues": ["Free", "Standard"],
+                      "allowedValues": [
+                        "Free",
+                        "Standard"
+                      ],
                       "metadata": {
                         "description": "Optional. The service tier and name of the resource SKU."
                       }
@@ -12686,7 +12913,10 @@
                     "stagingEnvironmentPolicy": {
                       "type": "string",
                       "defaultValue": "Enabled",
-                      "allowedValues": ["Enabled", "Disabled"],
+                      "allowedValues": [
+                        "Enabled",
+                        "Disabled"
+                      ],
                       "metadata": {
                         "description": "Optional. State indicating whether staging environments are allowed or not allowed for a static web app."
                       }
@@ -12828,7 +13058,10 @@
                     "validationMethod": {
                       "type": "string",
                       "nullable": true,
-                      "allowedValues": ["dns-txt-token", "cname-delegation"],
+                      "allowedValues": [
+                        "dns-txt-token",
+                        "cname-delegation"
+                      ],
                       "metadata": {
                         "description": "Optional. Custom domain validation method. If not specified, automatically determined based on domain structure."
                       }
@@ -12836,7 +13069,11 @@
                     "publicNetworkAccess": {
                       "type": "string",
                       "defaultValue": "",
-                      "allowedValues": ["", "Enabled", "Disabled"],
+                      "allowedValues": [
+                        "",
+                        "Enabled",
+                        "Disabled"
+                      ],
                       "metadata": {
                         "description": "Optional. Whether or not public network access is allowed for this resource. For security reasons it should be disabled. If not specified, it will be disabled by default if private endpoints are set."
                       }
@@ -12844,7 +13081,10 @@
                     "createPrivateDnsZone": {
                       "type": "string",
                       "defaultValue": "Enabled",
-                      "allowedValues": ["Enabled", "Disabled"],
+                      "allowedValues": [
+                        "Enabled",
+                        "Disabled"
+                      ],
                       "metadata": {
                         "description": "Optional. Due the nature of Azure Static Apps, a partition ID is added to the app URL upon creation. Enabling the creation of the private DNS Zone will provision a DNS Zone with the correct partition ID, this is required for private endpoint connectivity to be enabled. You can choose to disable this option and create your own private DNS Zone by leveraging the output of the partitionId within this module. Default is `Enabled`, However the Private DNS Zone will only be created following if a `privateEndpoint` configuration is supplied."
                       }
@@ -12933,7 +13173,9 @@
                         "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
                         "notes": "[coalesce(tryGet(parameters('lock'), 'notes'), if(equals(tryGet(parameters('lock'), 'kind'), 'CanNotDelete'), 'Cannot delete resource or child resources.', 'Cannot delete or modify the resource or child resources.'))]"
                       },
-                      "dependsOn": ["staticSite"]
+                      "dependsOn": [
+                        "staticSite"
+                      ]
                     },
                     "staticSite_roleAssignments": {
                       "copy": {
@@ -12953,7 +13195,9 @@
                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                       },
-                      "dependsOn": ["staticSite"]
+                      "dependsOn": [
+                        "staticSite"
+                      ]
                     },
                     "staticSite_linkedBackend": {
                       "condition": "[not(empty(parameters('linkedBackend')))]",
@@ -13052,7 +13296,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["staticSite"]
+                      "dependsOn": [
+                        "staticSite"
+                      ]
                     },
                     "staticSite_appSettings": {
                       "condition": "[not(empty(parameters('appSettings')))]",
@@ -13144,7 +13390,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["staticSite"]
+                      "dependsOn": [
+                        "staticSite"
+                      ]
                     },
                     "staticSite_functionAppSettings": {
                       "condition": "[not(empty(parameters('functionAppSettings')))]",
@@ -13236,7 +13484,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["staticSite"]
+                      "dependsOn": [
+                        "staticSite"
+                      ]
                     },
                     "staticSite_customDomains": {
                       "copy": {
@@ -13330,7 +13580,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["staticSite"]
+                      "dependsOn": [
+                        "staticSite"
+                      ]
                     },
                     "staticSite_privateDnsZone": {
                       "condition": "[and(not(empty(parameters('privateEndpoints'))), equals(parameters('createPrivateDnsZone'), 'Enabled'))]",
@@ -13426,7 +13678,9 @@
                                   },
                                   "conditionVersion": {
                                     "type": "string",
-                                    "allowedValues": ["2.0"],
+                                    "allowedValues": [
+                                      "2.0"
+                                    ],
                                     "nullable": true,
                                     "metadata": {
                                       "description": "Optional. Version of the condition."
@@ -14156,7 +14410,9 @@
                                 "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
                                 "notes": "[if(equals(tryGet(parameters('lock'), 'kind'), 'CanNotDelete'), 'Cannot delete resource or child resources.', 'Cannot delete or modify the resource or child resources.')]"
                               },
-                              "dependsOn": ["privateDnsZone"]
+                              "dependsOn": [
+                                "privateDnsZone"
+                              ]
                             },
                             "privateDnsZone_roleAssignments": {
                               "copy": {
@@ -14176,7 +14432,9 @@
                                 "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                 "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                               },
-                              "dependsOn": ["privateDnsZone"]
+                              "dependsOn": [
+                                "privateDnsZone"
+                              ]
                             },
                             "privateDnsZone_A": {
                               "copy": {
@@ -14280,7 +14538,9 @@
                                           },
                                           "conditionVersion": {
                                             "type": "string",
-                                            "allowedValues": ["2.0"],
+                                            "allowedValues": [
+                                              "2.0"
+                                            ],
                                             "nullable": true,
                                             "metadata": {
                                               "description": "Optional. Version of the condition."
@@ -14392,7 +14652,9 @@
                                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                                       },
-                                      "dependsOn": ["A"]
+                                      "dependsOn": [
+                                        "A"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -14420,7 +14682,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["privateDnsZone"]
+                              "dependsOn": [
+                                "privateDnsZone"
+                              ]
                             },
                             "privateDnsZone_AAAA": {
                               "copy": {
@@ -14524,7 +14788,9 @@
                                           },
                                           "conditionVersion": {
                                             "type": "string",
-                                            "allowedValues": ["2.0"],
+                                            "allowedValues": [
+                                              "2.0"
+                                            ],
                                             "nullable": true,
                                             "metadata": {
                                               "description": "Optional. Version of the condition."
@@ -14636,7 +14902,9 @@
                                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                                       },
-                                      "dependsOn": ["AAAA"]
+                                      "dependsOn": [
+                                        "AAAA"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -14664,7 +14932,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["privateDnsZone"]
+                              "dependsOn": [
+                                "privateDnsZone"
+                              ]
                             },
                             "privateDnsZone_CNAME": {
                               "copy": {
@@ -14768,7 +15038,9 @@
                                           },
                                           "conditionVersion": {
                                             "type": "string",
-                                            "allowedValues": ["2.0"],
+                                            "allowedValues": [
+                                              "2.0"
+                                            ],
                                             "nullable": true,
                                             "metadata": {
                                               "description": "Optional. Version of the condition."
@@ -14880,7 +15152,9 @@
                                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                                       },
-                                      "dependsOn": ["CNAME"]
+                                      "dependsOn": [
+                                        "CNAME"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -14908,7 +15182,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["privateDnsZone"]
+                              "dependsOn": [
+                                "privateDnsZone"
+                              ]
                             },
                             "privateDnsZone_MX": {
                               "copy": {
@@ -15012,7 +15288,9 @@
                                           },
                                           "conditionVersion": {
                                             "type": "string",
-                                            "allowedValues": ["2.0"],
+                                            "allowedValues": [
+                                              "2.0"
+                                            ],
                                             "nullable": true,
                                             "metadata": {
                                               "description": "Optional. Version of the condition."
@@ -15124,7 +15402,9 @@
                                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                                       },
-                                      "dependsOn": ["MX"]
+                                      "dependsOn": [
+                                        "MX"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -15152,7 +15432,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["privateDnsZone"]
+                              "dependsOn": [
+                                "privateDnsZone"
+                              ]
                             },
                             "privateDnsZone_PTR": {
                               "copy": {
@@ -15256,7 +15538,9 @@
                                           },
                                           "conditionVersion": {
                                             "type": "string",
-                                            "allowedValues": ["2.0"],
+                                            "allowedValues": [
+                                              "2.0"
+                                            ],
                                             "nullable": true,
                                             "metadata": {
                                               "description": "Optional. Version of the condition."
@@ -15368,7 +15652,9 @@
                                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                                       },
-                                      "dependsOn": ["PTR"]
+                                      "dependsOn": [
+                                        "PTR"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -15396,7 +15682,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["privateDnsZone"]
+                              "dependsOn": [
+                                "privateDnsZone"
+                              ]
                             },
                             "privateDnsZone_SOA": {
                               "copy": {
@@ -15500,7 +15788,9 @@
                                           },
                                           "conditionVersion": {
                                             "type": "string",
-                                            "allowedValues": ["2.0"],
+                                            "allowedValues": [
+                                              "2.0"
+                                            ],
                                             "nullable": true,
                                             "metadata": {
                                               "description": "Optional. Version of the condition."
@@ -15612,7 +15902,9 @@
                                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                                       },
-                                      "dependsOn": ["SOA"]
+                                      "dependsOn": [
+                                        "SOA"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -15640,7 +15932,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["privateDnsZone"]
+                              "dependsOn": [
+                                "privateDnsZone"
+                              ]
                             },
                             "privateDnsZone_SRV": {
                               "copy": {
@@ -15744,7 +16038,9 @@
                                           },
                                           "conditionVersion": {
                                             "type": "string",
-                                            "allowedValues": ["2.0"],
+                                            "allowedValues": [
+                                              "2.0"
+                                            ],
                                             "nullable": true,
                                             "metadata": {
                                               "description": "Optional. Version of the condition."
@@ -15856,7 +16152,9 @@
                                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                                       },
-                                      "dependsOn": ["SRV"]
+                                      "dependsOn": [
+                                        "SRV"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -15884,7 +16182,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["privateDnsZone"]
+                              "dependsOn": [
+                                "privateDnsZone"
+                              ]
                             },
                             "privateDnsZone_TXT": {
                               "copy": {
@@ -15988,7 +16288,9 @@
                                           },
                                           "conditionVersion": {
                                             "type": "string",
-                                            "allowedValues": ["2.0"],
+                                            "allowedValues": [
+                                              "2.0"
+                                            ],
                                             "nullable": true,
                                             "metadata": {
                                               "description": "Optional. Version of the condition."
@@ -16100,7 +16402,9 @@
                                         "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                         "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                                       },
-                                      "dependsOn": ["TXT"]
+                                      "dependsOn": [
+                                        "TXT"
+                                      ]
                                     }
                                   },
                                   "outputs": {
@@ -16128,7 +16432,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["privateDnsZone"]
+                              "dependsOn": [
+                                "privateDnsZone"
+                              ]
                             },
                             "privateDnsZone_virtualNetworkLinks": {
                               "copy": {
@@ -16283,7 +16589,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["privateDnsZone"]
+                              "dependsOn": [
+                                "privateDnsZone"
+                              ]
                             }
                           },
                           "outputs": {
@@ -16318,7 +16626,9 @@
                           }
                         }
                       },
-                      "dependsOn": ["staticSite"]
+                      "dependsOn": [
+                        "staticSite"
+                      ]
                     },
                     "staticSite_privateEndpoints": {
                       "copy": {
@@ -16626,7 +16936,9 @@
                                 },
                                 "conditionVersion": {
                                   "type": "string",
-                                  "allowedValues": ["2.0"],
+                                  "allowedValues": [
+                                    "2.0"
+                                  ],
                                   "nullable": true,
                                   "metadata": {
                                     "description": "Optional. Version of the condition."
@@ -16842,7 +17154,9 @@
                                 "level": "[coalesce(tryGet(parameters('lock'), 'kind'), '')]",
                                 "notes": "[if(equals(tryGet(parameters('lock'), 'kind'), 'CanNotDelete'), 'Cannot delete resource or child resources.', 'Cannot delete or modify the resource or child resources.')]"
                               },
-                              "dependsOn": ["privateEndpoint"]
+                              "dependsOn": [
+                                "privateEndpoint"
+                              ]
                             },
                             "privateEndpoint_roleAssignments": {
                               "copy": {
@@ -16862,7 +17176,9 @@
                                 "conditionVersion": "[if(not(empty(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'condition'))), coalesce(tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'conditionVersion'), '2.0'), null())]",
                                 "delegatedManagedIdentityResourceId": "[tryGet(coalesce(variables('formattedRoleAssignments'), createArray())[copyIndex()], 'delegatedManagedIdentityResourceId')]"
                               },
-                              "dependsOn": ["privateEndpoint"]
+                              "dependsOn": [
+                                "privateEndpoint"
+                              ]
                             },
                             "privateEndpoint_privateDnsZoneGroup": {
                               "condition": "[not(empty(parameters('privateDnsZoneGroup')))]",
@@ -17002,7 +17318,9 @@
                                   }
                                 }
                               },
-                              "dependsOn": ["privateEndpoint"]
+                              "dependsOn": [
+                                "privateEndpoint"
+                              ]
                             }
                           },
                           "outputs": {
@@ -17065,7 +17383,10 @@
                           }
                         }
                       },
-                      "dependsOn": ["staticSite", "staticSite_privateDnsZone"]
+                      "dependsOn": [
+                        "staticSite",
+                        "staticSite_privateDnsZone"
+                      ]
                     }
                   },
                   "outputs": {
