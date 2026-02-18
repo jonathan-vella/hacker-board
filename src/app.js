@@ -74,7 +74,7 @@ function handleRoute() {
   });
 
   const renderer = routes[hash];
-  if (renderer) {
+  if (typeof renderer === "function") {
     renderer(main, currentUser);
   } else {
     main.innerHTML = `
