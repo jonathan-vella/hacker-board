@@ -55,6 +55,11 @@ param deploymentTimestamp string = utcNow('yyyyMMddHHmmss')
 
 var suffix = '${projectName}-${environment}'
 
+// Storage account names: max 24 chars, lowercase alphanumeric only.
+// uniqueString scopes to the resource group so re-deploys to the same RG always
+// produce the same name (idempotent), while different RGs get different names.
+var storageAccountName = take(replace('st${projectName}${environment}${uniqueString(resourceGroup().id)}', '-', ''), 24)
+
 var tags = {
   project: projectName
   environment: environment
@@ -89,7 +94,7 @@ module appInsights 'modules/app-insights.bicep' = {
 module storage 'modules/storage.bicep' = {
   name: 'storage-${deploymentTimestamp}'
   params: {
-    name: replace('st${projectName}${environment}', '-', '')
+    name: storageAccountName
     location: location
     tags: tags
   }
