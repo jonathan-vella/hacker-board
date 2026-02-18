@@ -11,7 +11,7 @@ const REQUIRED_TABLES = [
   "Config",
 ];
 
-async function handleHealth(_request) {
+async function handleHealth(request) {
   const started = Date.now();
   const tables = {};
   let healthy = true;
@@ -28,6 +28,18 @@ async function handleHealth(_request) {
     }
   }
 
+  const diagnostics = request.query.get("diag") === "1"
+    ? {
+        identityEndpoint: !!process.env.IDENTITY_ENDPOINT,
+        identityHeader: !!process.env.IDENTITY_HEADER,
+        msiEndpoint: !!process.env.MSI_ENDPOINT,
+        msiSecret: !!process.env.MSI_SECRET,
+        storageAccount: process.env.STORAGE_ACCOUNT_NAME ?? "(unset)",
+        connectionString: !!process.env.AZURE_STORAGE_CONNECTION_STRING,
+        nodeVersion: process.version,
+      }
+    : undefined;
+
   return {
     status: healthy ? 200 : 503,
     jsonBody: {
@@ -35,6 +47,7 @@ async function handleHealth(_request) {
       tables,
       uptime: process.uptime(),
       duration: Date.now() - started,
+      ...(diagnostics && { diagnostics }),
     },
   };
 }
