@@ -128,33 +128,33 @@ Skills live in `.github/skills/{name}/SKILL.md`. Each skill:
 - Defines reusable capabilities invokable by agents or directly by users
 - Includes trigger phrases and step-by-step workflows
 
-| Skill             | Purpose                                                          |
-| ----------------- | ---------------------------------------------------------------- |
-| azure-diagrams    | Azure architecture diagrams via Python `diagrams` + Graphviz    |
-| docs-writer       | Documentation maintenance, staleness checks                      |
-| git-commit        | Conventional commits, diff-aware messages                        |
-| github-operations | Issues, PRs, Actions via MCP/gh CLI                              |
+| Skill             | Purpose                                                      |
+| ----------------- | ------------------------------------------------------------ |
+| azure-diagrams    | Azure architecture diagrams via Python `diagrams` + Graphviz |
+| docs-writer       | Documentation maintenance, staleness checks                  |
+| git-commit        | Conventional commits, diff-aware messages                    |
+| github-operations | Issues, PRs, Actions via MCP/gh CLI                          |
 
 ### Instruction Files
 
 Instruction files in `.github/instructions/` provide file-type-specific rules. They use `applyTo` globs to auto-activate:
 
-| File                                          | Applies To                     |
-| --------------------------------------------- | ------------------------------ |
-| `accessibility.instructions.md`               | `*.html, *.css, *.js`          |
-| `agent-research-first.instructions.md`        | `**/*.agent.md`                |
-| `azure-functions-api.instructions.md`         | `api/**/*.js, api/**/*.json`   |
-| `bicep.instructions.md`                       | `*.bicep, *.bicepparam`        |
-| `code-comments.instructions.md`               | All files                      |
-| `code-review.instructions.md`                 | `*.js, *.html, *.css, *.bicep` |
-| `docs.instructions.md`                        | `docs/**/*.md`                 |
-| `execution-plan.instructions.md`              | `**/*.{js,html,css,bicep}`     |
-| `github-actions.instructions.md`              | `.github/workflows/*.yml`      |
-| `html-css-style.instructions.md`              | `*.html, *.css, *.js`          |
-| `markdown.instructions.md`                    | `**/*.md`                      |
-| `security.instructions.md`                    | All files                      |
-| `shell.instructions.md`                       | `**/*.sh`                      |
-| `update-docs-on-code-change.instructions.md`  | `**/*.{js,html,css,bicep,sh}`  |
+| File                                         | Applies To                     |
+| -------------------------------------------- | ------------------------------ |
+| `accessibility.instructions.md`              | `*.html, *.css, *.js`          |
+| `agent-research-first.instructions.md`       | `**/*.agent.md`                |
+| `azure-functions-api.instructions.md`        | `api/**/*.js, api/**/*.json`   |
+| `bicep.instructions.md`                      | `*.bicep, *.bicepparam`        |
+| `code-comments.instructions.md`              | All files                      |
+| `code-review.instructions.md`                | `*.js, *.html, *.css, *.bicep` |
+| `docs.instructions.md`                       | `docs/**/*.md`                 |
+| `execution-plan.instructions.md`             | `**/*.{js,html,css,bicep}`     |
+| `github-actions.instructions.md`             | `.github/workflows/*.yml`      |
+| `html-css-style.instructions.md`             | `*.html, *.css, *.js`          |
+| `markdown.instructions.md`                   | `**/*.md`                      |
+| `security.instructions.md`                   | All files                      |
+| `shell.instructions.md`                      | `**/*.sh`                      |
+| `update-docs-on-code-change.instructions.md` | `**/*.{js,html,css,bicep,sh}`  |
 
 ## Documentation
 

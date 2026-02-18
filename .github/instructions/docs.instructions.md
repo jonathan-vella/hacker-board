@@ -61,8 +61,8 @@ Use emoji + link + description columns for consistent scanning.
 ```markdown
 ## Quick Links
 
-| Area | Link                                    | Description                                       |
-| ---- | --------------------------------------- | ------------------------------------------------- |
+| Area | Link                                         | Description                                       |
+| ---- | -------------------------------------------- | ------------------------------------------------- |
 | 🧩   | [Architecture](docs/app-design.md)           | SPA + Functions + Table Storage system design     |
 | 🔌   | [API Spec](docs/api-spec.md)                 | Endpoint contracts, payloads, and error envelopes |
 | 🤖   | [Agents & Skills](docs/agents-and-skills.md) | Agent inventory and skill usage guidance          |
