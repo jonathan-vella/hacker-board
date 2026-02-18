@@ -33,7 +33,7 @@ on:
       what_if:
         description: "Run what-if preview only (no deploy)"
         required: false
-        default: "false"
+        default: false
         type: boolean
 
 permissions:
@@ -45,7 +45,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-infra:
+  deploy_infra:
     name: Deploy Azure Infrastructure
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
@@ -146,8 +146,8 @@ jobs:
 
   migrate-schema:
     name: Deploy SQL Schema
-    needs: deploy-infra
-    if: github.event.inputs.what_if != 'true' && needs.deploy-infra.outputs.sql_fqdn != ''
+    needs: deploy_infra
+    if: github.event.inputs.what_if != 'true' && needs.deploy_infra.outputs.sql_fqdn != ''
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
 
@@ -172,17 +172,17 @@ jobs:
 
       - name: Run schema migration
         env:
-          SQL_SERVER_FQDN: ${{ needs.deploy-infra.outputs.sql_fqdn }}
-          SQL_DATABASE_NAME: ${{ needs.deploy-infra.outputs.sql_db }}
+          SQL_SERVER_FQDN: ${{ needs.deploy_infra.outputs.sql_fqdn }}
+          SQL_DATABASE_NAME: ${{ needs.deploy_infra.outputs.sql_db }}
         run: node scripts/deploy-schema.js
 
   invite-admin:
     name: Invite Admin User
-    needs: [deploy-infra, migrate-schema]
+    needs: [deploy_infra, migrate-schema]
     if: |
       github.event.inputs.what_if != 'true' &&
       github.event.inputs.admin_email != '' &&
-      needs.deploy-infra.outputs.swa_name != ''
+      needs.deploy_infra.outputs.swa_name != ''
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
 
@@ -200,7 +200,7 @@ jobs:
       - name: Send admin invitation
         run: |
           bash scripts/invite-admin.sh \
-            --app "${{ needs.deploy-infra.outputs.swa_name }}" \
+            --app "${{ needs.deploy_infra.outputs.swa_name }}" \
             --rg "${{ github.event.inputs.resource_group }}" \
             --email "${{ github.event.inputs.admin_email }}" \
             --role writer

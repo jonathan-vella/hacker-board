@@ -2,7 +2,7 @@
 name: HackerBoard Conductor
 description: Master orchestrator for the HackerBoard development workflow. Coordinates 8 specialized agents through a 7-step process with mandatory human approval gates between steps.
 argument-hint: "Describe the feature or task to orchestrate"
-tools: ["agent", "read", "search", "edit", "fetch", "problems"]
+tools: ["agent", "read", "search", "edit", "web/fetch", "read/problems"]
 agents:
   [
     "Task Planner",
