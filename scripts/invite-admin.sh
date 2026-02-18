@@ -15,12 +15,12 @@
 #   --email  GitHub email address of the user to invite
 #
 # Optional:
-#   --role   Role to assign (default: writer). Use "reader" for view-only.
+#   --role   Role to assign (default: admin). Use "member" for view-only.
 
 set -euo pipefail
 
 # ── Defaults ─────────────────────────────────────────────────────────────────
-ROLE="writer"
+ROLE="admin"
 APP_NAME=""
 RESOURCE_GROUP=""
 EMAIL=""
@@ -34,7 +34,7 @@ while [[ $# -gt 0 ]]; do
     --role)  ROLE="$2";           shift 2 ;;
     *)
       echo "❌  Unknown argument: $1"
-      echo "Usage: $0 --app <swa-name> --rg <resource-group> --email <github-email> [--role writer|reader]"
+      echo "Usage: $0 --app <swa-name> --rg <resource-group> --email <github-email> [--role admin|member]"
       exit 1
       ;;
   esac
@@ -43,12 +43,12 @@ done
 # ── Validation ────────────────────────────────────────────────────────────────
 if [[ -z "$APP_NAME" || -z "$RESOURCE_GROUP" || -z "$EMAIL" ]]; then
   echo "❌  Missing required arguments."
-  echo "Usage: $0 --app <swa-name> --rg <resource-group> --email <github-email> [--role writer|reader]"
+  echo "Usage: $0 --app <swa-name> --rg <resource-group> --email <github-email> [--role admin|member]"
   exit 1
 fi
 
-if [[ "$ROLE" != "writer" && "$ROLE" != "reader" ]]; then
-  echo "❌  Invalid role: $ROLE. Must be 'writer' or 'reader'."
+if [[ "$ROLE" != "admin" && "$ROLE" != "member" ]]; then
+  echo "❌  Invalid role: $ROLE. Must be 'admin' or 'member'."
   exit 1
 fi
 

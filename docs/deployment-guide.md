@@ -482,4 +482,122 @@ npm run test:all
 
 ---
 
+## E2E Deployment Validation — Test Protocol
+
+> This section defines the shared test protocol for validating all three deployment paths: **Path A** (PowerShell script), **Path B** (GitHub Actions), and **Path C** (Deploy to Azure button). Each path runs in its own disposable resource group.
+
+### Disposable Resource Groups
+
+| Path | Resource Group Pattern  | Deployment Method                     |
+| ---- | ----------------------- | ------------------------------------- |
+| A    | `hb-e2e-ps-<yyyyMMdd>`  | `infra/deploy.ps1`                    |
+| B    | `hb-e2e-gha-<yyyyMMdd>` | `.github/workflows/deploy-swa.yml`    |
+| C    | `hb-e2e-btn-<yyyyMMdd>` | ARM button → `infra/azuredeploy.json` |
+
+### Required Evidence Per Run
+
+Each path run MUST capture:
+
+| Artifact                | Description                                                           |
+| ----------------------- | --------------------------------------------------------------------- |
+| Deployment ID/name      | Azure deployment name (e.g., `hacker-board-20260218-143022`)          |
+| Provisioning outputs    | `swaHostname`, `swaName`, `sqlServerFqdn`, `sqlDatabaseName`          |
+| Schema migration result | Exit code + output of `node scripts/deploy-schema.js`                 |
+| Health check response   | `curl -fsS https://<swaHostname>/api/health` — must return `200`      |
+| Teams endpoint response | `curl -i https://<swaHostname>/api/teams` — must return `200`, no 5xx |
+| Role access validation  | Unauthenticated request to admin route → must return `401`/`403`      |
+| Teardown confirmation   | `az group delete --name <rg> --yes --no-wait` + confirmation          |
+
+### Preflight Gate (All Paths)
+
+Before executing any path, verify:
+
+- [ ] `infra/main.bicep` compiles cleanly: `az bicep build --file infra/main.bicep`
+- [ ] `infra/azuredeploy.json` is in sync with `main.bicep` (rebuild if changed)
+- [ ] Required parameters are available: `adminEmail`, `sqlAdminObjectId`, `costCenter`, `technicalContact`
+- [ ] `SWA_DEPLOYMENT_TOKEN` secret is set in GitHub repository secrets (Path B)
+- [ ] Azure CLI is authenticated with Contributor access to target subscription
+
+### SQL Private Endpoint — CI Runner Constraint
+
+When `enablePrivateEndpoint=true`, the GitHub Actions schema migration job **cannot reach the private SQL endpoint** from a hosted runner. For E2E test environments:
+
+- Set `enablePrivateEndpoint=false` in all three disposable test RGs
+- Use `--parameters enablePrivateEndpoint=false` in Path A's `deploy.ps1` invocation
+- This is expected behavior; private endpoints are for production only
+
+### Path Execution Commands
+
+**Path A — PowerShell**
+
+```powershell
+$date = Get-Date -Format 'yyyyMMdd'
+./infra/deploy.ps1 `
+  -ResourceGroupName "hb-e2e-ps-$date" `
+  -CostCenter "microhack" `
+  -TechnicalContact "you@contoso.com" `
+  -SqlAdminObjectId "<entra-object-id>" `
+  -AdminEmail "<github-email>" `
+  -Environment dev
+```
+
+> After deploy, run: `node scripts/deploy-schema.js` (env vars set from outputs)
+
+**Path B — GitHub Actions**
+
+```bash
+# Trigger manually via workflow_dispatch; set RESOURCE_GROUP_NAME input if workflow supports override
+gh workflow run deploy-swa.yml --ref main
+```
+
+> Collect: run URL, `static_web_app_url` job output, smoke test step logs
+
+**Path C — Deploy Button**
+
+1. Navigate to `README.md` and click **Deploy to Azure**
+2. Fill parameters: `costCenter`, `technicalContact`, `adminEmail`, `sqlAdminObjectId`, `enablePrivateEndpoint=false`
+3. After ARM deployment completes, collect outputs from Azure Portal
+4. Run `node scripts/deploy-schema.js` and `scripts/invite-admin.sh` manually
+
+### Runtime Smoke Checks (All Paths)
+
+```bash
+export APP_URL=https://<swaHostname>
+
+# Health
+curl -fsS $APP_URL/api/health
+
+# Teams (unauthenticated — list is public)
+curl -i $APP_URL/api/teams
+
+# Admin route access control (expect 401)
+curl -i $APP_URL/api/scores -X POST -H "Content-Type: application/json" -d '{}'
+```
+
+### Test Matrix
+
+| Check                          | Path A (PS) | Path B (GHA) | Path C (Button) |
+| ------------------------------ | ----------- | ------------ | --------------- |
+| Provisioning success           |             |              |                 |
+| All outputs present            |             |              |                 |
+| Schema migration success       |             |              |                 |
+| App deployment success         |             |              |                 |
+| `/api/health` → 200            |             |              |                 |
+| `/api/teams` → 200, no 5xx     |             |              |                 |
+| Admin route → 401 unauthed     |             |              |                 |
+| `admin`/`member` role behavior |             |              |                 |
+| Teardown complete              |             |              |                 |
+
+### Teardown
+
+```bash
+# After run — preserve logs/artifacts before deletion if the run failed
+az group delete --name <rg-name> --yes --no-wait
+
+# Only if data was seeded into a shared environment
+node scripts/cleanup-app-data.js
+```
+
+---
+
 [← Back to Documentation](README.md)

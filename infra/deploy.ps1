@@ -70,7 +70,8 @@ param(
     [string]$AdminEmail = '',
     [switch]$SkipSchema,
     [string]$RepositoryUrl = '',
-    [string]$RepositoryBranch = 'main'
+    [string]$RepositoryBranch = 'main',
+    [switch]$WhatIf
 )
 
 $ErrorActionPreference = 'Stop'
@@ -183,6 +184,9 @@ $deployParams = @(
 if ($SqlAdminObjectId -ne '') {
     $deployParams += @('--parameters', "sqlAdminObjectId=$SqlAdminObjectId")
 }
+if ($AdminEmail -ne '') {
+    $deployParams += @('--parameters', "adminEmail=$AdminEmail")
+}
 
 # ── What-If preview ──────────────────────────────────────────────────────────
 
@@ -236,11 +240,11 @@ if ($deploymentResult.properties.outputs) {
     if ($o) {
         Write-Host ""
         Write-Host "  📌 Key Outputs:" -ForegroundColor Cyan
-        if ($o.staticWebAppUrl.value) {
-            Write-Host "     SWA URL:      https://$($o.staticWebAppUrl.value)"
+        if ($o.swaHostname.value) {
+            Write-Host "     SWA URL:      https://$($o.swaHostname.value)"
         }
-        if ($o.staticWebAppName.value) {
-            Write-Host "     SWA Name:     $($o.staticWebAppName.value)"
+        if ($o.swaName.value) {
+            Write-Host "     SWA Name:     $($o.swaName.value)"
         }
         if ($o.sqlServerFqdn.value) {
             Write-Host "     SQL Server:   $($o.sqlServerFqdn.value)"
@@ -274,12 +278,12 @@ if ($deploymentResult.properties.outputs) {
     }
 
     # ── Post-deploy: Admin invitation ────────────────────────────────────────
-    if ($AdminEmail -ne '' -and $o -and $o.staticWebAppName.value) {
+    if ($AdminEmail -ne '' -and $o -and $o.swaName.value) {
         Write-Host ""
         Write-Host "  📧 Sending admin invitation to $AdminEmail..." -ForegroundColor Yellow
         $scriptRoot = Split-Path -Parent $PSScriptRoot
         bash "$scriptRoot/scripts/invite-admin.sh" \
-            --app "$($o.staticWebAppName.value)" \
+            --app "$($o.swaName.value)" \
             --rg "$ResourceGroupName" \
             --email "$AdminEmail"
         if ($LASTEXITCODE -eq 0) {
@@ -293,7 +297,7 @@ if ($deploymentResult.properties.outputs) {
 Write-Host ""
 Write-Host "ℹ️  Next steps:" -ForegroundColor Yellow
 Write-Host "  1. Link your GitHub repo to the Static Web App (if not set via repositoryUrl)"
-Write-Host "  2. Configure staticwebapp.config.json with GitHub OAuth and writer/reader roles"
+Write-Host "  2. Configure staticwebapp.config.json with GitHub OAuth and admin/member roles"
 Write-Host "  3. Grant the SWA managed identity the SQL db_owner or db_datareader/writer role"
 Write-Host "     ALTER ROLE db_owner ADD MEMBER [<swa-name>] (as Entra admin in SQL)"
 Write-Host "  4. Invite admin users: ./scripts/invite-admin.sh --app <name> --rg <rg> --email <email>"
