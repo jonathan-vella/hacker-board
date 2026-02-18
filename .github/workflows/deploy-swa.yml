@@ -90,8 +90,8 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "/src"
-          api_location: "/api"
+          app_location: "src"
+          api_location: "api"
           output_location: ""
           github_id_token: ${{ steps.idtoken.outputs.result }}
 
@@ -158,8 +158,8 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "/src"
-          api_location: "/api"
+          app_location: "src"
+          api_location: "api"
           output_location: ""
           github_id_token: ${{ steps.idtoken.outputs.result }}
 
@@ -167,6 +167,9 @@ jobs:
     name: Close PR Environment
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - name: Close Pull Request
         uses: Azure/static-web-apps-deploy@v1
