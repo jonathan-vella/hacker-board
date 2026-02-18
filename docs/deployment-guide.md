@@ -130,28 +130,21 @@ automatically configure:
 
 ---
 
-## Step 2 — Create Storage Tables
+## Step 2 — Verify Storage Tables
 
-The storage account is provisioned by Bicep, but tables must be created
-separately (Azure Table Storage does not support table creation via Bicep).
+All 7 storage tables are automatically provisioned by the Bicep templates via
+the AVM `tableServices.tables` property. No manual table creation is required.
+
+Verify the tables were created:
 
 ```bash
 # Replace with your actual storage account name from deployment output
 STORAGE_ACCOUNT="<storage-account-name>"
 
-for TABLE in Teams Attendees Scores Submissions Awards Rubrics; do
-  az storage table create \
-    --name "$TABLE" \
-    --account-name "$STORAGE_ACCOUNT" \
-    --auth-mode login
-done
-```
-
-Verify:
-
-```bash
 az storage table list --account-name "$STORAGE_ACCOUNT" --auth-mode login -o table
 ```
+
+Expected tables: `Teams`, `Attendees`, `Scores`, `Awards`, `Submissions`, `Rubrics`, `Config`.
 
 ---
 

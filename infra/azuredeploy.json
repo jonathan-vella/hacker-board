@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "4447275840328498959"
+      "templateHash": "2913469021787398145"
     }
   },
   "parameters": {
@@ -12197,7 +12197,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "10951560121783940569"
+              "templateHash": "983469382253976016"
             }
           },
           "parameters": {
@@ -12289,7 +12289,7 @@
                   "appSettings": {
                     "value": {
                       "APPLICATIONINSIGHTS_CONNECTION_STRING": "[parameters('appInsightsConnectionString')]",
-                      "AZURE_STORAGE_ACCOUNT_NAME": "[parameters('storageAccountName')]"
+                      "STORAGE_ACCOUNT_NAME": "[parameters('storageAccountName')]"
                     }
                   }
                 },

@@ -4,8 +4,7 @@
 
 .DESCRIPTION
     Provisions Azure Static Web App, Table Storage, Log Analytics, and Application
-    Insights for the microhack HackerBoard app. Supports phased deployment with
-    approval gates between foundation and application layers.
+    Insights for the microhack HackerBoard app.
 
 .PARAMETER ResourceGroupName
     Name of the resource group. Default: rg-hacker-board-prod
@@ -28,17 +27,11 @@
 .PARAMETER RepositoryUrl
     GitHub repository URL for Static Web App linkage.
 
-.PARAMETER Phase
-    Deployment phase: all, foundation, application. Default: all
-
 .PARAMETER WhatIf
     Run what-if preview without deploying.
 
 .EXAMPLE
     ./deploy.ps1 -CostCenter "microhack" -TechnicalContact "team@contoso.com"
-
-.EXAMPLE
-    ./deploy.ps1 -Phase foundation -CostCenter "microhack" -TechnicalContact "team@contoso.com"
 
 .EXAMPLE
     ./deploy.ps1 -WhatIf -CostCenter "microhack" -TechnicalContact "team@contoso.com"
@@ -61,10 +54,7 @@ param(
     [string]$TechnicalContact,
 
     [string]$RepositoryUrl = '',
-    [string]$RepositoryBranch = 'main',
-
-    [ValidateSet('all', 'foundation', 'application')]
-    [string]$Phase = 'all'
+    [string]$RepositoryBranch = 'main'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -173,74 +163,38 @@ $deployParams = @(
     '--parameters', "technicalContact=$TechnicalContact"
     '--parameters', "repositoryUrl=$RepositoryUrl"
     '--parameters', "repositoryBranch=$RepositoryBranch"
-    '--parameters', "phase=$Phase"
 )
 
 # ── What-If preview ──────────────────────────────────────────────────────────
 
 if ($WhatIf) {
     Write-Host ""
-    Write-Host "🔍 Running what-if preview (phase: $Phase)..." -ForegroundColor Yellow
+    Write-Host "🔍 Running what-if preview..." -ForegroundColor Yellow
     az deployment group what-if @deployParams --output table
     Write-Host ""
     Write-Host "ℹ️  What-if complete. No resources were modified." -ForegroundColor Cyan
     exit 0
 }
 
-# ── Phased deployment ─────────────────────────────────────────────────────────
+# ── Deploy ────────────────────────────────────────────────────────────────────
 
-function Deploy-Phase {
-    param(
-        [string]$PhaseName,
-        [string]$PhaseValue,
-        [string]$Description
-    )
+Write-Host ""
+Write-Host "🚀 Deploying all resources..." -ForegroundColor Yellow
 
-    Write-Host ""
-    Write-Host "🚀 Deploying phase: $PhaseName ($Description)..." -ForegroundColor Yellow
+$deployParams += @(
+    '--name', "hacker-board-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+    '--output', 'json'
+)
 
-    $phaseParams = @(
-        '--resource-group', $ResourceGroupName
-        '--template-file', $templateFile
-        '--parameters', "projectName=hacker-board"
-        '--parameters', "environment=$Environment"
-        '--parameters', "location=$Location"
-        '--parameters', "owner=$Owner"
-        '--parameters', "costCenter=$CostCenter"
-        '--parameters', "technicalContact=$TechnicalContact"
-        '--parameters', "repositoryUrl=$RepositoryUrl"
-        '--parameters', "repositoryBranch=$RepositoryBranch"
-        '--parameters', "phase=$PhaseValue"
-        '--name', "hacker-board-$PhaseValue-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-        '--output', 'json'
-    )
-
-    # Capture stdout (JSON) separately from stderr (BCP warnings) to prevent parsing failures
-    $errorOutput = $null
-    $result = az deployment group create @phaseParams 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  ❌ Phase '$PhaseName' deployment failed:" -ForegroundColor Red
-        Write-Host $result -ForegroundColor Red
-        exit 1
-    }
-
-    Write-Host "  ✅ Phase '$PhaseName' deployed successfully" -ForegroundColor Green
-    return $result | ConvertFrom-Json
+$result = az deployment group create @deployParams 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  ❌ Deployment failed:" -ForegroundColor Red
+    Write-Host $result -ForegroundColor Red
+    exit 1
 }
 
-if ($Phase -eq 'all') {
-    # Phase 1: Foundation
-    $foundationResult = Deploy-Phase -PhaseName 'Foundation' -PhaseValue 'foundation' -Description 'Log Analytics + Storage'
-
-    Write-Host ""
-    Write-Host "⏸️  Foundation deployed. Proceeding to application phase..." -ForegroundColor Cyan
-
-    # Phase 2: Application
-    $appResult = Deploy-Phase -PhaseName 'Application' -PhaseValue 'application' -Description 'App Insights + Static Web App'
-}
-else {
-    $result = Deploy-Phase -PhaseName $Phase -PhaseValue $Phase -Description "Single phase: $Phase"
-}
+Write-Host "  ✅ Deployment completed successfully" -ForegroundColor Green
+$deploymentResult = $result | ConvertFrom-Json
 
 # ── Deployment results ────────────────────────────────────────────────────────
 
@@ -255,14 +209,12 @@ Write-Host "  ┌─────────────────────
 Write-Host "  │ Resource Group           │ $ResourceGroupName"
 Write-Host "  │ Location                 │ $Location"
 Write-Host "  │ Environment              │ $Environment"
-Write-Host "  │ Phase                    │ $Phase"
 Write-Host "  └─────────────────────────┴──────────────────────────────────────┘"
 
-# Extract outputs from the last deployment
-if ($Phase -eq 'all' -or $Phase -eq 'application') {
-    $outputs = if ($Phase -eq 'all') { $appResult } else { $result }
-    if ($outputs.properties.outputs) {
-        $o = $outputs.properties.outputs
+# Extract outputs from the deployment
+if ($deploymentResult.properties.outputs) {
+    $o = $deploymentResult.properties.outputs
+    if ($o) {
         Write-Host ""
         Write-Host "  📌 Key Outputs:" -ForegroundColor Cyan
         if ($o.staticWebAppUrl.value) {

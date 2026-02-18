@@ -43,7 +43,7 @@ module staticWebApp 'br/public:avm/res/web/static-site:0.9.3' = {
     }
     appSettings: {
       APPLICATIONINSIGHTS_CONNECTION_STRING: appInsightsConnectionString
-      AZURE_STORAGE_ACCOUNT_NAME: storageAccountName
+      STORAGE_ACCOUNT_NAME: storageAccountName
     }
   }
 }
