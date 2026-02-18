@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "1782164471186980002"
+      "templateHash": "1165217832684219279"
     }
   },
   "parameters": {
@@ -12197,7 +12197,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "2397261907960637409"
+              "templateHash": "18230270843735177164"
             }
           },
           "parameters": {
@@ -12285,6 +12285,13 @@
                   "branch": "[if(not(empty(parameters('repositoryUrl'))), createObject('value', parameters('repositoryBranch')), createObject('value', null()))]",
                   "stagingEnvironmentPolicy": {
                     "value": "Disabled"
+                  },
+                  "buildProperties": {
+                    "value": {
+                      "appLocation": "src",
+                      "apiLocation": "api",
+                      "outputLocation": ""
+                    }
                   },
                   "managedIdentities": {
                     "value": {

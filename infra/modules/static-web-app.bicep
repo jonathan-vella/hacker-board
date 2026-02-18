@@ -33,6 +33,11 @@ module staticWebApp 'br/public:avm/res/web/static-site:0.9.3' = {
     repositoryUrl: !empty(repositoryUrl) ? repositoryUrl : null
     branch: !empty(repositoryUrl) ? repositoryBranch : null
     stagingEnvironmentPolicy: 'Disabled'
+    buildProperties: {
+      appLocation: 'src'
+      apiLocation: 'api'
+      outputLocation: ''
+    }
     managedIdentities: {
       systemAssigned: true
     }
