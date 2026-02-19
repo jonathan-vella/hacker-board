@@ -70,9 +70,10 @@ function handleRoute() {
     }
   });
 
-  const renderer = routes[hash];
-  if (typeof renderer === "function") {
-    renderer(main, currentUser);
+  // Guard against prototype-chain properties being invoked as route handlers
+  // (CWE-754 / CodeQL js/unvalidated-dynamic-method-call).
+  if (Object.hasOwn(routes, hash) && typeof routes[hash] === "function") {
+    routes[hash](main, currentUser);
   } else {
     main.innerHTML = `
       <section class="card text-center" style="padding: 3rem;">
@@ -91,4 +92,3 @@ function handleRoute() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
-

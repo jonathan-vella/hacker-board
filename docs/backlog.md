@@ -29,17 +29,17 @@
 
 ## Current Status
 
-| Metric                  | Value                                                     |
-| ----------------------- | --------------------------------------------------------- |
-| **Current Phase**       | Phase 16 — CI/CD + Post-Deploy Verification (in progress) |
-| **Last Updated**        | 2026-02-19                                                |
-| **Days Remaining**      | 5                                                         |
-| **Tasks Done**          | 218 / 237 (P1–P14 complete; P15 partial; P16 pending)     |
-| **API Endpoints**       | 10 files / 16 routes                                      |
-| **Frontend Components** | 12 components + 5 services                                |
-| **Tests Passing**       | 69 (API unit) + 61 (frontend DOM) = 130                   |
-| **Open Problems**       | 0                                                         |
-| **Open Decisions**      | 0                                                         |
+| Metric                  | Value                                                |
+| ----------------------- | ---------------------------------------------------- |
+| **Current Phase**       | Phase 15 — E2E Validation (pending clean deployment) |
+| **Last Updated**        | 2026-02-19                                           |
+| **Days Remaining**      | 5                                                    |
+| **Tasks Done**          | 213 / 237 (P1–P14 complete; P15–P16 pending)         |
+| **API Endpoints**       | 10 files / 16 routes                                 |
+| **Frontend Components** | 12 components + 5 services                           |
+| **Tests Passing**       | 69 (API unit) + 61 (frontend DOM) = 130              |
+| **Open Problems**       | 0                                                    |
+| **Open Decisions**      | 0                                                    |
 
 ---
 
@@ -509,7 +509,7 @@ Search filters correctly. Notifications appear and dismiss.
 - [x] Create `/api/health` endpoint (verifies all 7 table connections)
 - [x] Add anonymous route for `/api/health` in `staticwebapp.config.json`
 - [x] Add post-deploy smoke-test job to CI/CD workflow
-- [ ] Deploy to `purple-bush-029df9903.4.azurestaticapps.net`
+- [ ] Deploy to production SWA
 - [ ] Smoke test: login → leaderboard loads → submit score → approve
 - [ ] Smoke-test rubric endpoints (`GET/POST /api/rubrics`, `GET /api/rubrics/active`)
 - [ ] Smoke-test feature flags endpoint (`GET/PUT /api/flags`)
@@ -613,16 +613,15 @@ monitoring shows data, feature flags toggle correctly.
 
 ### 15.2 — Path A: PowerShell Script
 
-> RG: `rg-hacker-board-prod` · Script: `infra/deploy.ps1`  
-> _Note: Path A was run against production (not a disposable RG) as the first real deployment._
+> RG: `rg-hacker-board-prod` · Script: `infra/deploy.ps1`
 
-- [x] Execute with `enablePrivateEndpoint=true` against `rg-hacker-board-prod`
-- [x] Capture all provisioning outputs: `swaHostname`, `swaName`, `sqlServerFqdn`, `sqlDatabaseName`
-- [x] Schema migration run manually (9 batches; private endpoint + temp public access)
-- [x] Confirm deploying user auto-configured as app admin and SQL Entra administrator
-- [x] Verify SWA returns HTTP 200 — `https://gentle-moss-00d8a4103.6.azurestaticapps.net`
-- [ ] Verify `GET /api/health` → 200 (blocked: app code not deployed until CI/CD runs)
-- [ ] Verify `GET /api/teams` → 200, no 5xx (blocked: same)
+- [ ] Execute `./deploy.ps1 -CostCenter ... -TechnicalContact ...` against `rg-hacker-board-prod`
+- [ ] Capture all provisioning outputs: `swaHostname`, `swaName`, `sqlServerFqdn`, `sqlDatabaseName`
+- [ ] Schema migration runs automatically via in-VNet ACI deploymentScript (`sql-grant.bicep`)
+- [ ] Confirm deploying user auto-configured as app admin and SQL Entra administrator
+- [ ] Verify SWA returns HTTP 200 on the generated hostname
+- [ ] Verify `GET /api/health` → 200 (after CI/CD deploys app code)
+- [ ] Verify `GET /api/teams` → 200, no 5xx
 - [ ] Teardown disposable RG after Path B evidence captured
 
 ### 15.3 — Path B: Deploy to Azure Button
@@ -652,13 +651,13 @@ monitoring shows data, feature flags toggle correctly.
 > confirmed on production resources; all smoke tests green.
 >
 > **Depends on**: Phase 15.2 (infra live), Phase 15.3 (Deploy button validation)
-> **Definition of Done**: `GET /api/health` and `GET /api/teams` return 200 from
-> `https://gentle-moss-00d8a4103.6.azurestaticapps.net` with full app code deployed.
+> **Definition of Done**: `GET /api/health` and `GET /api/teams` return 200 from the
+> production SWA hostname with full app code deployed.
 
 ### 16.1 — GitHub Actions CI/CD
 
-- [ ] 🔴 Set `AZURE_STATIC_WEB_APPS_API_TOKEN` secret in GitHub repo  
-       Value: `dc510cffc351acb2825588030eca7e26702c214fe731a5fe103fbbd2487d554006-b6497bce-b453-4d81-be7d-e6b520bd9bd7003192800d8a4103`
+- [ ] 🔴 Retrieve new `AZURE_STATIC_WEB_APPS_API_TOKEN` from Azure Portal after infrastructure
+      provisioning completes, then set it as a GitHub Actions secret in this repo
 - [ ] Push to `main` to trigger `deploy-swa.yml` workflow
 - [ ] Confirm workflow completes: build → deploy → smoke test
 - [ ] Verify `GET /api/health` → 200
@@ -670,7 +669,7 @@ monitoring shows data, feature flags toggle correctly.
 - [ ] Confirm SQL MI has Directory Readers role in Entra ID
 - [ ] Confirm SWA managed identity has `db_owner` on `hackerboard` database
 - [ ] Confirm `CREATE USER ... FROM EXTERNAL PROVIDER` no longer errors in `sql-grant.bicep` logs
-- [ ] Confirm deploying user (`vella.jonathan@outlook.com`) is app admin and SQL Entra administrator — no invite acceptance required
+- [ ] Confirm deploying user is app admin and SQL Entra administrator — no invite acceptance required
 
 ### 16.3 — Smoke Tests
 
@@ -812,6 +811,7 @@ monitoring shows data, feature flags toggle correctly.
 | D18 | 2026-02-19 | Deploying Entra user is default app admin and SQL Entra administrator                       | Removes post-deploy manual invite step; the logged-in `az login` identity is used as both `adminEmail` (SWA app admin) and the SQL Entra administrator OID — no separate invite flow needed                                                                                                                | **Approved**         |
 | D19 | 2026-02-19 | Only two infrastructure deployment paths supported: `deploy.ps1` and Deploy to Azure button | GitHub Actions is a CI/CD path for app code only, not an infrastructure deployment path; two well-tested paths are sufficient for operator use                                                                                                                                                             | **Approved**         |
 | D20 | 2026-02-19 | Deleted `deploy-infra.yml` — GHA is not a supported infra deployment path                   | Per D19; `.github/workflows/deploy-infra.yml` removed; only `deploy.ps1` and Deploy to Azure button are supported; GHA CI/CD pipeline (`deploy-swa.yml`) remains for app code deployment                                                                                                                   | **Approved**         |
+| D21 | 2026-02-19 | Clean deployment — previous Azure resources deleted; fresh provisioning required            | Previous deployment torn down; Phase 15.2 and Phase 16 tasks reset to pending; `AZURE_STATIC_WEB_APPS_API_TOKEN` must be retrieved from the new SWA after provisioning completes                                                                                                                           | **Approved**         |
 
 <!-- TEMPLATE for new decisions:
 | D{N} | YYYY-MM-DD | {decision} | {rationale} | **{status}** |
@@ -861,38 +861,38 @@ monitoring shows data, feature flags toggle correctly.
 
 > Every phase has validation criteria. This matrix tracks pass/fail.
 
-| Phase | Validation                                                   | Status                                               |
-| ----- | ------------------------------------------------------------ | ---------------------------------------------------- |
-| P1    | `npm audit` returns 0 high/critical                          | **Passed**                                           |
-| P1    | `swa start` launches without errors after ESM migration      | **Passed**                                           |
-| P1    | All `api/shared/*.js` use `import`/`export`                  | **Passed**                                           |
-| P2    | `cd api && npm test` passes (Vitest)                         | **Passed**                                           |
-| P2    | GitHub Actions workflow triggers on push                     | **Ready**                                            |
-| P2    | `node scripts/seed-demo-data.js --reset` populates Azurite   | **Passed**                                           |
-| P3    | All API core tests pass (`npm test`)                         | **Passed**                                           |
-| P3    | `curl` confirms auth enforcement on protected routes         | **Passed**                                           |
-| P4    | All attendee/team/awards tests pass                          | **Passed**                                           |
-| P5    | Rubric parser handles well-formed + malformed markdown       | **Passed**                                           |
-| P5    | `GET /api/rubrics/active` returns default rubric on fresh DB | **Passed**                                           |
-| P6    | Leaderboard renders seeded data in browser                   | **Passed**                                           |
-| P6    | Theme toggle works + persists across reload                  | **Passed**                                           |
-| P6    | Responsive at sm/md/lg/xl breakpoints                        | **Passed**                                           |
-| P7    | Submit score → admin approve → leaderboard updates           | **Passed**                                           |
-| P7    | Upload JSON → preview → submit works                         | **Passed**                                           |
-| P8    | Self-service join → team assignment → roster displays        | **Passed**                                           |
-| P9    | Upload rubric → preview → activate → form adapts             | **Passed**                                           |
-| P10   | axe-core reports 0 violations                                | **Passed**                                           |
-| P10   | Integration test flows covered by E2E specs                  | **Passed**                                           |
-| P10   | Frontend DOM tests pass (Vitest + happy-dom)                 | **Passed**                                           |
-| P11   | Production deploy + smoke test passes                        | Not run                                              |
-| P11   | Feature flags toggle correctly                               | **Passed**                                           |
-| P11   | Frontend component test coverage (8 components)              | **Passed**                                           |
-| P12   | OpenAPI spec exists and validates as OpenAPI 3.0             | **Passed**                                           |
-| P15   | Path A (PS): all provisioning outputs present + health 200   | **Partial** — infra deployed, app code pending CI/CD |
-| P15   | Path B (Button): ARM deployment + follow-up steps succeed    | Not run                                              |
-| P16   | CI/CD deploys app code; `/api/health` returns 200            | Not run                                              |
-| P16   | Directory Readers assigned to SQL MI via `az rest`           | Not run — requires re-deploy                         |
-| P16   | db_owner granted to SWA MI via in-VNet ACI script            | Not run — requires re-deploy                         |
+| Phase | Validation                                                   | Status                       |
+| ----- | ------------------------------------------------------------ | ---------------------------- |
+| P1    | `npm audit` returns 0 high/critical                          | **Passed**                   |
+| P1    | `swa start` launches without errors after ESM migration      | **Passed**                   |
+| P1    | All `api/shared/*.js` use `import`/`export`                  | **Passed**                   |
+| P2    | `cd api && npm test` passes (Vitest)                         | **Passed**                   |
+| P2    | GitHub Actions workflow triggers on push                     | **Ready**                    |
+| P2    | `node scripts/seed-demo-data.js --reset` populates Azurite   | **Passed**                   |
+| P3    | All API core tests pass (`npm test`)                         | **Passed**                   |
+| P3    | `curl` confirms auth enforcement on protected routes         | **Passed**                   |
+| P4    | All attendee/team/awards tests pass                          | **Passed**                   |
+| P5    | Rubric parser handles well-formed + malformed markdown       | **Passed**                   |
+| P5    | `GET /api/rubrics/active` returns default rubric on fresh DB | **Passed**                   |
+| P6    | Leaderboard renders seeded data in browser                   | **Passed**                   |
+| P6    | Theme toggle works + persists across reload                  | **Passed**                   |
+| P6    | Responsive at sm/md/lg/xl breakpoints                        | **Passed**                   |
+| P7    | Submit score → admin approve → leaderboard updates           | **Passed**                   |
+| P7    | Upload JSON → preview → submit works                         | **Passed**                   |
+| P8    | Self-service join → team assignment → roster displays        | **Passed**                   |
+| P9    | Upload rubric → preview → activate → form adapts             | **Passed**                   |
+| P10   | axe-core reports 0 violations                                | **Passed**                   |
+| P10   | Integration test flows covered by E2E specs                  | **Passed**                   |
+| P10   | Frontend DOM tests pass (Vitest + happy-dom)                 | **Passed**                   |
+| P11   | Production deploy + smoke test passes                        | Not run                      |
+| P11   | Feature flags toggle correctly                               | **Passed**                   |
+| P11   | Frontend component test coverage (8 components)              | **Passed**                   |
+| P12   | OpenAPI spec exists and validates as OpenAPI 3.0             | **Passed**                   |
+| P15   | Path A (PS): all provisioning outputs present + health 200   | Not run                      |
+| P15   | Path B (Button): ARM deployment + follow-up steps succeed    | Not run                      |
+| P16   | CI/CD deploys app code; `/api/health` returns 200            | Not run                      |
+| P16   | Directory Readers assigned to SQL MI via `az rest`           | Not run — requires re-deploy |
+| P16   | db_owner granted to SWA MI via in-VNet ACI script            | Not run — requires re-deploy |
 
 ---
 
@@ -902,6 +902,37 @@ monitoring shows data, feature flags toggle correctly.
 > This ensures the next session has full context.
 >
 > Full session history: [session-history.md](session-history.md)
+
+### Session: 2026-02-19 — Clean Deployment Reset
+
+**What was done**:
+
+- Assumed clean Azure environment (previous deployment deleted).
+- Reset Phase 15.2 tasks from `[x]` → `[ ]` — all provisioning/schema/smoke steps are pending.
+- Removed hardcoded `AZURE_STATIC_WEB_APPS_API_TOKEN` value from Phase 16.1 (stale and a security risk); replaced with instruction to retrieve token after new provisioning.
+- Removed stale SWA hostnames (`gentle-moss-00d8a4103.6.azurestaticapps.net`, `purple-bush-029df9903.4.azurestaticapps.net`) from task items and phase headers.
+- Removed PII (deploying user email) from Phase 16.2.
+- Updated Current Status: Tasks Done 218 → 213, Phase → P15 pending clean deployment.
+- Updated test matrix P15 from `Partial` → `Not run`.
+- Replaced `purple-bush` placeholder in `docs/app-handoff-checklist.md` with generic `<your-swa-hostname>` placeholder.
+- Updated `docs/openapi.yaml` server URL to generic placeholder.
+- Recorded decision D21 (clean deployment).
+
+**What's next**:
+
+- Provision infrastructure with `deploy.ps1` or Deploy to Azure button.
+- Retrieve new `AZURE_STATIC_WEB_APPS_API_TOKEN` from Azure Portal and set GitHub secret.
+- Push to `main` to trigger CI/CD and complete Phase 16.
+
+**Open questions**:
+
+- None.
+
+**Known issues**:
+
+- None — clean slate.
+
+---
 
 ### Session: 2026-02-19 — Backlog & Deployment Guide Restructure
 

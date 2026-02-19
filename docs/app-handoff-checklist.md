@@ -31,14 +31,14 @@
 
 ## Deployed Infrastructure Reference
 
-| Resource        | Name                                                  | Type         |
-| --------------- | ----------------------------------------------------- | ------------ |
-| Resource Group  | `rg-hacker-board-prod`                                | —            |
-| Static Web App  | `stapp-hacker-board-prod`                             | Standard     |
-| Storage Account | `stteamleadpromn2ksi`                                 | Standard_LRS |
-| App Insights    | `appi-hacker-board-prod`                              | —            |
-| Log Analytics   | `log-hacker-board-prod`                               | PerGB2018    |
-| SWA URL         | `https://purple-bush-029df9903.4.azurestaticapps.net` | —            |
+| Resource        | Name                                              | Type         |
+| --------------- | ------------------------------------------------- | ------------ |
+| Resource Group  | `rg-hacker-board-prod`                            | —            |
+| Static Web App  | `stapp-hacker-board-prod`                         | Standard     |
+| Storage Account | `stteamleadpromn2ksi`                             | Standard_LRS |
+| App Insights    | `appi-hacker-board-prod`                          | —            |
+| Log Analytics   | `log-hacker-board-prod`                           | PerGB2018    |
+| SWA URL         | `https://<your-swa-hostname>.azurestaticapps.net` | —            |
 
 ---
 
@@ -184,7 +184,7 @@ az staticwebapp users invite \
   --authentication-provider "github" \
   --user-details "<github-username>" \
   --role "admin" \
-  --domain "purple-bush-029df9903.4.azurestaticapps.net"
+  --domain "<your-swa-hostname>.azurestaticapps.net"
 
 # Invite a member
 az staticwebapp users invite \
@@ -193,7 +193,7 @@ az staticwebapp users invite \
   --authentication-provider "github" \
   --user-details "<github-username>" \
   --role "member" \
-  --domain "purple-bush-029df9903.4.azurestaticapps.net"
+  --domain "<your-swa-hostname>.azurestaticapps.net"
 ```
 
 ---
@@ -293,7 +293,7 @@ az staticwebapp appsettings list \
 
 ### 6.1 — Authentication Flow
 
-- [ ] Navigate to `https://purple-bush-029df9903.4.azurestaticapps.net`
+- [ ] Navigate to `https://<your-swa-hostname>.azurestaticapps.net`
 - [ ] Verify redirect to GitHub login
 - [ ] Login and verify redirect back to the app
 - [ ] Verify `/.auth/me` returns user claims and roles
@@ -325,7 +325,7 @@ az staticwebapp appsettings list \
 
 ```bash
 # SWA endpoint reachability
-curl -sI https://purple-bush-029df9903.4.azurestaticapps.net | head -5
+curl -sI https://<your-swa-hostname>.azurestaticapps.net | head -5
 
 # Storage account accessible
 az storage table list \
@@ -352,7 +352,7 @@ az staticwebapp hostname set \
   --hostname "leaderboard.yourdomain.com"
 ```
 
-Requires a CNAME record pointing `leaderboard.yourdomain.com` → `purple-bush-029df9903.4.azurestaticapps.net`. SWA provisions a free managed SSL certificate automatically.
+Requires a CNAME record pointing `leaderboard.yourdomain.com` → `<your-swa-hostname>.azurestaticapps.net`. SWA provisions a free managed SSL certificate automatically.
 
 ---
 

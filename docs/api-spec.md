@@ -8,7 +8,7 @@
 ![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth-orange)
 
 > All endpoints are managed Azure Functions behind the SWA reverse proxy.
-> Base URL: `https://purple-bush-029df9903.4.azurestaticapps.net/api`
+> Base URL: `https://<your-swa-hostname>.azurestaticapps.net/api`
 > Machine-readable spec: [openapi.yaml](openapi.yaml) · [Swagger UI](swagger-ui.html)
 
 ---
@@ -42,10 +42,10 @@ function getClientPrincipal(req) {
 
 Retrieve all teams.
 
-| Property   | Value                             |
-| ---------- | --------------------------------- |
+| Property   | Value                                |
+| ---------- | ------------------------------------ |
 | **Auth**   | `authenticated` (`admin` + `member`) |
-| **Method** | GET                               |
+| **Method** | GET                                  |
 
 **Response `200 OK`:**
 
@@ -65,10 +65,10 @@ Retrieve all teams.
 
 Create a new team.
 
-| Property   | Value         |
-| ---------- | ------------- |
+| Property   | Value        |
+| ---------- | ------------ |
 | **Auth**   | `admin` only |
-| **Method** | POST          |
+| **Method** | POST         |
 
 **Request Body:**
 
@@ -102,10 +102,10 @@ Create a new team.
 
 Update an existing team.
 
-| Property   | Value         |
-| ---------- | ------------- |
+| Property   | Value        |
+| ---------- | ------------ |
 | **Auth**   | `admin` only |
-| **Method** | PUT           |
+| **Method** | PUT          |
 
 **Request Body:**
 
@@ -124,10 +124,10 @@ Update an existing team.
 
 Delete a team and all associated scores.
 
-| Property   | Value         |
-| ---------- | ------------- |
+| Property   | Value        |
+| ---------- | ------------ |
 | **Auth**   | `admin` only |
-| **Method** | DELETE        |
+| **Method** | DELETE       |
 
 **Request Body:**
 
@@ -145,10 +145,10 @@ Delete a team and all associated scores.
 
 Retrieve scores. Supports optional query parameters for filtering.
 
-| Property   | Value                             |
-| ---------- | --------------------------------- |
+| Property   | Value                                |
+| ---------- | ------------------------------------ |
 | **Auth**   | `authenticated` (`admin` + `member`) |
-| **Method** | GET                               |
+| **Method** | GET                                  |
 
 **Query Parameters:**
 
@@ -204,10 +204,10 @@ Retrieve scores. Supports optional query parameters for filtering.
 
 Admin-only manual score override for a team. Upserts individual criterion scores.
 
-| Property   | Value         |
-| ---------- | ------------- |
-| **Auth**   | `admin` only  |
-| **Method** | POST          |
+| Property   | Value        |
+| ---------- | ------------ |
+| **Auth**   | `admin` only |
+| **Method** | POST         |
 
 **Request Body:**
 
@@ -269,17 +269,17 @@ Admin-only manual score override for a team. Upserts individual criterion scores
 
 Retrieve submission queue for admin review.
 
-| Property   | Value         |
-| ---------- | ------------- |
-| **Auth**   | `admin` only  |
-| **Method** | GET           |
+| Property   | Value        |
+| ---------- | ------------ |
+| **Auth**   | `admin` only |
+| **Method** | GET          |
 
 **Query Parameters:**
 
-| Parameter | Type   | Description                               |
-| --------- | ------ | ----------------------------------------- |
-| `status`  | string | `Pending`, `Approved`, `Rejected`         |
-| `team`    | string | Optional team filter                      |
+| Parameter | Type   | Description                       |
+| --------- | ------ | --------------------------------- |
+| `status`  | string | `Pending`, `Approved`, `Rejected` |
+| `team`    | string | Optional team filter              |
 
 **Response `200 OK`:**
 
@@ -302,10 +302,10 @@ Retrieve submission queue for admin review.
 
 Approve or reject a pending submission.
 
-| Property   | Value         |
-| ---------- | ------------- |
-| **Auth**   | `admin` only  |
-| **Method** | POST          |
+| Property   | Value        |
+| ---------- | ------------ |
+| **Auth**   | `admin` only |
+| **Method** | POST         |
 
 **Request Body:**
 
@@ -337,11 +337,11 @@ Approve or reject a pending submission.
 
 **Errors:**
 
-| Status | Condition                            |
-| ------ | ------------------------------------ |
-| `400`  | Invalid action                       |
-| `400`  | Reject action missing reason         |
-| `404`  | Submission not found                 |
+| Status | Condition                    |
+| ------ | ---------------------------- |
+| `400`  | Invalid action               |
+| `400`  | Reject action missing reason |
+| `404`  | Submission not found         |
 
 ---
 
@@ -349,10 +349,10 @@ Approve or reject a pending submission.
 
 Retrieve all award assignments.
 
-| Property   | Value                             |
-| ---------- | --------------------------------- |
+| Property   | Value                                |
+| ---------- | ------------------------------------ |
 | **Auth**   | `authenticated` (`admin` + `member`) |
-| **Method** | GET                               |
+| **Method** | GET                                  |
 
 **Response `200 OK`:**
 
@@ -373,10 +373,10 @@ Retrieve all award assignments.
 
 Assign an award to a team. Upserts (one team per award category).
 
-| Property   | Value         |
-| ---------- | ------------- |
+| Property   | Value        |
+| ---------- | ------------ |
 | **Auth**   | `admin` only |
-| **Method** | POST          |
+| **Method** | POST         |
 
 **Request Body:**
 
@@ -410,10 +410,10 @@ Assign an award to a team. Upserts (one team per award category).
 
 Retrieve all attendee registrations. **Admin only** for full list.
 
-| Property   | Value         |
-| ---------- | ------------- |
+| Property   | Value        |
+| ---------- | ------------ |
 | **Auth**   | `admin` only |
-| **Method** | GET           |
+| **Method** | GET          |
 
 **Response `200 OK`:**
 
@@ -436,10 +436,10 @@ Retrieve all attendee registrations. **Admin only** for full list.
 
 Retrieve the current user's own registration.
 
-| Property   | Value                             |
-| ---------- | --------------------------------- |
+| Property   | Value                                |
+| ---------- | ------------------------------------ |
 | **Auth**   | `authenticated` (`admin` + `member`) |
-| **Method** | GET                               |
+| **Method** | GET                                  |
 
 **Response `200 OK`:** Single attendee object.
 
@@ -451,10 +451,10 @@ Retrieve the current user's own registration.
 
 Register or update the current user's profile.
 
-| Property   | Value                             |
-| ---------- | --------------------------------- |
+| Property   | Value                                |
+| ---------- | ------------------------------------ |
 | **Auth**   | `authenticated` (`admin` + `member`) |
-| **Method** | POST                              |
+| **Method** | POST                                 |
 
 **Request Body:**
 
@@ -482,10 +482,10 @@ Register or update the current user's profile.
 Bulk-import attendee names. Creates Attendee records with blank
 `gitHubUsername` (to be claimed via self-service login).
 
-| Property   | Value         |
-| ---------- | ------------- |
-| **Auth**   | `admin` only  |
-| **Method** | POST          |
+| Property   | Value        |
+| ---------- | ------------ |
+| **Auth**   | `admin` only |
+| **Method** | POST         |
 
 **Request Body:**
 
@@ -525,10 +525,10 @@ Bulk-import attendee names. Creates Attendee records with blank
 Randomly assign all unassigned attendees to N teams using a
 Fisher-Yates shuffle.
 
-| Property   | Value         |
-| ---------- | ------------- |
-| **Auth**   | `admin` only  |
-| **Method** | POST          |
+| Property   | Value        |
+| ---------- | ------------ |
+| **Auth**   | `admin` only |
+| **Method** | POST         |
 
 **Request Body:**
 
@@ -558,11 +558,11 @@ Fisher-Yates shuffle.
 
 **Errors:**
 
-| Status | Condition                                |
-| ------ | ---------------------------------------- |
-| `400`  | `teamCount` not a positive integer       |
-| `400`  | No attendees registered to assign        |
-| `400`  | `teamCount` exceeds number of attendees  |
+| Status | Condition                               |
+| ------ | --------------------------------------- |
+| `400`  | `teamCount` not a positive integer      |
+| `400`  | No attendees registered to assign       |
+| `400`  | `teamCount` exceeds number of attendees |
 
 ---
 
@@ -649,13 +649,13 @@ Submit a `score-results.json` payload for admin validation.
 
 **Errors:**
 
-| Status | Condition                          |
-| ------ | ---------------------------------- |
-| `400`  | Invalid JSON structure             |
-| `400`  | Missing `TeamName` field           |
+| Status | Condition                               |
+| ------ | --------------------------------------- |
+| `400`  | Invalid JSON structure                  |
+| `400`  | Missing `TeamName` field                |
 | `403`  | Payload team does not match caller team |
-| `400`  | Score values exceed max points     |
-| `404`  | Team not found (create team first) |
+| `400`  | Score values exceed max points          |
+| `404`  | Team not found (create team first)      |
 
 ---
 
@@ -663,10 +663,10 @@ Submit a `score-results.json` payload for admin validation.
 
 List all rubric configurations (most recent first).
 
-| Property   | Value                             |
-| ---------- | --------------------------------- |
+| Property   | Value                                |
+| ---------- | ------------------------------------ |
 | **Auth**   | `authenticated` (`admin` + `member`) |
-| **Method** | GET                               |
+| **Method** | GET                                  |
 
 **Response `200 OK`:**
 
@@ -692,10 +692,10 @@ List all rubric configurations (most recent first).
 
 Upload and parse a new rubric from Markdown content.
 
-| Property         | Value                 |
-| ---------------- | --------------------- |
-| **Auth**         | `admin` only          |
-| **Method**       | POST                  |
+| Property         | Value                                 |
+| ---------------- | ------------------------------------- |
+| **Auth**         | `admin` only                          |
+| **Method**       | POST                                  |
 | **Content-Type** | `text/markdown` or `application/json` |
 
 **Request Body (Markdown upload):**
@@ -733,12 +733,12 @@ previously active rubric is deactivated.
 
 **Errors:**
 
-| Status | Condition                                    |
-| ------ | -------------------------------------------- |
+| Status | Condition                                      |
+| ------ | ---------------------------------------------- |
 | `400`  | Markdown could not be parsed into valid rubric |
-| `400`  | Missing rubric name                          |
-| `400`  | No categories found in parsed rubric         |
-| `400`  | Category max points do not sum correctly     |
+| `400`  | Missing rubric name                            |
+| `400`  | No categories found in parsed rubric           |
+| `400`  | Category max points do not sum correctly       |
 
 ---
 
@@ -746,10 +746,10 @@ previously active rubric is deactivated.
 
 Retrieve the currently active rubric configuration (full JSON).
 
-| Property   | Value                             |
-| ---------- | --------------------------------- |
+| Property   | Value                                |
+| ---------- | ------------------------------------ |
 | **Auth**   | `authenticated` (`admin` + `member`) |
-| **Method** | GET                               |
+| **Method** | GET                                  |
 
 **Response `200 OK`:**
 
@@ -806,9 +806,9 @@ Retrieve the currently active rubric configuration (full JSON).
 
 **Errors:**
 
-| Status | Condition                    |
-| ------ | ---------------------------- |
-| `404`  | No active rubric configured  |
+| Status | Condition                   |
+| ------ | --------------------------- |
+| `404`  | No active rubric configured |
 
 ---
 
@@ -818,7 +818,7 @@ Retrieve the currently active rubric configuration (full JSON).
 | ----------- | --------------- | -------------------------- | ---------------------------------------- |
 | Teams       | `"team"`        | Team name                  | All teams in one partition for fast list |
 | Attendees   | GitHub username | `"profile"`                | Direct lookup by username                |
-| Attendees   | `"unclaimed"`  | `"{surname}-{firstName}"` | Unclaimed attendees from bulk import     |
+| Attendees   | `"unclaimed"`   | `"{surname}-{firstName}"`  | Unclaimed attendees from bulk import     |
 | Scores      | Team name       | `"{Category}_{Criterion}"` | All scores for a team in one partition   |
 | Submissions | Team name       | Submission GUID            | Queue and audit trail by team            |
 | Awards      | `"award"`       | Award category             | All awards in one partition              |
@@ -852,20 +852,20 @@ All error responses follow a consistent JSON structure:
 
 **Standard Error Codes:**
 
-| Code                | HTTP Status | Description                         |
-| ------------------- | ----------- | ----------------------------------- |
-| `VALIDATION_ERROR`  | 400         | Request body failed validation      |
-| `TEAM_NOT_FOUND`    | 404         | Referenced team does not exist      |
-| `TEAM_EXISTS`       | 409         | Team with this name already exists  |
-| `INVALID_CATEGORY`  | 400         | Unknown scoring category            |
-| `INVALID_AWARD`     | 400         | Unknown award category              |
-| `SCORE_EXCEEDS_MAX` | 400         | Points exceed maximum for criterion |
-| `TEAM_SCOPE_VIOLATION` | 403      | Member attempted cross-team submit  |
-| `SUBMISSION_NOT_FOUND` | 404      | Submission ID does not exist        |
-| `RUBRIC_PARSE_ERROR`   | 400      | Markdown could not be parsed into valid rubric |
-| `RUBRIC_NOT_FOUND`     | 404      | No active rubric configured         |
-| `UNAUTHORIZED`      | 401         | Missing or invalid auth context     |
-| `FORBIDDEN`         | 403         | Insufficient role for operation     |
+| Code                   | HTTP Status | Description                                    |
+| ---------------------- | ----------- | ---------------------------------------------- |
+| `VALIDATION_ERROR`     | 400         | Request body failed validation                 |
+| `TEAM_NOT_FOUND`       | 404         | Referenced team does not exist                 |
+| `TEAM_EXISTS`          | 409         | Team with this name already exists             |
+| `INVALID_CATEGORY`     | 400         | Unknown scoring category                       |
+| `INVALID_AWARD`        | 400         | Unknown award category                         |
+| `SCORE_EXCEEDS_MAX`    | 400         | Points exceed maximum for criterion            |
+| `TEAM_SCOPE_VIOLATION` | 403         | Member attempted cross-team submit             |
+| `SUBMISSION_NOT_FOUND` | 404         | Submission ID does not exist                   |
+| `RUBRIC_PARSE_ERROR`   | 400         | Markdown could not be parsed into valid rubric |
+| `RUBRIC_NOT_FOUND`     | 404         | No active rubric configured                    |
+| `UNAUTHORIZED`         | 401         | Missing or invalid auth context                |
+| `FORBIDDEN`            | 403         | Insufficient role for operation                |
 
 ---
 
@@ -878,4 +878,5 @@ All error responses follow a consistent JSON structure:
 - [SWA Authentication Context](https://learn.microsoft.com/azure/static-web-apps/user-information)
 
 ---
+
 [← Back to Documentation](README.md)

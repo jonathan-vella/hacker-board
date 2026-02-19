@@ -6,7 +6,7 @@ info:
     Machine-readable OpenAPI specification for HackerBoard managed Azure Functions.
     Authentication context is passed via Azure Static Web Apps `x-ms-client-principal`.
 servers:
-  - url: https://purple-bush-029df9903.4.azurestaticapps.net
+  - url: https://<your-swa-hostname>.azurestaticapps.net
 tags:
   - name: Teams
   - name: Attendees
@@ -25,22 +25,22 @@ paths:
       summary: Retrieve all teams
       x-roles: [authenticated]
       responses:
-        '200':
+        "200":
           description: Team list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Team'
+                  $ref: "#/components/schemas/Team"
               examples:
                 default:
                   value:
                     - teamName: team-alpha
                       teamMembers: [user1, user2, user3]
-                      createdAt: '2026-02-13T10:00:00Z'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                      createdAt: "2026-02-13T10:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       tags: [Teams]
       summary: Create a new team
@@ -50,18 +50,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TeamCreateRequest'
+              $ref: "#/components/schemas/TeamCreateRequest"
       responses:
-        '201':
+        "201":
           description: Team created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Team'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '409':
-          $ref: '#/components/responses/TeamExists'
+                $ref: "#/components/schemas/Team"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/TeamExists"
     put:
       tags: [Teams]
       summary: Update an existing team
@@ -71,18 +71,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TeamUpdateRequest'
+              $ref: "#/components/schemas/TeamUpdateRequest"
       responses:
-        '200':
+        "200":
           description: Team updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TeamUpdateResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '404':
-          $ref: '#/components/responses/TeamNotFound'
+                $ref: "#/components/schemas/TeamUpdateResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/TeamNotFound"
     delete:
       tags: [Teams]
       summary: Delete a team and related scores
@@ -92,14 +92,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TeamDeleteRequest'
+              $ref: "#/components/schemas/TeamDeleteRequest"
       responses:
-        '204':
+        "204":
           description: Team deleted
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '404':
-          $ref: '#/components/responses/TeamNotFound'
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/TeamNotFound"
 
   /api/scores:
     get:
@@ -120,7 +120,7 @@ paths:
           required: false
           description: Optional category filter (documented; currently ignored by API implementation)
       responses:
-        '200':
+        "200":
           description: Score records or leaderboard
           content:
             application/json:
@@ -128,10 +128,10 @@ paths:
                 oneOf:
                   - type: array
                     items:
-                      $ref: '#/components/schemas/Score'
-                  - $ref: '#/components/schemas/LeaderboardResponse'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                      $ref: "#/components/schemas/Score"
+                  - $ref: "#/components/schemas/LeaderboardResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
     post:
       tags: [Scores]
       summary: Upsert manual score overrides for a team
@@ -141,18 +141,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ScoreOverrideRequest'
+              $ref: "#/components/schemas/ScoreOverrideRequest"
       responses:
-        '200':
+        "200":
           description: Override saved
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ScoreOverrideResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '404':
-          $ref: '#/components/responses/TeamNotFound'
+                $ref: "#/components/schemas/ScoreOverrideResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/TeamNotFound"
 
   /api/submissions:
     get:
@@ -172,14 +172,14 @@ paths:
             type: string
           required: false
       responses:
-        '200':
+        "200":
           description: Submission list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Submission'
+                  $ref: "#/components/schemas/Submission"
 
   /api/submissions/validate:
     post:
@@ -191,18 +191,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SubmissionValidationRequest'
+              $ref: "#/components/schemas/SubmissionValidationRequest"
       responses:
-        '200':
+        "200":
           description: Submission validated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SubmissionValidationResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '404':
-          $ref: '#/components/responses/SubmissionNotFound'
+                $ref: "#/components/schemas/SubmissionValidationResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/SubmissionNotFound"
 
   /api/awards:
     get:
@@ -210,14 +210,14 @@ paths:
       summary: Retrieve all awards
       x-roles: [authenticated]
       responses:
-        '200':
+        "200":
           description: Award list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Award'
+                  $ref: "#/components/schemas/Award"
     post:
       tags: [Awards]
       summary: Assign or upsert award for a team
@@ -227,18 +227,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AwardRequest'
+              $ref: "#/components/schemas/AwardRequest"
       responses:
-        '200':
+        "200":
           description: Award assignment
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Award'
-        '400':
-          $ref: '#/components/responses/InvalidAward'
-        '404':
-          $ref: '#/components/responses/TeamNotFound'
+                $ref: "#/components/schemas/Award"
+        "400":
+          $ref: "#/components/responses/InvalidAward"
+        "404":
+          $ref: "#/components/responses/TeamNotFound"
 
   /api/attendees:
     get:
@@ -246,14 +246,14 @@ paths:
       summary: Retrieve all attendee registrations
       x-roles: [admin]
       responses:
-        '200':
+        "200":
           description: Attendee list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Attendee'
+                  $ref: "#/components/schemas/Attendee"
 
   /api/attendees/me:
     get:
@@ -261,16 +261,16 @@ paths:
       summary: Retrieve current user registration profile
       x-roles: [authenticated]
       responses:
-        '200':
+        "200":
           description: Current attendee profile
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Attendee'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/AttendeeNotFound'
+                $ref: "#/components/schemas/Attendee"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/AttendeeNotFound"
     post:
       tags: [Attendees]
       summary: Create or update current user profile
@@ -280,22 +280,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AttendeeSelfRequest'
+              $ref: "#/components/schemas/AttendeeSelfRequest"
       responses:
-        '200':
+        "200":
           description: Profile updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Attendee'
-        '201':
+                $ref: "#/components/schemas/Attendee"
+        "201":
           description: Profile created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Attendee'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/Attendee"
+        "400":
+          $ref: "#/components/responses/ValidationError"
     put:
       tags: [Attendees]
       summary: Create or update current user profile
@@ -305,22 +305,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AttendeeSelfRequest'
+              $ref: "#/components/schemas/AttendeeSelfRequest"
       responses:
-        '200':
+        "200":
           description: Profile updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Attendee'
-        '201':
+                $ref: "#/components/schemas/Attendee"
+        "201":
           description: Profile created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Attendee'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/Attendee"
+        "400":
+          $ref: "#/components/responses/ValidationError"
 
   /api/attendees/bulk:
     post:
@@ -332,16 +332,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AttendeeBulkRequest'
+              $ref: "#/components/schemas/AttendeeBulkRequest"
       responses:
-        '201':
+        "201":
           description: Bulk import result
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AttendeeBulkResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/AttendeeBulkResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
 
   /api/teams/assign:
     post:
@@ -353,16 +353,16 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TeamAssignmentRequest'
+              $ref: "#/components/schemas/TeamAssignmentRequest"
       responses:
-        '200':
+        "200":
           description: Team assignment result
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TeamAssignmentResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
+                $ref: "#/components/schemas/TeamAssignmentResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
 
   /api/upload:
     post:
@@ -374,20 +374,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/UploadPayload'
+              $ref: "#/components/schemas/UploadPayload"
       responses:
-        '202':
+        "202":
           description: Submission queued
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UploadResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/TeamNotFound'
+                $ref: "#/components/schemas/UploadResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/TeamNotFound"
 
   /api/rubrics:
     get:
@@ -395,14 +395,14 @@ paths:
       summary: Retrieve all rubric metadata
       x-roles: [authenticated]
       responses:
-        '200':
+        "200":
           description: Rubric list
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/RubricSummary'
+                  $ref: "#/components/schemas/RubricSummary"
     post:
       tags: [Rubrics]
       summary: Upload and parse a rubric
@@ -412,19 +412,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RubricCreateRequest'
+              $ref: "#/components/schemas/RubricCreateRequest"
           text/markdown:
             schema:
               type: string
       responses:
-        '201':
+        "201":
           description: Rubric created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RubricCreateResponse'
-        '400':
-          $ref: '#/components/responses/RubricParseError'
+                $ref: "#/components/schemas/RubricCreateResponse"
+        "400":
+          $ref: "#/components/responses/RubricParseError"
 
   /api/rubrics/active:
     get:
@@ -432,14 +432,14 @@ paths:
       summary: Retrieve the active rubric configuration
       x-roles: [authenticated]
       responses:
-        '200':
+        "200":
           description: Active rubric
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Rubric'
-        '404':
-          $ref: '#/components/responses/RubricNotFound'
+                $ref: "#/components/schemas/Rubric"
+        "404":
+          $ref: "#/components/responses/RubricNotFound"
 
   /api/flags:
     get:
@@ -447,12 +447,12 @@ paths:
       summary: Retrieve feature flags and descriptions
       x-roles: [authenticated]
       responses:
-        '200':
+        "200":
           description: Current flag values
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FlagState'
+                $ref: "#/components/schemas/FlagState"
     put:
       tags: [Flags]
       summary: Update feature flags
@@ -462,18 +462,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FlagUpdateRequest'
+              $ref: "#/components/schemas/FlagUpdateRequest"
       responses:
-        '200':
+        "200":
           description: Updated flag values
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FlagUpdateResponse'
-        '400':
-          $ref: '#/components/responses/ValidationError'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+                $ref: "#/components/schemas/FlagUpdateResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 
 components:
   securitySchemes:
@@ -491,7 +491,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: VALIDATION_ERROR
@@ -501,7 +501,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: UNAUTHORIZED
@@ -511,7 +511,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: FORBIDDEN
@@ -521,7 +521,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: TEAM_NOT_FOUND
@@ -531,7 +531,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: TEAM_EXISTS
@@ -541,7 +541,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: INVALID_AWARD
@@ -551,7 +551,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: SUBMISSION_NOT_FOUND
@@ -561,7 +561,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: NOT_FOUND
@@ -571,7 +571,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: RUBRIC_PARSE_ERROR
@@ -581,7 +581,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: "#/components/schemas/ErrorResponse"
           example:
             error:
               code: RUBRIC_NOT_FOUND
@@ -642,7 +642,7 @@ components:
 
     TeamUpdateResponse:
       allOf:
-        - $ref: '#/components/schemas/Team'
+        - $ref: "#/components/schemas/Team"
 
     TeamDeleteRequest:
       type: object
@@ -774,11 +774,11 @@ components:
         scores:
           type: array
           items:
-            $ref: '#/components/schemas/ScoreOverrideItem'
+            $ref: "#/components/schemas/ScoreOverrideItem"
         bonus:
           type: array
           items:
-            $ref: '#/components/schemas/BonusOverrideItem'
+            $ref: "#/components/schemas/BonusOverrideItem"
 
     ScoreOverrideResponse:
       type: object
@@ -821,7 +821,7 @@ components:
         leaderboard:
           type: array
           items:
-            $ref: '#/components/schemas/LeaderboardEntry'
+            $ref: "#/components/schemas/LeaderboardEntry"
         lastUpdated:
           type: string
           format: date-time
@@ -889,7 +889,14 @@ components:
       properties:
         category:
           type: string
-          enum: [BestOverall, SecurityChampion, CostOptimizer, BestArchitecture, SpeedDemon]
+          enum:
+            [
+              BestOverall,
+              SecurityChampion,
+              CostOptimizer,
+              BestArchitecture,
+              SpeedDemon,
+            ]
         teamName:
           type: string
         assignedBy:
@@ -904,7 +911,14 @@ components:
       properties:
         category:
           type: string
-          enum: [BestOverall, SecurityChampion, CostOptimizer, BestArchitecture, SpeedDemon]
+          enum:
+            [
+              BestOverall,
+              SecurityChampion,
+              CostOptimizer,
+              BestArchitecture,
+              SpeedDemon,
+            ]
         teamName:
           type: string
 
@@ -936,7 +950,7 @@ components:
         members:
           type: array
           items:
-            $ref: '#/components/schemas/TeamAssignmentMember'
+            $ref: "#/components/schemas/TeamAssignmentMember"
 
     TeamAssignmentResponse:
       type: object
@@ -944,7 +958,7 @@ components:
         teams:
           type: array
           items:
-            $ref: '#/components/schemas/TeamAssignmentTeam'
+            $ref: "#/components/schemas/TeamAssignmentTeam"
         totalAttendees:
           type: integer
         teamCount:
@@ -1056,7 +1070,7 @@ components:
         criteria:
           type: array
           items:
-            $ref: '#/components/schemas/RubricCategoryCriterion'
+            $ref: "#/components/schemas/RubricCategoryCriterion"
 
     RubricBonusItem:
       type: object
@@ -1101,19 +1115,19 @@ components:
         categories:
           type: array
           items:
-            $ref: '#/components/schemas/RubricCategory'
+            $ref: "#/components/schemas/RubricCategory"
         bonus:
           type: array
           items:
-            $ref: '#/components/schemas/RubricBonusItem'
+            $ref: "#/components/schemas/RubricBonusItem"
         gradingScale:
           type: array
           items:
-            $ref: '#/components/schemas/RubricGradeBand'
+            $ref: "#/components/schemas/RubricGradeBand"
         awards:
           type: array
           items:
-            $ref: '#/components/schemas/RubricAwardDefinition'
+            $ref: "#/components/schemas/RubricAwardDefinition"
         baseTotal:
           type: number
         bonusTotal:
@@ -1175,9 +1189,9 @@ components:
       type: object
       properties:
         flags:
-          $ref: '#/components/schemas/Flag'
+          $ref: "#/components/schemas/Flag"
         descriptions:
-          $ref: '#/components/schemas/FlagDescriptions'
+          $ref: "#/components/schemas/FlagDescriptions"
 
     FlagUpdateRequest:
       type: object
@@ -1188,4 +1202,4 @@ components:
       type: object
       properties:
         flags:
-          $ref: '#/components/schemas/Flag'
+          $ref: "#/components/schemas/Flag"
