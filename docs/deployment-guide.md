@@ -14,13 +14,12 @@
 graph TD
     A[1. Prerequisites] --> B[2. Provision Infrastructure]
     B --> C[3. Deploy SQL Schema]
-    C --> D[4. Configure OIDC Auth]
+    C --> D[4. Configure OIDC Auth + Verify]
     D --> E[5. First Deployment]
-    E --> F[6. Assign User Roles]
-    F --> G[7. Smoke Test]
-    G --> H{Optional}
-    H --> I[Custom Domain]
-    H --> J[Local Dev Setup]
+    E --> F[6. Assign Roles + Smoke Test]
+    F --> G{Optional}
+    G --> H[Custom Domain]
+    G --> I[Local Dev Setup]
 
     style A fill:#f0f0f0,stroke:#333
     style B fill:#0078D4,stroke:#333,color:#fff
@@ -28,10 +27,9 @@ graph TD
     style D fill:#e67e22,stroke:#333,color:#fff
     style E fill:#27ae60,stroke:#333,color:#fff
     style F fill:#27ae60,stroke:#333,color:#fff
-    style G fill:#27ae60,stroke:#333,color:#fff
-    style H fill:#f0f0f0,stroke:#333
+    style G fill:#f0f0f0,stroke:#333
+    style H fill:#95a5a6,stroke:#333,color:#fff
     style I fill:#95a5a6,stroke:#333,color:#fff
-    style J fill:#95a5a6,stroke:#333,color:#fff
 ```
 
 ## Prerequisites
@@ -97,6 +95,8 @@ cd infra
 Deploys via the pre-compiled ARM template. In the portal form, fill in `costCenter` and
 `technicalContact`. Set `adminEmail` and `sqlAdminObjectId` to the signed-in deploying
 user's email and Entra Object ID — this user becomes the app admin and SQL Entra administrator.
+
+> **Tip — find your Object ID**: `az ad signed-in-user show --query id -o tsv`
 
 ### What Gets Deployed
 
