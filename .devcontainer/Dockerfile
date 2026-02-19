@@ -10,6 +10,10 @@ RUN curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor >
     && apt-get install -y azure-functions-core-tools-4 graphviz python3 python3-pip \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Python packages for the azure-diagrams skill — baked into the image so
+# postCreate does not need a network hit on every container creation.
+RUN pip3 install --quiet --break-system-packages diagrams matplotlib pillow
+
 # Azurite (Azure Storage emulator) — pure JS, runs on any arch
 RUN su node -c "npm install -g azurite"
 

@@ -7,8 +7,8 @@ npm install
 # Install API dependencies
 cd api && npm install && cd ..
 
-# Install Python packages required by the azure-diagrams skill
-pip3 install --quiet diagrams matplotlib pillow
+# Fix any auto-fixable npm vulnerabilities
+npm audit fix --silent || true
 
 # Create Azurite data directory
 mkdir -p .azurite

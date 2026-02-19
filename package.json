@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Serverless microhack scoring dashboard — Azure Static Web Apps + managed Functions + Table Storage",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "scripts": {
     "start": "swa start src --api-location api",

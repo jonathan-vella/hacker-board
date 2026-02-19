@@ -15,6 +15,7 @@
     "4280": { "label": "SWA Emulator", "onAutoForward": "notify" },
     "7071": { "label": "Azure Functions", "onAutoForward": "silent" }
   },
+  "remoteUser": "node",
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "customizations": {
     "vscode": {
