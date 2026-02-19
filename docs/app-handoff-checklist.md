@@ -163,10 +163,15 @@ Place this file at the **root** of your app repo (same level as `package.json`).
 
 ### 3.2 — Assign User Roles
 
+> **Default admin**: The Entra user who ran the deployment is automatically
+> configured with the `admin` role — no invitation step required for the deploying user.
+
+To invite additional admins or team members, use the Azure Portal or CLI:
+
 In the Azure Portal:
 
 1. Navigate to `stapp-hacker-board-prod` → **Role management**
-2. Invite facilitators with the `admin` role
+2. Invite additional facilitators with the `admin` role (optional)
 3. Invite participants with the `member` role
 
 Or via CLI:

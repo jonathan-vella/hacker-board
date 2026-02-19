@@ -75,12 +75,15 @@ cd api && npm test
 cd infra
 ./deploy.ps1 `
   -CostCenter "microhack" `
-  -TechnicalContact "team@contoso.com" `
-  -SqlAdminObjectId "<entra-object-id>"
+  -TechnicalContact "team@contoso.com"
 ```
 
-Post-deploy, the script automatically runs the SQL schema migration and can
-send an admin invitation if `--AdminEmail` is provided.
+The deploying user (`az login` identity) is automatically configured as the
+application administrator and assigned as the Microsoft Entra administrator
+on the Azure SQL server. The script also runs the SQL schema migration automatically.
+
+Alternatively, use the **Deploy to Azure** button in this README to deploy
+via the Azure Portal — set `adminEmail` and `sqlAdminObjectId` to the deploying user's details.
 
 See [docs/deployment-guide.md](docs/deployment-guide.md) for the full
 end-to-end deployment guide (infra, OIDC, secrets, roles, table creation,

@@ -46,63 +46,59 @@ graph TD
 | GitHub CLI         | `gh auth login` authenticated          |
 | Node.js            | 20+                                    |
 | PowerShell         | 7+ (for `deploy.ps1`)                  |
-| Entra ID Object ID | For the SQL Entra admin assignment     |
 
 ---
 
 ## Step 1 — Provision Azure Infrastructure
 
-Two options: the **Deploy to Azure** button for 1-click provisioning, or the
+Two supported deployment paths: the **Deploy to Azure** button for 1-click provisioning, or the
 **deploy script** for full control over parameters and phased deployment.
 
-### Option A — Deploy to Azure Button
+> **Default admin behaviour**: The Entra user running the deployment is automatically
+> configured as the application administrator and assigned as the Microsoft Entra
+> administrator on the Azure SQL server — no separate invite step is required.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjonathan-vella%2Fhacker-board%2Fmain%2Finfra%2Fazuredeploy.json)
-
-This deploys via the pre-compiled ARM template. Fill in the required parameters
-(`costCenter`, `technicalContact`, `sqlAdminObjectId`) in the portal form.
-
-### Option B — Deploy Script (Recommended)
+### Option A — deploy.ps1 (Recommended)
 
 ```powershell
 cd infra
 
-# Full deployment
+# Full deployment — deploying user is auto-configured as app admin and SQL Entra admin
 ./deploy.ps1 `
   -CostCenter "microhack" `
-  -TechnicalContact "you@contoso.com" `
-  -SqlAdminObjectId "<entra-object-id>"
+  -TechnicalContact "you@contoso.com"
 
 # Preview changes first (what-if)
 ./deploy.ps1 -WhatIf `
   -CostCenter "microhack" `
   -TechnicalContact "you@contoso.com"
-
-# Full deployment with admin invite
-./deploy.ps1 `
-  -CostCenter "microhack" `
-  -TechnicalContact "you@contoso.com" `
-  -SqlAdminObjectId "<entra-object-id>" `
-  -AdminEmail "admin@github.com"
 ```
 
 <details>
 <summary>Deploy script parameters</summary>
 
-| Parameter           | Default                | Description                                       |
-| ------------------- | ---------------------- | ------------------------------------------------- |
-| `ResourceGroupName` | `rg-hacker-board-prod` | Target resource group                             |
-| `Location`          | `westeurope`           | Azure region                                      |
-| `Environment`       | `prod`                 | `dev`, `staging`, or `prod`                       |
-| `CostCenter`        | _(required)_           | Cost center code for tagging                      |
-| `TechnicalContact`  | _(required)_           | Contact email for tagging                         |
-| `SqlAdminObjectId`  | _(required for prod)_  | Entra ID Object ID of the SQL Entra admin         |
-| `AdminEmail`        | _(empty)_              | GitHub email to auto-invite as admin after deploy |
-| `SkipSchema`        | `false`                | Skip automatic SQL schema migration step          |
-| `RepositoryUrl`     | _(empty)_              | GitHub repo URL for SWA linkage                   |
-| `WhatIf`            | `false`                | Preview without deploying                         |
+| Parameter           | Default                        | Description                                                                                     |
+| ------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `ResourceGroupName` | `rg-hacker-board-prod`         | Target resource group                                                                           |
+| `Location`          | `westeurope`                   | Azure region                                                                                    |
+| `Environment`       | `prod`                         | `dev`, `staging`, or `prod`                                                                     |
+| `CostCenter`        | _(required)_                   | Cost center code for tagging                                                                    |
+| `TechnicalContact`  | _(required)_                   | Contact email for tagging                                                                       |
+| `SqlAdminObjectId`  | _(deprecated — auto-detected)_ | Accepted for backwards compatibility; the deploying user's OID is used automatically            |
+| `AdminEmail`        | _(auto-detected)_              | Deploying user's email is used by default; override only if deploying on behalf of another user |
+| `SkipSchema`        | `false`                        | Skip automatic SQL schema migration step                                                        |
+| `RepositoryUrl`     | _(empty)_                      | GitHub repo URL for SWA linkage                                                                 |
+| `WhatIf`            | `false`                        | Preview without deploying                                                                       |
 
 </details>
+
+### Option B — Deploy to Azure Button
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjonathan-vella%2Fhacker-board%2Fmain%2Finfra%2Fazuredeploy.json)
+
+Deploys via the pre-compiled ARM template. In the portal form, fill in `costCenter` and
+`technicalContact`. Set `adminEmail` and `sqlAdminObjectId` to the signed-in deploying
+user's email and Entra Object ID — this user becomes the app admin and SQL Entra administrator.
 
 ### What Gets Deployed
 
@@ -162,11 +158,11 @@ Expected output confirms 7 tables created: `Teams`, `Attendees`, `Scores`,
 `Awards`, `Submissions`, `Rubrics`, `Config`, plus the `HackerNumberSequence`
 SEQUENCE.
 
-> **Entra ID access required**: The identity running the script must be a member
-> of the Entra admin group assigned to the SQL server, or have `db_owner`/
-> `db_ddladmin` rights obtained via `ALTER ROLE`. The SWA managed identity
-> is granted `db_datareader` and `db_datawriter` roles automatically by the
-> schema script.
+> **Entra ID access required**: The identity running the deployment is automatically
+> assigned as the SQL Entra administrator by `deploy.ps1`. This same identity must
+> be logged in via `az login` when running `deploy-schema.js` manually. The SWA
+> managed identity is granted `db_datareader` and `db_datawriter` roles automatically
+> by the schema script.
 
 ### Verify Schema
 
@@ -317,14 +313,18 @@ HackerBoard uses two custom roles enforced by `staticwebapp.config.json`:
 All authenticated users (without a specific role) can view the
 leaderboard, awards, and register as attendees.
 
-### Invite via CLI
+> **Default admin**: The Entra user who ran the deployment is automatically
+> configured as the first `admin` — no invitation required. Additional admins
+> can be invited via the Azure Portal or CLI below.
+
+### Invite Additional Admins via CLI
 
 ```bash
 SWA_NAME="swa-hacker-board-prod"
 RG_NAME="rg-hacker-board-prod"
 DOMAIN="<your-swa-hostname>.azurestaticapps.net"
 
-# Invite an admin
+# Invite an additional admin
 az staticwebapp users invite \
   --name "$SWA_NAME" \
   --resource-group "$RG_NAME" \
@@ -442,15 +442,15 @@ npm run test:all
 
 ## Troubleshooting
 
-| Symptom                                 | Cause                                                    | Fix                                                                        |
-| --------------------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Deploy action fails with "unauthorized" | Deployment auth policy not set to GitHub                 | Run `scripts/configure-swa-auth.sh` (Step 4)                               |
-| Deploy action fails with OIDC error     | Deployment auth policy still on DeploymentToken          | Run `scripts/configure-swa-auth.sh` (Step 4)                               |
-| `/api/*` returns 404                    | API not deployed or `api_location` mismatch              | Verify `api_location: "api"` in workflow                                   |
-| Health check returns 500                | SQL schema not deployed or SWA identity lacks SQL access | Run `node scripts/deploy-schema.js`; grant `db_datareader`/`db_datawriter` |
-| User gets 401 on admin routes           | Role invitation not accepted                             | Re-send invitation (Step 7)                                                |
-| `swa start` fails locally               | Missing SWA CLI or SQL not running                       | Install prerequisites from the Local Development section                   |
-| Schema migration fails                  | Entra ID identity lacks SQL admin rights                 | Ensure `sqlAdminObjectId` is set correctly in Bicep params                 |
+| Symptom                                   | Cause                                                                             | Fix                                                                        |
+| ----------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Deploy action fails with "unauthorized"   | Deployment auth policy not set to GitHub                                          | Run `scripts/configure-swa-auth.sh` (Step 4)                               |
+| Deploy action fails with OIDC error       | Deployment auth policy still on DeploymentToken                                   | Run `scripts/configure-swa-auth.sh` (Step 4)                               |
+| `/api/*` returns 404                      | API not deployed or `api_location` mismatch                                       | Verify `api_location: "api"` in workflow                                   |
+| Health check returns 500                  | SQL schema not deployed or SWA identity lacks SQL access                          | Run `node scripts/deploy-schema.js`; grant `db_datareader`/`db_datawriter` |
+| Deploying user cannot access admin routes | Deploying user's GitHub email does not match the `adminEmail` used at deploy time | Re-run `deploy.ps1` with the correct `-AdminEmail` override                |
+| `swa start` fails locally                 | Missing SWA CLI or SQL not running                                                | Install prerequisites from the Local Development section                   |
+| Schema migration fails                    | `az login` identity is not the SQL Entra administrator                            | Ensure the same identity used for deployment runs `deploy-schema.js`       |
 
 ---
 
@@ -484,15 +484,14 @@ npm run test:all
 
 ## E2E Deployment Validation — Test Protocol
 
-> This section defines the shared test protocol for validating all three deployment paths: **Path A** (PowerShell script), **Path B** (GitHub Actions), and **Path C** (Deploy to Azure button). Each path runs in its own disposable resource group.
+> This section defines the shared test protocol for validating both supported deployment paths: **Path A** (`deploy.ps1`) and **Path B** (Deploy to Azure button). Each path runs in its own disposable resource group.
 
 ### Disposable Resource Groups
 
 | Path | Resource Group Pattern  | Deployment Method                     |
 | ---- | ----------------------- | ------------------------------------- |
 | A    | `hb-e2e-ps-<yyyyMMdd>`  | `infra/deploy.ps1`                    |
-| B    | `hb-e2e-gha-<yyyyMMdd>` | `.github/workflows/deploy-swa.yml`    |
-| C    | `hb-e2e-btn-<yyyyMMdd>` | ARM button → `infra/azuredeploy.json` |
+| B    | `hb-e2e-btn-<yyyyMMdd>` | ARM button → `infra/azuredeploy.json` |
 
 ### Required Evidence Per Run
 
@@ -508,27 +507,27 @@ Each path run MUST capture:
 | Role access validation  | Unauthenticated request to admin route → must return `401`/`403`      |
 | Teardown confirmation   | `az group delete --name <rg> --yes --no-wait` + confirmation          |
 
-### Preflight Gate (All Paths)
+### Preflight Gate (Both Paths)
 
 Before executing any path, verify:
 
 - [ ] `infra/main.bicep` compiles cleanly: `az bicep build --file infra/main.bicep`
 - [ ] `infra/azuredeploy.json` is in sync with `main.bicep` (rebuild if changed)
-- [ ] Required parameters are available: `adminEmail`, `sqlAdminObjectId`, `costCenter`, `technicalContact`
-- [ ] `SWA_DEPLOYMENT_TOKEN` secret is set in GitHub repository secrets (Path B)
-- [ ] Azure CLI is authenticated with Contributor access to target subscription
+- [ ] Required parameters are available: `costCenter`, `technicalContact`
+- [ ] Azure CLI is authenticated with Contributor access to target subscription (`az login`)
+- [ ] The signed-in identity is the intended app admin and SQL Entra administrator
 
-### SQL Private Endpoint — CI Runner Constraint
+### SQL Private Endpoint — Test Environment Constraint
 
-When `enablePrivateEndpoint=true`, the GitHub Actions schema migration job **cannot reach the private SQL endpoint** from a hosted runner. For E2E test environments:
+When `enablePrivateEndpoint=true`, schema migration requires connectivity inside the VNet. For E2E test environments:
 
-- Set `enablePrivateEndpoint=false` in all three disposable test RGs
+- Set `enablePrivateEndpoint=false` in both disposable test RGs
 - Use `--parameters enablePrivateEndpoint=false` in Path A's `deploy.ps1` invocation
 - This is expected behavior; private endpoints are for production only
 
 ### Path Execution Commands
 
-**Path A — PowerShell**
+**Path A — deploy.ps1**
 
 ```powershell
 $date = Get-Date -Format 'yyyyMMdd'
@@ -536,30 +535,20 @@ $date = Get-Date -Format 'yyyyMMdd'
   -ResourceGroupName "hb-e2e-ps-$date" `
   -CostCenter "microhack" `
   -TechnicalContact "you@contoso.com" `
-  -SqlAdminObjectId "<entra-object-id>" `
-  -AdminEmail "<github-email>" `
   -Environment dev
 ```
 
-> After deploy, run: `node scripts/deploy-schema.js` (env vars set from outputs)
+> The signed-in `az login` identity is automatically the app admin and SQL Entra administrator.
+> Schema migration runs automatically unless `-SkipSchema` is passed.
 
-**Path B — GitHub Actions**
-
-```bash
-# Trigger manually via workflow_dispatch; set RESOURCE_GROUP_NAME input if workflow supports override
-gh workflow run deploy-swa.yml --ref main
-```
-
-> Collect: run URL, `static_web_app_url` job output, smoke test step logs
-
-**Path C — Deploy Button**
+**Path B — Deploy Button**
 
 1. Navigate to `README.md` and click **Deploy to Azure**
-2. Fill parameters: `costCenter`, `technicalContact`, `adminEmail`, `sqlAdminObjectId`, `enablePrivateEndpoint=false`
+2. Fill parameters: `costCenter`, `technicalContact`, `enablePrivateEndpoint=false`; set `adminEmail` and `sqlAdminObjectId` to the deploying user's email and Entra OID
 3. After ARM deployment completes, collect outputs from Azure Portal
-4. Run `node scripts/deploy-schema.js` and `scripts/invite-admin.sh` manually
+4. Run `node scripts/deploy-schema.js` manually (set `SQL_SERVER_FQDN` and `SQL_DATABASE_NAME` from portal outputs)
 
-### Runtime Smoke Checks (All Paths)
+### Runtime Smoke Checks (Both Paths)
 
 ```bash
 export APP_URL=https://<swaHostname>
@@ -576,17 +565,19 @@ curl -i $APP_URL/api/scores -X POST -H "Content-Type: application/json" -d '{}'
 
 ### Test Matrix
 
-| Check                          | Path A (PS) | Path B (GHA) | Path C (Button) |
-| ------------------------------ | ----------- | ------------ | --------------- |
-| Provisioning success           |             |              |                 |
-| All outputs present            |             |              |                 |
-| Schema migration success       |             |              |                 |
-| App deployment success         |             |              |                 |
-| `/api/health` → 200            |             |              |                 |
-| `/api/teams` → 200, no 5xx     |             |              |                 |
-| Admin route → 401 unauthed     |             |              |                 |
-| `admin`/`member` role behavior |             |              |                 |
-| Teardown complete              |             |              |                 |
+| Check                                     | Path A (PS) | Path B (Button) |
+| ----------------------------------------- | ----------- | --------------- |
+| Provisioning success                      |             |                 |
+| All outputs present                       |             |                 |
+| Schema migration success                  |             |                 |
+| App deployment success                    |             |                 |
+| `/api/health` → 200                       |             |                 |
+| `/api/teams` → 200, no 5xx                |             |                 |
+| Deploying user has `admin` access         |             |                 |
+| Deploying user is SQL Entra administrator |             |                 |
+| Admin route → 401 unauthenticated         |             |                 |
+| `admin`/`member` role behaviour           |             |                 |
+| Teardown complete                         |             |                 |
 
 ### Teardown
 

@@ -32,7 +32,7 @@
 | Metric                  | Value                                                     |
 | ----------------------- | --------------------------------------------------------- |
 | **Current Phase**       | Phase 16 — CI/CD + Post-Deploy Verification (in progress) |
-| **Last Updated**        | 2026-02-18                                                |
+| **Last Updated**        | 2026-02-19                                                |
 | **Days Remaining**      | 5                                                         |
 | **Tasks Done**          | 218 / 218 (P1–P14) + Phase 15 partial                     |
 | **API Endpoints**       | 10 files / 16 routes                                      |
@@ -686,7 +686,9 @@ monitoring shows data, feature flags toggle correctly.
 
 ## Phase 15 — E2E Deployment Validation 🔴
 
-> Validate full deployment readiness through three independent paths. Each path runs in its own disposable resource group before any production deployment.
+> Validate full deployment readiness through two supported deployment paths: **`deploy.ps1`** and **Deploy to Azure button**. GitHub Actions is not a supported infrastructure deployment path. Each path runs in its own disposable resource group before any production deployment.
+>
+> The Entra user running the deployment is automatically the application admin and the SQL Entra administrator — no separate invite step is required.
 >
 > Reference: `docs/deployment-guide.md` — "E2E Deployment Validation — Test Protocol"
 
@@ -708,37 +710,27 @@ monitoring shows data, feature flags toggle correctly.
 - [x] Execute with `enablePrivateEndpoint=true` against `rg-hacker-board-prod`
 - [x] Capture all provisioning outputs: `swaHostname`, `swaName`, `sqlServerFqdn`, `sqlDatabaseName`
 - [x] Schema migration run manually (9 batches; private endpoint + temp public access)
-- [x] Confirm admin-invite step ran and sent invite to `vella.jonathan@outlook.com`
+- [x] Confirm deploying user auto-configured as app admin and SQL Entra administrator
 - [x] Verify SWA returns HTTP 200 — `https://gentle-moss-00d8a4103.6.azurestaticapps.net`
 - [ ] Verify `GET /api/health` → 200 (blocked: app code not deployed until CI/CD runs)
 - [ ] Verify `GET /api/teams` → 200, no 5xx (blocked: same)
-- [ ] Teardown disposable RGs after Path B/C evidence captured
+- [ ] Teardown disposable RG after Path B evidence captured
 
-### 15.3 — Path B: GitHub Actions
-
-> RG: `hb-e2e-gha-<yyyyMMdd>` · Workflow: `.github/workflows/deploy-swa.yml`
-
-- [ ] Set `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub secret  
-       Token: available from last `deploy.ps1` run output
-- [ ] Push to `main` (or `workflow_dispatch`) to trigger `deploy-swa.yml`
-- [ ] Confirm app code deploys successfully and SWA functions are live
-- [ ] Verify `GET /api/health` → 200
-- [ ] Verify `GET /api/teams` → 200, no 5xx
-- [ ] Teardown disposable RG after evidence captured
-
-### 15.4 — Path C: Deploy to Azure Button
+### 15.3 — Path B: Deploy to Azure Button
 
 > RG: `hb-e2e-btn-<yyyyMMdd>` · Template: `infra/azuredeploy.json`
 
 - [ ] Click button in `README.md`, set `enablePrivateEndpoint=false`
+- [ ] Fill portal form: `costCenter`, `technicalContact`, `adminEmail` (deploying user's email), `sqlAdminObjectId` (deploying user's OID)
 - [ ] Collect ARM deployment outputs from Azure Portal
-- [ ] Run post-deploy steps manually: `deploy-schema.js`, `invite-admin.sh`
+- [ ] Run post-deploy step manually: `deploy-schema.js`
+- [ ] Confirm deploying user is auto-configured as app admin and SQL Entra administrator
 - [ ] Verify `/api/health` and `/api/teams`
 - [ ] Teardown RG after evidence captured
 
-### 15.5 — Test Matrix & Remediation
+### 15.4 — Test Matrix & Remediation
 
-- [ ] Complete test matrix in `docs/deployment-guide.md` with pass/fail + failure modes
+- [ ] Complete test matrix in `docs/deployment-guide.md` with pass/fail + failure modes (two paths: PS script, Deploy button)
 - [ ] Apply any remaining contract-drift fixes found during runs
 - [ ] Rebuild compiled ARM template if Bicep changes: `az bicep build --file infra/main.bicep --outfile infra/azuredeploy.json`
 - [ ] Update session handoff notes with outcomes
@@ -750,7 +742,7 @@ monitoring shows data, feature flags toggle correctly.
 > **Goal**: App code deployed to live SWA via GitHub Actions; db_owner and Directory Readers
 > confirmed on production resources; all smoke tests green.
 >
-> **Depends on**: Phase 15.2 (infra live), Phase 15.3 (CI/CD token set)
+> **Depends on**: Phase 15.2 (infra live), Phase 15.3 (Deploy button validation)
 > **Definition of Done**: `GET /api/health` and `GET /api/teams` return 200 from
 > `https://gentle-moss-00d8a4103.6.azurestaticapps.net` with full app code deployed.
 
@@ -769,7 +761,7 @@ monitoring shows data, feature flags toggle correctly.
 - [ ] Confirm SQL MI has Directory Readers role in Entra ID
 - [ ] Confirm SWA managed identity has `db_owner` on `hackerboard` database
 - [ ] Confirm `CREATE USER ... FROM EXTERNAL PROVIDER` no longer errors in `sql-grant.bicep` logs
-- [ ] Accept admin invitation email (sent to `vella.jonathan@outlook.com`; 24 h TTL)
+- [ ] Confirm deploying user (`vella.jonathan@outlook.com`) is app admin and SQL Entra administrator — no invite acceptance required
 
 ### 16.3 — Smoke Tests
 
@@ -786,25 +778,27 @@ monitoring shows data, feature flags toggle correctly.
 > Record architectural and design decisions here.
 > Format: `| ID | Date | Decision | Rationale | Status |`
 
-| ID  | Date       | Decision                                                            | Rationale                                                                                                                                                                                                                                                                                                  | Status               |
-| --- | ---------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
-| D1  | 2026-02-16 | Use ESM modules throughout                                          | `copilot-instructions.md` mandates ESM; Functions v4 supports it; fresh codebase                                                                                                                                                                                                                           | **Approved**         |
-| D2  | 2026-02-16 | Use Vitest for all testing                                          | Per `copilot-instructions.md`; fast, ESM-native, no config overhead                                                                                                                                                                                                                                        | **Approved**         |
-| D3  | 2026-02-16 | Vanilla JS SPA with hash router                                     | Per PRD — no framework; single `index.html`; minimal build tooling                                                                                                                                                                                                                                         | **Approved**         |
-| D4  | 2026-02-16 | GitHub username ↔ Attendee mapping                                  | Self-service claim (Option A from PRD F7/F10) — user claims on first login                                                                                                                                                                                                                                 | **Approved**         |
-| D5  | 2026-02-16 | Add Playwright for E2E testing                                      | Critical flows (submit→approve→leaderboard) need browser-level validation; Chromium-only to stay lean                                                                                                                                                                                                      | **Superseded by D7** |
-| D6  | 2026-02-16 | Templatized scoring rubric                                          | Rubric from azure-agentic-infraops-workshop is source of truth; template + prompt enables reuse across hackathons                                                                                                                                                                                          | **Approved**         |
-| D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom                          | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere                                                                                                                                                                         | **Approved**         |
-| D8  | 2026-02-17 | PRD Section 10 coding prompt superseded                             | Section references React/TypeScript/Tailwind but D3 chose Vanilla JS SPA; marked as historical reference only                                                                                                                                                                                              | **Approved**         |
-| D9  | 2026-02-18 | Full attendee anonymization                                         | No PII in any UI or API response; GitHub identity stays server-side in `_gitHubUsername` storage field only; alias = `TeamNN-HackerNN`                                                                                                                                                                     | **Approved**         |
-| D10 | 2026-02-18 | Bulk import removed                                                 | Self-register via GitHub OAuth + "Join Event" is sufficient; CSV import increases PII risk surface                                                                                                                                                                                                         | **Approved**         |
-| D11 | 2026-02-18 | Hacker numbers globally sequential                                  | Simpler counter logic; avoids per-team numbering collisions; counter ETag-protected in `_meta/counter` row                                                                                                                                                                                                 | **Approved**         |
-| D12 | 2026-02-18 | 6 default teams auto-seeded on first GET                            | Every event starts with Team01–Team06 without admin action; coaches can add/delete but not rename                                                                                                                                                                                                          | **Approved**         |
-| D13 | 2026-02-18 | SWA deploy auth: token-based (`SWA_DEPLOYMENT_TOKEN`)               | Simplest common denominator for all three E2E test paths; OIDC used for production CI only                                                                                                                                                                                                                 | **Approved**         |
-| D14 | 2026-02-18 | E2E test environments use `enablePrivateEndpoint=false`             | GitHub Actions hosted runners cannot reach private SQL endpoints; private endpoints are production-only                                                                                                                                                                                                    | **Approved**         |
-| D15 | 2026-02-18 | Canonical SWA role model: `admin`/`member`                          | `staticwebapp.config.json` uses `admin`/`member`; `writer`/`reader` references in scripts were contract drift — corrected                                                                                                                                                                                  | **Approved**         |
-| D16 | 2026-02-18 | SQL schema + db_owner grant via in-VNet ACI deploymentScript        | Public SQL endpoint is not acceptable with private-endpoint topology; schema and grants run inside the VNet via Azure Container Instance in Bicep `deploymentScript` resource (`sql-grant.bicep`)                                                                                                          | **Approved**         |
-| D17 | 2026-02-18 | Directory Readers assigned via `az rest` in `deploy.ps1`, not Bicep | Bicep `extension microsoftGraph` (built-in) is retired (BCP407); dynamic OCI ref (`br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0`) compiled but `roleAssignments` type not found (BCP029); fell back to idempotent `az rest POST /roleManagement/directory/roleAssignments` after deploy | **Approved**         |
+| ID  | Date       | Decision                                                                                    | Rationale                                                                                                                                                                                                                                                                                                  | Status               |
+| --- | ---------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| D1  | 2026-02-16 | Use ESM modules throughout                                                                  | `copilot-instructions.md` mandates ESM; Functions v4 supports it; fresh codebase                                                                                                                                                                                                                           | **Approved**         |
+| D2  | 2026-02-16 | Use Vitest for all testing                                                                  | Per `copilot-instructions.md`; fast, ESM-native, no config overhead                                                                                                                                                                                                                                        | **Approved**         |
+| D3  | 2026-02-16 | Vanilla JS SPA with hash router                                                             | Per PRD — no framework; single `index.html`; minimal build tooling                                                                                                                                                                                                                                         | **Approved**         |
+| D4  | 2026-02-16 | GitHub username ↔ Attendee mapping                                                          | Self-service claim (Option A from PRD F7/F10) — user claims on first login                                                                                                                                                                                                                                 | **Approved**         |
+| D5  | 2026-02-16 | Add Playwright for E2E testing                                                              | Critical flows (submit→approve→leaderboard) need browser-level validation; Chromium-only to stay lean                                                                                                                                                                                                      | **Superseded by D7** |
+| D6  | 2026-02-16 | Templatized scoring rubric                                                                  | Rubric from azure-agentic-infraops-workshop is source of truth; template + prompt enables reuse across hackathons                                                                                                                                                                                          | **Approved**         |
+| D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom                                                  | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere                                                                                                                                                                         | **Approved**         |
+| D8  | 2026-02-17 | PRD Section 10 coding prompt superseded                                                     | Section references React/TypeScript/Tailwind but D3 chose Vanilla JS SPA; marked as historical reference only                                                                                                                                                                                              | **Approved**         |
+| D9  | 2026-02-18 | Full attendee anonymization                                                                 | No PII in any UI or API response; GitHub identity stays server-side in `_gitHubUsername` storage field only; alias = `TeamNN-HackerNN`                                                                                                                                                                     | **Approved**         |
+| D10 | 2026-02-18 | Bulk import removed                                                                         | Self-register via GitHub OAuth + "Join Event" is sufficient; CSV import increases PII risk surface                                                                                                                                                                                                         | **Approved**         |
+| D11 | 2026-02-18 | Hacker numbers globally sequential                                                          | Simpler counter logic; avoids per-team numbering collisions; counter ETag-protected in `_meta/counter` row                                                                                                                                                                                                 | **Approved**         |
+| D12 | 2026-02-18 | 6 default teams auto-seeded on first GET                                                    | Every event starts with Team01–Team06 without admin action; coaches can add/delete but not rename                                                                                                                                                                                                          | **Approved**         |
+| D13 | 2026-02-18 | SWA deploy auth: token-based (`SWA_DEPLOYMENT_TOKEN`)                                       | Simplest common denominator for both supported deployment paths; OIDC used for production CI/CD app code deployment only                                                                                                                                                                                   | **Approved**         |
+| D14 | 2026-02-18 | E2E test environments use `enablePrivateEndpoint=false`                                     | GitHub Actions hosted runners cannot reach private SQL endpoints; private endpoints are production-only                                                                                                                                                                                                    | **Approved**         |
+| D15 | 2026-02-18 | Canonical SWA role model: `admin`/`member`                                                  | `staticwebapp.config.json` uses `admin`/`member`; `writer`/`reader` references in scripts were contract drift — corrected                                                                                                                                                                                  | **Approved**         |
+| D16 | 2026-02-18 | SQL schema + db_owner grant via in-VNet ACI deploymentScript                                | Public SQL endpoint is not acceptable with private-endpoint topology; schema and grants run inside the VNet via Azure Container Instance in Bicep `deploymentScript` resource (`sql-grant.bicep`)                                                                                                          | **Approved**         |
+| D17 | 2026-02-18 | Directory Readers assigned via `az rest` in `deploy.ps1`, not Bicep                         | Bicep `extension microsoftGraph` (built-in) is retired (BCP407); dynamic OCI ref (`br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0`) compiled but `roleAssignments` type not found (BCP029); fell back to idempotent `az rest POST /roleManagement/directory/roleAssignments` after deploy | **Approved**         |
+| D18 | 2026-02-19 | Deploying Entra user is default app admin and SQL Entra administrator                       | Removes post-deploy manual invite step; the logged-in `az login` identity is used as both `adminEmail` (SWA app admin) and the SQL Entra administrator OID — no separate invite flow needed                                                                                                                | **Approved**         |
+| D19 | 2026-02-19 | Only two infrastructure deployment paths supported: `deploy.ps1` and Deploy to Azure button | GitHub Actions is a CI/CD path for app code only, not an infrastructure deployment path; two well-tested paths are sufficient for operator use                                                                                                                                                             | **Approved**         |
 
 <!-- TEMPLATE for new decisions:
 | D{N} | YYYY-MM-DD | {decision} | {rationale} | **{status}** |
@@ -882,8 +876,7 @@ monitoring shows data, feature flags toggle correctly.
 | P11   | Frontend component test coverage (8 components)              | **Passed**                                           |
 | P12   | OpenAPI spec exists and validates as OpenAPI 3.0             | **Passed**                                           |
 | P15   | Path A (PS): all provisioning outputs present + health 200   | **Partial** — infra deployed, app code pending CI/CD |
-| P15   | Path B (GHA): workflow completes + smoke checks pass         | Not run — blocked on GitHub secret                   |
-| P15   | Path C (Button): ARM deployment + follow-up steps succeed    | Not run                                              |
+| P15   | Path B (Button): ARM deployment + follow-up steps succeed    | Not run                                              |
 | P16   | CI/CD deploys app code; `/api/health` returns 200            | Not run                                              |
 | P16   | Directory Readers assigned to SQL MI via `az rest`           | Not run — requires re-deploy                         |
 | P16   | db_owner granted to SWA MI via in-VNet ACI script            | Not run — requires re-deploy                         |
@@ -912,10 +905,8 @@ monitoring shows data, feature flags toggle correctly.
 **What's next**:
 
 - Execute Path A (PowerShell) in `hb-e2e-ps-<date>` with `enablePrivateEndpoint=false`.
-- Execute Path B (GitHub Actions) in `hb-e2e-gha-<date>` after confirming `SWA_DEPLOYMENT_TOKEN` secret.
-- Execute Path C (Deploy button) in `hb-e2e-btn-<date>`.
+- Execute Path B (Deploy button) in `hb-e2e-btn-<date>` with `enablePrivateEndpoint=false`.
 - Fill in test matrix in `docs/deployment-guide.md` with pass/fail evidence.
-- Rebuild `infra/azuredeploy.json` if any Bicep changes surface during path execution.
 
 **Open questions**:
 
@@ -949,13 +940,12 @@ monitoring shows data, feature flags toggle correctly.
 
 **What's next**:
 
-- **IMMEDIATE**: Set `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub secret (token in P15.3 task above) and push to `main` → app code deploys via CI/CD.
+- **IMMEDIATE**: Set `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub secret (token in P16.1 task above) and push to `main` → app code deploys via CI/CD.
 - **Re-run `deploy.ps1`** against `rg-hacker-board-prod` with same params to:
   - Execute `sql-grant.bicep` (in-VNet ACI) — applies schema + db_owner grant via private endpoint
   - Trigger `az rest` Directory Readers step for SQL server MI
 - Verify `/api/health` and `/api/teams` return 200 from deployed SWA.
-- Accept admin invitation email (sent; 24 h TTL — re-send via `invite-admin.sh` if expired).
-- Run Path B (GitHub Actions) and Path C (Deploy button) validation in disposable RGs.
+- Run Path B (Deploy button) validation in a disposable RG (`hb-e2e-btn-<date>`).
 
 **Open questions**:
 
@@ -964,11 +954,6 @@ monitoring shows data, feature flags toggle correctly.
 **Known issues**:
 
 - The existing live deployment (`rg-hacker-board-prod`) does NOT yet have the in-VNet script or Directory Readers grant applied — requires a re-deploy.
-- Admin invite TTL is 24 h from first deployment; will need re-sending if not accepted.
-
-**Known issues**:
-
-- Path B schema migration will fail if `enablePrivateEndpoint=true` — document as expected; use `false` for all test RGs.
 
 **What was done**:
 
