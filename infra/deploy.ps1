@@ -180,6 +180,7 @@ $deployParams = @(
     '--parameters', "technicalContact=$TechnicalContact"
     '--parameters', "repositoryUrl=$RepositoryUrl"
     '--parameters', "repositoryBranch=$RepositoryBranch"
+    '--parameters', "enablePrivateEndpoint=true"
 )
 if ($AdminEmail -ne '') {
     $deployParams += @('--parameters', "adminEmail=$AdminEmail")

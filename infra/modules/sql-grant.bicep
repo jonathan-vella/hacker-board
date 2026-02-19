@@ -25,6 +25,9 @@ param operatorLogin string = ''
 @description('UTC timestamp used for a unique deployment script resource name.')
 param deploymentTimestamp string
 
+@description('Principal ID (object ID) of the deployment UAMI — used for RBAC on the scripts storage account.')
+param deploymentIdentityPrincipalId string
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Deployment Script — runs inside the VNet so it can reach the SQL private
 // endpoint without enabling public SQL access.
@@ -39,6 +42,46 @@ param deploymentTimestamp string
 // ──────────────────────────────────────────────────────────────────────────────
 
 var schemaSqlB64 = loadFileAsBase64('../../api/schema/init.sql')
+
+// Storage account for the deployment script's file share.
+// Required when container settings include subnetIds (VNet integration).
+// Name is deterministic per resource group to survive re-deploys.
+var scriptsStorageName = 'stgrant${uniqueString(resourceGroup().id)}'
+
+resource scriptsStorage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: scriptsStorageName
+  location: location
+  tags: tags
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
+    supportsHttpsTrafficOnly: true
+    allowBlobPublicAccess: false
+    // No VNet restriction on this storage account — VNet-injected ACI mounts
+    // Azure Files via its own infrastructure path, which is blocked by subnet
+    // VNet rules even with AzureServices bypass. This account holds only
+    // ephemeral deployment script artifacts and is protected by RBAC (UAMI only).
+    networkAcls: {
+      defaultAction: 'Allow'
+      bypass: 'AzureServices'
+    }
+  }
+}
+
+// Storage File Data Privileged Contributor — lets the UAMI access the file share
+// without a storage access key (key-free, managed identity RBAC auth).
+resource scriptsStorageRbac 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(scriptsStorage.id, deploymentIdentityPrincipalId, '69566ab7-960f-475b-8e7c-b3118f30c6bd')
+  scope: scriptsStorage
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')
+    principalId: deploymentIdentityPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
 
 resource sqlGrantScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
   name: 'sql-grant-${deploymentTimestamp}'
@@ -55,7 +98,11 @@ resource sqlGrantScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
     azCliVersion: '2.70.0'
     retentionInterval: 'PT1H'
     timeout: 'PT15M'
-    // Run the ACI container in the VNet so it resolves SQL via the private endpoint
+    // Run the ACI container in the VNet so it resolves SQL via the private endpoint.
+    // storageAccountSettings is required when subnetIds is specified.
+    storageAccountSettings: {
+      storageAccountName: scriptsStorage.name
+    }
     containerSettings: {
       subnetIds: [
         { id: scriptsSubnetId }
@@ -122,6 +169,9 @@ resource sqlGrantScript 'Microsoft.Resources/deploymentScripts@2023-08-01' = {
         > "$AZ_SCRIPTS_OUTPUT_PATH"
     '''
   }
+  dependsOn: [
+    scriptsStorageRbac
+  ]
 }
 
 @description('Outputs from the SQL grant deployment script.')

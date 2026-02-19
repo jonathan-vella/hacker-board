@@ -43,6 +43,11 @@ module vnet 'br/public:avm/res/network/virtual-network:0.7.0' = {
         // Required delegation — ACI containers for deploymentScripts must run
         // in a subnet delegated to ContainerInstance/containerGroups.
         delegation: 'Microsoft.ContainerInstance/containerGroups'
+        // Microsoft.Storage service endpoint required so the scripts storage
+        // account can allowlist this subnet via a VNet rule.
+        serviceEndpoints: [
+          'Microsoft.Storage'
+        ]
       }
     ]
   }

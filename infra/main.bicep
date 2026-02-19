@@ -158,6 +158,7 @@ module sqlGrant 'modules/sql-grant.bicep' = if (enablePrivateEndpoint) {
     location: location
     tags: tags
     deploymentIdentityId: deploymentIdentity.id
+    deploymentIdentityPrincipalId: deploymentIdentity.properties.principalId
     scriptsSubnetId: vnet!.outputs.scriptsSubnetId
     sqlServerFqdn: sql.outputs.serverFqdn
     sqlDatabaseName: sql.outputs.databaseName

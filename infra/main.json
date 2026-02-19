@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "10132959882832108423"
+      "templateHash": "16905736074148376263"
     }
   },
   "parameters": {
@@ -97,20 +97,14 @@
     "adminEmail": {
       "type": "string",
       "metadata": {
-        "description": "Email address (UPN) of the Entra ID admin user/group for SQL Server administration."
-      }
-    },
-    "sqlAdminObjectId": {
-      "type": "string",
-      "metadata": {
-        "description": "Object ID of the Entra ID admin user/group for SQL Server administration."
+        "description": "Email address (UPN) sent the SWA admin invitation. Also granted db_owner access in SQL via the post-deploy grant script."
       }
     },
     "enablePrivateEndpoint": {
       "type": "bool",
       "defaultValue": true,
       "metadata": {
-        "description": "Enable Private Endpoint for Azure SQL Server. When true, a VNet, Private Endpoint, and Private DNS Zone are created. Set to false for cost-saving dev deployments."
+        "description": "Enable Private Endpoint for Azure SQL Server. When true, a VNet, Private Endpoint, Private DNS Zone, and in-VNet SQL grant script are created. Set to false for cost-saving dev deployments."
       }
     }
   },
@@ -125,6 +119,13 @@
     }
   },
   "resources": [
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[format('id-deploy-{0}', variables('suffix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]"
+    },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
@@ -4164,10 +4165,13 @@
             "value": "hackerboard"
           },
           "administratorLogin": {
-            "value": "[parameters('adminEmail')]"
+            "value": "[format('id-deploy-{0}', variables('suffix'))]"
           },
           "administratorObjectId": {
-            "value": "[parameters('sqlAdminObjectId')]"
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-deploy-{0}', variables('suffix'))), '2023-01-31').principalId]"
+          },
+          "administratorPrincipalType": {
+            "value": "Application"
           }
         },
         "template": {
@@ -4177,7 +4181,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "2860956850941376403"
+              "templateHash": "11835613844835530207"
             }
           },
           "parameters": {
@@ -4217,6 +4221,18 @@
               "metadata": {
                 "description": "Object ID of the Entra ID admin user/group."
               }
+            },
+            "administratorPrincipalType": {
+              "type": "string",
+              "defaultValue": "User",
+              "allowedValues": [
+                "User",
+                "Group",
+                "Application"
+              ],
+              "metadata": {
+                "description": "Principal type of the Entra ID administrator. Use Application for managed identities."
+              }
             }
           },
           "resources": [
@@ -4243,7 +4259,7 @@
                     "value": {
                       "azureADOnlyAuthentication": true,
                       "login": "[parameters('administratorLogin')]",
-                      "principalType": "User",
+                      "principalType": "[parameters('administratorPrincipalType')]",
                       "sid": "[parameters('administratorObjectId')]",
                       "tenantId": "[tenant().tenantId]"
                     }
@@ -10310,10 +10326,20 @@
                 "description": "Resource ID of the SQL Server."
               },
               "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sql-server'), '2025-04-01').outputs.resourceId.value]"
+            },
+            "systemAssignedMIPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Principal ID of the SQL Server system-assigned managed identity."
+              },
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sql-server'), '2025-04-01').outputs.systemAssignedMIPrincipalId.value]"
             }
           }
         }
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-deploy-{0}', variables('suffix')))]"
+      ]
     },
     {
       "condition": "[parameters('enablePrivateEndpoint')]",
@@ -10343,7 +10369,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.40.2.10011",
-              "templateHash": "5307928629112739381"
+              "templateHash": "9229690771906040816"
             }
           },
           "parameters": {
@@ -10402,6 +10428,14 @@
                         "addressPrefix": "10.0.2.0/24",
                         "privateEndpointNetworkPolicies": "Disabled",
                         "privateLinkServiceNetworkPolicies": "Disabled"
+                      },
+                      {
+                        "name": "snet-scripts",
+                        "addressPrefix": "10.0.3.0/24",
+                        "delegation": "Microsoft.ContainerInstance/containerGroups",
+                        "serviceEndpoints": [
+                          "Microsoft.Storage"
+                        ]
                       }
                     ]
                   }
@@ -12055,6 +12089,13 @@
                 "description": "Resource ID of the SQL Private Endpoint subnet."
               },
               "value": "[reference(resourceId('Microsoft.Resources/deployments', 'virtual-network'), '2025-04-01').outputs.subnetResourceIds.value[1]]"
+            },
+            "scriptsSubnetId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the deployment scripts subnet (ACI)."
+              },
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', 'virtual-network'), '2025-04-01').outputs.subnetResourceIds.value[2]]"
             }
           }
         }
@@ -16148,6 +16189,237 @@
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments', format('private-dns-{0}', parameters('deploymentTimestamp')))]",
         "[resourceId('Microsoft.Resources/deployments', format('sql-{0}', parameters('deploymentTimestamp')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('vnet-{0}', parameters('deploymentTimestamp')))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enablePrivateEndpoint')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "[format('sql-grant-{0}', parameters('deploymentTimestamp'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "deploymentIdentityId": {
+            "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-deploy-{0}', variables('suffix')))]"
+          },
+          "deploymentIdentityPrincipalId": {
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-deploy-{0}', variables('suffix'))), '2023-01-31').principalId]"
+          },
+          "scriptsSubnetId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('vnet-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.scriptsSubnetId.value]"
+          },
+          "sqlServerFqdn": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('sql-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.serverFqdn.value]"
+          },
+          "sqlDatabaseName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('sql-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.databaseName.value]"
+          },
+          "swaName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('static-web-app-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.staticWebAppName.value]"
+          },
+          "operatorLogin": {
+            "value": "[parameters('adminEmail')]"
+          },
+          "deploymentTimestamp": {
+            "value": "[parameters('deploymentTimestamp')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.40.2.10011",
+              "templateHash": "13803879081720017389"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployment."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags."
+              }
+            },
+            "deploymentIdentityId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the User-Assigned Managed Identity that runs the deployment script. This identity must be set as the SQL Server Entra admin so it can execute DDL."
+              }
+            },
+            "scriptsSubnetId": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource ID of the scripts subnet (must have Microsoft.ContainerInstance/containerGroups delegation)."
+              }
+            },
+            "sqlServerFqdn": {
+              "type": "string",
+              "metadata": {
+                "description": "FQDN of the Azure SQL Server (resolved via private DNS inside the VNet)."
+              }
+            },
+            "sqlDatabaseName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the SQL Database."
+              }
+            },
+            "swaName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the Static Web App resource. Its system-assigned managed identity is granted db_owner."
+              }
+            },
+            "operatorLogin": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Entra UPN/email of the human operator to also grant db_owner. Leave empty to skip."
+              }
+            },
+            "deploymentTimestamp": {
+              "type": "string",
+              "metadata": {
+                "description": "UTC timestamp used for a unique deployment script resource name."
+              }
+            },
+            "deploymentIdentityPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "Principal ID (object ID) of the deployment UAMI — used for RBAC on the scripts storage account."
+              }
+            }
+          },
+          "variables": {
+            "schemaSqlB64": "LS0gSGFja2VyQm9hcmQgQXp1cmUgU1FMIFNjaGVtYQotLSBJZGVtcG90ZW50IERETCDigJQgc2FmZSB0byBydW4gb24gZXZlcnkgZGVwbG95bWVudC4KLS0gRW50cmEgSUQgb25seTsgbm8gU1FMIHBhc3N3b3JkcyB1c2VkIGFueXdoZXJlLgoKLS0g4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACi0tIFNlcXVlbmNlOiBhdG9taWMgaGFja2VyIG51bWJlciAocmVwbGFjZXMgRVRhZy1iYXNlZCBUYWJsZSBTdG9yYWdlIGNvdW50ZXIpCi0tIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKSUYgTk9UIEVYSVNUUyAoCiAgICBTRUxFQ1QgMSBGUk9NIHN5cy5zZXF1ZW5jZXMgV0hFUkUgbmFtZSA9ICdIYWNrZXJOdW1iZXJTZXF1ZW5jZScKKQpCRUdJTgogICAgQ1JFQVRFIFNFUVVFTkNFIGRiby5IYWNrZXJOdW1iZXJTZXF1ZW5jZQogICAgICAgIEFTIElOVAogICAgICAgIFNUQVJUIFdJVEggMQogICAgICAgIElOQ1JFTUVOVCBCWSAxCiAgICAgICAgTk8gQ1lDTEU7CkVORDsKR08KCi0tIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAotLSBUZWFtcwotLSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCklGIE5PVCBFWElTVFMgKFNFTEVDVCAxIEZST00gc3lzLnRhYmxlcyBXSEVSRSBuYW1lID0gJ1RlYW1zJykKQkVHSU4KICAgIENSRUFURSBUQUJMRSBkYm8uVGVhbXMgKAogICAgICAgIGlkICAgICAgICAgIElOVCAgICAgICAgICAgIElERU5USVRZKDEsMSkgUFJJTUFSWSBLRVksCiAgICAgICAgdGVhbU5hbWUgICAgTlZBUkNIQVIoMTAwKSAgTk9UIE5VTEwsCiAgICAgICAgdGVhbU51bWJlciAgSU5UICAgICAgICAgICAgTk9UIE5VTEwgREVGQVVMVCAwLAogICAgICAgIHRlYW1NZW1iZXJzIE5WQVJDSEFSKE1BWCkgIE5PVCBOVUxMIERFRkFVTFQgJ1tdJywKICAgICAgICBjcmVhdGVkQXQgICBEQVRFVElNRTIgICAgICBOT1QgTlVMTCBERUZBVUxUIFNZU1VUQ0RBVEVUSU1FKCksCiAgICAgICAgdXBkYXRlZEF0ICAgREFURVRJTUUyICAgICAgTlVMTCwKICAgICAgICBDT05TVFJBSU5UIFVRX1RlYW1zX3RlYW1OYW1lIFVOSVFVRSAodGVhbU5hbWUpCiAgICApOwoKICAgIENSRUFURSBJTkRFWCBJWF9UZWFtc190ZWFtTnVtYmVyIE9OIGRiby5UZWFtcyAodGVhbU51bWJlcik7CkVORDsKR08KCi0tIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAotLSBBdHRlbmRlZXMKLS0g4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgpJRiBOT1QgRVhJU1RTIChTRUxFQ1QgMSBGUk9NIHN5cy50YWJsZXMgV0hFUkUgbmFtZSA9ICdBdHRlbmRlZXMnKQpCRUdJTgogICAgQ1JFQVRFIFRBQkxFIGRiby5BdHRlbmRlZXMgKAogICAgICAgIGlkICAgICAgICAgICAgIElOVCAgICAgICAgICAgIElERU5USVRZKDEsMSkgUFJJTUFSWSBLRVksCiAgICAgICAgaGFja2VyQWxpYXMgICAgTlZBUkNIQVIoNTApICAgTk9UIE5VTEwsCiAgICAgICAgaGFja2VyTnVtYmVyICAgSU5UICAgICAgICAgICAgTk9UIE5VTEwsCiAgICAgICAgdGVhbUlkICAgICAgICAgSU5UICAgICAgICAgICAgTk9UIE5VTEwsCiAgICAgICAgZ2l0SHViVXNlcm5hbWUgTlZBUkNIQVIoMjAwKSAgTk9UIE5VTEwsCiAgICAgICAgcmVnaXN0ZXJlZEF0ICAgREFURVRJTUUyICAgICAgTk9UIE5VTEwgREVGQVVMVCBTWVNVVENEQVRFVElNRSgpLAogICAgICAgIENPTlNUUkFJTlQgVVFfQXR0ZW5kZWVzX2hhY2tlckFsaWFzICAgIFVOSVFVRSAoaGFja2VyQWxpYXMpLAogICAgICAgIENPTlNUUkFJTlQgVVFfQXR0ZW5kZWVzX2hhY2tlck51bWJlciAgIFVOSVFVRSAoaGFja2VyTnVtYmVyKSwKICAgICAgICBDT05TVFJBSU5UIFVRX0F0dGVuZGVlc19naXRIdWJVc2VybmFtZSBVTklRVUUgKGdpdEh1YlVzZXJuYW1lKSwKICAgICAgICBDT05TVFJBSU5UIEZLX0F0dGVuZGVlc19UZWFtcyBGT1JFSUdOIEtFWSAodGVhbUlkKSBSRUZFUkVOQ0VTIGRiby5UZWFtcyAoaWQpCiAgICApOwoKICAgIENSRUFURSBJTkRFWCBJWF9BdHRlbmRlZXNfdGVhbUlkICAgICAgICBPTiBkYm8uQXR0ZW5kZWVzICh0ZWFtSWQpOwogICAgQ1JFQVRFIElOREVYIElYX0F0dGVuZGVlc19naXRIdWJVc2VybmFtZSBPTiBkYm8uQXR0ZW5kZWVzIChnaXRIdWJVc2VybmFtZSk7CkVORDsKR08KCi0tIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAotLSBTY29yZXMKLS0g4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgpJRiBOT1QgRVhJU1RTIChTRUxFQ1QgMSBGUk9NIHN5cy50YWJsZXMgV0hFUkUgbmFtZSA9ICdTY29yZXMnKQpCRUdJTgogICAgQ1JFQVRFIFRBQkxFIGRiby5TY29yZXMgKAogICAgICAgIGlkICAgICAgICAgICAgIElOVCAgICAgICAgICAgIElERU5USVRZKDEsMSkgUFJJTUFSWSBLRVksCiAgICAgICAgdGVhbUlkICAgICAgICAgSU5UICAgICAgICAgICAgTk9UIE5VTEwsCiAgICAgICAgY2F0ZWdvcnkgICAgICAgTlZBUkNIQVIoMTAwKSAgTk9UIE5VTEwsCiAgICAgICAgY3JpdGVyaW9uICAgICAgTlZBUkNIQVIoMjAwKSAgTk9UIE5VTEwsCiAgICAgICAgcG9pbnRzICAgICAgICAgREVDSU1BTCgxMCwyKSAgTk9UIE5VTEwgREVGQVVMVCAwLAogICAgICAgIG1heFBvaW50cyAgICAgIERFQ0lNQUwoMTAsMikgIE5PVCBOVUxMIERFRkFVTFQgMCwKICAgICAgICBzY29yZWRCeSAgICAgICBOVkFSQ0hBUigyMDApICBOT1QgTlVMTCwKICAgICAgICBvdmVycmlkZVJlYXNvbiBOVkFSQ0hBUig1MDApICBOVUxMLAogICAgICAgIHRpbWVzdGFtcCAgICAgIERBVEVUSU1FMiAgICAgIE5PVCBOVUxMIERFRkFVTFQgU1lTVVRDREFURVRJTUUoKSwKICAgICAgICBDT05TVFJBSU5UIFVRX1Njb3Jlc190ZWFtSWRfY2F0ZWdvcnlfY3JpdGVyaW9uIFVOSVFVRSAodGVhbUlkLCBjYXRlZ29yeSwgY3JpdGVyaW9uKSwKICAgICAgICBDT05TVFJBSU5UIEZLX1Njb3Jlc19UZWFtcyBGT1JFSUdOIEtFWSAodGVhbUlkKSBSRUZFUkVOQ0VTIGRiby5UZWFtcyAoaWQpCiAgICApOwoKICAgIENSRUFURSBJTkRFWCBJWF9TY29yZXNfdGVhbUlkICAgT04gZGJvLlNjb3JlcyAodGVhbUlkKTsKICAgIENSRUFURSBJTkRFWCBJWF9TY29yZXNfY2F0ZWdvcnkgT04gZGJvLlNjb3JlcyAoY2F0ZWdvcnkpOwpFTkQ7CkdPCgotLSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKLS0gQXdhcmRzCi0tIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKSUYgTk9UIEVYSVNUUyAoU0VMRUNUIDEgRlJPTSBzeXMudGFibGVzIFdIRVJFIG5hbWUgPSAnQXdhcmRzJykKQkVHSU4KICAgIENSRUFURSBUQUJMRSBkYm8uQXdhcmRzICgKICAgICAgICBpZCAgICAgICAgIElOVCAgICAgICAgICAgIElERU5USVRZKDEsMSkgUFJJTUFSWSBLRVksCiAgICAgICAgY2F0ZWdvcnkgICBOVkFSQ0hBUigxMDApICBOT1QgTlVMTCwKICAgICAgICB0ZWFtSWQgICAgIElOVCAgICAgICAgICAgIE5PVCBOVUxMLAogICAgICAgIGFzc2lnbmVkQnkgTlZBUkNIQVIoMjAwKSAgTk9UIE5VTEwsCiAgICAgICAgdGltZXN0YW1wICBEQVRFVElNRTIgICAgICBOT1QgTlVMTCBERUZBVUxUIFNZU1VUQ0RBVEVUSU1FKCksCiAgICAgICAgQ09OU1RSQUlOVCBVUV9Bd2FyZHNfY2F0ZWdvcnkgVU5JUVVFIChjYXRlZ29yeSksCiAgICAgICAgQ09OU1RSQUlOVCBGS19Bd2FyZHNfVGVhbXMgRk9SRUlHTiBLRVkgKHRlYW1JZCkgUkVGRVJFTkNFUyBkYm8uVGVhbXMgKGlkKQogICAgKTsKRU5EOwpHTwoKLS0g4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACi0tIFN1Ym1pc3Npb25zCi0tIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKSUYgTk9UIEVYSVNUUyAoU0VMRUNUIDEgRlJPTSBzeXMudGFibGVzIFdIRVJFIG5hbWUgPSAnU3VibWlzc2lvbnMnKQpCRUdJTgogICAgQ1JFQVRFIFRBQkxFIGRiby5TdWJtaXNzaW9ucyAoCiAgICAgICAgaWQgICAgICAgICAgICAgIFVOSVFVRUlERU5USUZJRVIgTk9UIE5VTEwgREVGQVVMVCBORVdJRCgpIFBSSU1BUlkgS0VZLAogICAgICAgIHRlYW1JZCAgICAgICAgICBJTlQgICAgICAgICAgICAgIE5PVCBOVUxMLAogICAgICAgIHN1Ym1pdHRlZEJ5ICAgICBOVkFSQ0hBUigyMDApICAgIE5PVCBOVUxMLAogICAgICAgIHN1Ym1pdHRlZEF0ICAgICBEQVRFVElNRTIgICAgICAgIE5PVCBOVUxMIERFRkFVTFQgU1lTVVRDREFURVRJTUUoKSwKICAgICAgICBzdGF0dXMgICAgICAgICAgTlZBUkNIQVIoMjApICAgICBOT1QgTlVMTCBERUZBVUxUICdQZW5kaW5nJywKICAgICAgICBwYXlsb2FkICAgICAgICAgTlZBUkNIQVIoTUFYKSAgICBOVUxMLAogICAgICAgIGNhbGN1bGF0ZWRUb3RhbCBERUNJTUFMKDEwLDIpICAgTk9UIE5VTEwgREVGQVVMVCAwLAogICAgICAgIHJldmlld2VkQnkgICAgICBOVkFSQ0hBUigyMDApICAgIE5VTEwsCiAgICAgICAgcmV2aWV3ZWRBdCAgICAgIERBVEVUSU1FMiAgICAgICAgTlVMTCwKICAgICAgICByZWFzb24gICAgICAgICAgTlZBUkNIQVIoMTAwMCkgICBOVUxMLAogICAgICAgIENPTlNUUkFJTlQgQ0hLX1N1Ym1pc3Npb25zX3N0YXR1cyBDSEVDSyAoc3RhdHVzIElOICgnUGVuZGluZycsICdBcHByb3ZlZCcsICdSZWplY3RlZCcpKSwKICAgICAgICBDT05TVFJBSU5UIEZLX1N1Ym1pc3Npb25zX1RlYW1zIEZPUkVJR04gS0VZICh0ZWFtSWQpIFJFRkVSRU5DRVMgZGJvLlRlYW1zIChpZCkKICAgICk7CgogICAgQ1JFQVRFIElOREVYIElYX1N1Ym1pc3Npb25zX3RlYW1JZCBPTiBkYm8uU3VibWlzc2lvbnMgKHRlYW1JZCk7CiAgICBDUkVBVEUgSU5ERVggSVhfU3VibWlzc2lvbnNfc3RhdHVzIE9OIGRiby5TdWJtaXNzaW9ucyAoc3RhdHVzKTsKRU5EOwpHTwoKLS0g4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACi0tIFJ1YnJpY3MKLS0g4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgpJRiBOT1QgRVhJU1RTIChTRUxFQ1QgMSBGUk9NIHN5cy50YWJsZXMgV0hFUkUgbmFtZSA9ICdSdWJyaWNzJykKQkVHSU4KICAgIENSRUFURSBUQUJMRSBkYm8uUnVicmljcyAoCiAgICAgICAgaWQgICAgICAgICAgICAgVU5JUVVFSURFTlRJRklFUiBOT1QgTlVMTCBERUZBVUxUIE5FV0lEKCkgUFJJTUFSWSBLRVksCiAgICAgICAgbmFtZSAgICAgICAgICAgTlZBUkNIQVIoMjAwKSAgICBOT1QgTlVMTCwKICAgICAgICB2ZXJzaW9uICAgICAgICBJTlQgICAgICAgICAgICAgIE5PVCBOVUxMIERFRkFVTFQgMSwKICAgICAgICBiYXNlVG90YWwgICAgICBERUNJTUFMKDEwLDIpICAgIE5PVCBOVUxMIERFRkFVTFQgMCwKICAgICAgICBib251c1RvdGFsICAgICBERUNJTUFMKDEwLDIpICAgIE5PVCBOVUxMIERFRkFVTFQgMCwKICAgICAgICBpc0FjdGl2ZSAgICAgICBCSVQgICAgICAgICAgICAgIE5PVCBOVUxMIERFRkFVTFQgMCwKICAgICAgICBjYXRlZ29yaWVzICAgICBOVkFSQ0hBUihNQVgpICAgIE5VTEwsCiAgICAgICAgYm9udXNJdGVtcyAgICAgTlZBUkNIQVIoTUFYKSAgICBOVUxMLAogICAgICAgIGdyYWRpbmdTY2FsZSAgIE5WQVJDSEFSKE1BWCkgICAgTlVMTCwKICAgICAgICBzb3VyY2VNYXJrZG93biBOVkFSQ0hBUihNQVgpICAgIE5VTEwsCiAgICAgICAgY3JlYXRlZEJ5ICAgICAgTlZBUkNIQVIoMjAwKSAgICBOT1QgTlVMTCwKICAgICAgICBjcmVhdGVkQXQgICAgICBEQVRFVElNRTIgICAgICAgIE5PVCBOVUxMIERFRkFVTFQgU1lTVVRDREFURVRJTUUoKQogICAgKTsKCiAgICBDUkVBVEUgSU5ERVggSVhfUnVicmljc19pc0FjdGl2ZSAgT04gZGJvLlJ1YnJpY3MgKGlzQWN0aXZlKTsKICAgIENSRUFURSBJTkRFWCBJWF9SdWJyaWNzX2NyZWF0ZWRBdCBPTiBkYm8uUnVicmljcyAoY3JlYXRlZEF0IERFU0MpOwpFTkQ7CkdPCgotLSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKLS0gQ29uZmlnIChmZWF0dXJlIGZsYWdzICsga2V5LXZhbHVlIHBhaXJzKQotLSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCklGIE5PVCBFWElTVFMgKFNFTEVDVCAxIEZST00gc3lzLnRhYmxlcyBXSEVSRSBuYW1lID0gJ0NvbmZpZycpCkJFR0lOCiAgICBDUkVBVEUgVEFCTEUgZGJvLkNvbmZpZyAoCiAgICAgICAgW2tleV0gICBOVkFSQ0hBUigyMDApIE5PVCBOVUxMIFBSSU1BUlkgS0VZLAogICAgICAgIFt2YWx1ZV0gTlZBUkNIQVIoTUFYKSBOT1QgTlVMTAogICAgKTsKCiAgICAtLSBTZWVkIGRlZmF1bHQgZmVhdHVyZSBmbGFnIHZhbHVlcwogICAgSU5TRVJUIElOVE8gZGJvLkNvbmZpZyAoW2tleV0sIFt2YWx1ZV0pIFZBTFVFUyAoJ1NVQk1JU1NJT05TX0VOQUJMRUQnLCAgICd0cnVlJyk7CiAgICBJTlNFUlQgSU5UTyBkYm8uQ29uZmlnIChba2V5XSwgW3ZhbHVlXSkgVkFMVUVTICgnTEVBREVSQk9BUkRfTE9DS0VEJywgICAgJ2ZhbHNlJyk7CiAgICBJTlNFUlQgSU5UTyBkYm8uQ29uZmlnIChba2V5XSwgW3ZhbHVlXSkgVkFMVUVTICgnUkVHSVNUUkFUSU9OX09QRU4nLCAgICAgJ3RydWUnKTsKICAgIElOU0VSVCBJTlRPIGRiby5Db25maWcgKFtrZXldLCBbdmFsdWVdKSBWQUxVRVMgKCdBV0FSRFNfVklTSUJMRScsICAgICAgICAndHJ1ZScpOwogICAgSU5TRVJUIElOVE8gZGJvLkNvbmZpZyAoW2tleV0sIFt2YWx1ZV0pIFZBTFVFUyAoJ1JVQlJJQ19VUExPQURfRU5BQkxFRCcsICd0cnVlJyk7CkVORDsKR08KCi0tIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAotLSBFbnRyYSBJRCBhY2Nlc3MgZm9yIHRoZSBTV0EgbWFuYWdlZCBpZGVudGl0eQotLSBSdW4gQUZURVIgdGhlIG1hbmFnZWQgaWRlbnRpdHkgaGFzIGJlZW4gcHJvdmlzaW9uZWQgYnkgQmljZXAuCi0tIFRoZSBpZGVudGl0eSBuYW1lIG1hdGNoZXMgdGhlIFN0YXRpYyBXZWIgQXBwIHJlc291cmNlIG5hbWUuCi0tIFJlcGxhY2UgPHN3YS1tYW5hZ2VkLWlkZW50aXR5LW5hbWU+IHdpdGggdGhlIGFjdHVhbCBkaXNwbGF5IG5hbWUgdmlzaWJsZQotLSBpbiBBenVyZSBFbnRyYSBJRCAoc2FtZSBhcyB0aGUgU1dBIHJlc291cmNlIG5hbWUpLgotLSDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCi0tIE5PVEU6IGRlcGxveS1zY2hlbWEuanMgZXhlY3V0ZXMgdGhpcyBibG9jayBkeW5hbWljYWxseSB1c2luZyB0aGUgU1dBIG5hbWUKLS0gcGFzc2VkIHZpYSB0aGUgLS1zd2EtbmFtZSBhcmd1bWVudCwgc28gdGhpcyBzdGF0aWMgYmxvY2sgc2VydmVzIGFzIHJlZmVyZW5jZS4KCi0tIElGIE5PVCBFWElTVFMgKFNFTEVDVCAxIEZST00gc3lzLmRhdGFiYXNlX3ByaW5jaXBhbHMgV0hFUkUgbmFtZSA9ICc8c3dhLW1hbmFnZWQtaWRlbnRpdHktbmFtZT4nKQotLSBCRUdJTgotLSAgICAgQ1JFQVRFIFVTRVIgWzxzd2EtbWFuYWdlZC1pZGVudGl0eS1uYW1lPl0gRlJPTSBFWFRFUk5BTCBQUk9WSURFUjsKLS0gICAgIEFMVEVSIFJPTEUgZGJfZGF0YXJlYWRlciBBREQgTUVNQkVSIFs8c3dhLW1hbmFnZWQtaWRlbnRpdHktbmFtZT5dOwotLSAgICAgQUxURVIgUk9MRSBkYl9kYXRhd3JpdGVyIEFERCBNRU1CRVIgWzxzd2EtbWFuYWdlZC1pZGVudGl0eS1uYW1lPl07Ci0tIEVORDsK",
+            "scriptsStorageName": "[format('stgrant{0}', uniqueString(resourceGroup().id))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2023-05-01",
+              "name": "[variables('scriptsStorageName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "StorageV2",
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "properties": {
+                "minimumTlsVersion": "TLS1_2",
+                "supportsHttpsTrafficOnly": true,
+                "allowBlobPublicAccess": false,
+                "networkAcls": {
+                  "defaultAction": "Allow",
+                  "bypass": "AzureServices"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Storage/storageAccounts', variables('scriptsStorageName'))]",
+              "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', variables('scriptsStorageName')), parameters('deploymentIdentityPrincipalId'), '69566ab7-960f-475b-8e7c-b3118f30c6bd')]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '69566ab7-960f-475b-8e7c-b3118f30c6bd')]",
+                "principalId": "[parameters('deploymentIdentityPrincipalId')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('scriptsStorageName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deploymentScripts",
+              "apiVersion": "2023-08-01",
+              "name": "[format('sql-grant-{0}', parameters('deploymentTimestamp'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "AzureCLI",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": {
+                  "[format('{0}', parameters('deploymentIdentityId'))]": {}
+                }
+              },
+              "properties": {
+                "azCliVersion": "2.70.0",
+                "retentionInterval": "PT1H",
+                "timeout": "PT15M",
+                "storageAccountSettings": {
+                  "storageAccountName": "[variables('scriptsStorageName')]"
+                },
+                "containerSettings": {
+                  "subnetIds": [
+                    {
+                      "id": "[parameters('scriptsSubnetId')]"
+                    }
+                  ]
+                },
+                "environmentVariables": [
+                  {
+                    "name": "SQL_FQDN",
+                    "value": "[parameters('sqlServerFqdn')]"
+                  },
+                  {
+                    "name": "SQL_DB",
+                    "value": "[parameters('sqlDatabaseName')]"
+                  },
+                  {
+                    "name": "SWA_NAME",
+                    "value": "[parameters('swaName')]"
+                  },
+                  {
+                    "name": "OPERATOR_LOGIN",
+                    "value": "[parameters('operatorLogin')]"
+                  },
+                  {
+                    "name": "SCHEMA_SQL_B64",
+                    "value": "[variables('schemaSqlB64')]"
+                  }
+                ],
+                "scriptContent": "      #!/bin/bash\n      set -euo pipefail\n\n      echo \"=== Installing sqlcmd (mssql-tools18) ===\"\n      curl -sSL https://packages.microsoft.com/keys/microsoft.asc \\\n        | gpg --dearmor -o /usr/share/keyrings/mspkg.gpg\n      echo \"deb [arch=amd64 signed-by=/usr/share/keyrings/mspkg.gpg] \\\n        https://packages.microsoft.com/ubuntu/22.04/prod jammy main\" \\\n        > /etc/apt/sources.list.d/mspkg.list\n      apt-get update -qq\n      ACCEPT_EULA=Y apt-get install -yqq mssql-tools18 unixodbc-dev\n      export PATH=\"$PATH:/opt/mssql-tools18/bin\"\n      sqlcmd -? 2>&1 | head -1\n\n      SQLCMD=\"sqlcmd -S tcp:${SQL_FQDN},1433 -d ${SQL_DB} -G -No\"\n\n      echo \"=== Running schema migration ===\"\n      base64 -d <<< \"${SCHEMA_SQL_B64}\" > /tmp/schema.sql\n      $SQLCMD -i /tmp/schema.sql\n\n      echo \"=== Granting db_owner to SWA managed identity ===\"\n      cat > /tmp/grant.sql << SQLEOF\n      IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'${SWA_NAME}')\n        CREATE USER [${SWA_NAME}] FROM EXTERNAL PROVIDER;\n      ALTER ROLE db_owner ADD MEMBER [${SWA_NAME}];\n      PRINT 'db_owner granted to ${SWA_NAME}';\n      SQLEOF\n      $SQLCMD -i /tmp/grant.sql\n\n      if [ -n \"${OPERATOR_LOGIN}\" ]; then\n        echo \"=== Granting db_owner to operator ===\"\n        cat > /tmp/grant_op.sql << SQLEOF\n      IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'${OPERATOR_LOGIN}')\n        CREATE USER [${OPERATOR_LOGIN}] FROM EXTERNAL PROVIDER;\n      ALTER ROLE db_owner ADD MEMBER [${OPERATOR_LOGIN}];\n      PRINT 'db_owner granted to ${OPERATOR_LOGIN}';\n      SQLEOF\n        $SQLCMD -i /tmp/grant_op.sql\n      fi\n\n      echo \"=== All SQL steps complete ===\"\n      printf '{\"status\":\"success\",\"schemaApplied\":true,\"swaGranted\":\"%s\",\"operatorGranted\":\"%s\"}' \\\n        \"${SWA_NAME}\" \"${OPERATOR_LOGIN}\" \\\n        > \"$AZ_SCRIPTS_OUTPUT_PATH\"\n    "
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('scriptsStorageName'))]",
+                "[extensionResourceId(resourceId('Microsoft.Storage/storageAccounts', variables('scriptsStorageName')), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.Storage/storageAccounts', variables('scriptsStorageName')), parameters('deploymentIdentityPrincipalId'), '69566ab7-960f-475b-8e7c-b3118f30c6bd'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "grantOutput": {
+              "type": "object",
+              "metadata": {
+                "description": "Outputs from the SQL grant deployment script."
+              },
+              "value": "[reference(resourceId('Microsoft.Resources/deploymentScripts', format('sql-grant-{0}', parameters('deploymentTimestamp'))), '2023-08-01').outputs]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-deploy-{0}', variables('suffix')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('private-dns-{0}', parameters('deploymentTimestamp')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('sql-{0}', parameters('deploymentTimestamp')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('sql-pe-{0}', parameters('deploymentTimestamp')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('static-web-app-{0}', parameters('deploymentTimestamp')))]",
         "[resourceId('Microsoft.Resources/deployments', format('vnet-{0}', parameters('deploymentTimestamp')))]"
       ]
     },
@@ -21514,6 +21786,20 @@
       },
       "value": "[reference(resourceId('Microsoft.Resources/deployments', format('static-web-app-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.staticWebAppName.value]"
     },
+    "deploymentIdentityName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the deployment UAMI used as the SQL Entra admin."
+      },
+      "value": "[format('id-deploy-{0}', variables('suffix'))]"
+    },
+    "deploymentIdentityPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "Principal ID of the deployment UAMI — used to identify it for Directory Readers role assignment."
+      },
+      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-deploy-{0}', variables('suffix'))), '2023-01-31').principalId]"
+    },
     "swaPrincipalId": {
       "type": "string",
       "metadata": {
@@ -21541,6 +21827,13 @@
         "description": "Name of the Azure SQL Database."
       },
       "value": "[reference(resourceId('Microsoft.Resources/deployments', format('sql-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.databaseName.value]"
+    },
+    "sqlMiPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "Principal ID of the SQL Server system-assigned managed identity — used to assign Directory Readers Entra role post-deploy."
+      },
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('sql-{0}', parameters('deploymentTimestamp'))), '2025-04-01').outputs.systemAssignedMIPrincipalId.value]"
     }
   }
 }
