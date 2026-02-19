@@ -37,7 +37,7 @@ graph TB
     end
 
     subgraph SWA["Azure Static Web Apps"]
-        Auth["GitHub OAuth (.auth/)"]
+        Auth["GitHub OAuth + Entra ID (.auth/)"]
         Proxy["Reverse Proxy"]
     end
 
@@ -46,7 +46,7 @@ graph TB
         Shared["Shared Helpers"]
     end
 
-    Storage["Azure Table Storage (6 tables)"]
+    Storage["Azure Cosmos DB NoSQL (6 containers)"]
 
     Router --> Components
     Components --> Services
@@ -166,10 +166,10 @@ graph TB
 ```mermaid
 graph LR
     Member[Team Member] -->|Form or JSON| Upload[POST /api/upload]
-    Upload -->|pendingReview| Queue[Submissions Table]
+    Upload -->|pendingReview| Queue[Submissions Container]
     Queue --> Review[Admin Review Queue]
     Review -->|Approve| Validate[POST /api/submissions/validate]
-    Validate -->|approved| Scores[Scores Table]
+    Validate -->|approved| Scores[Scores Container]
     Scores --> Leaderboard[GET /api/scores]
     Review -->|Reject| Rejected[rejected status]
 ```

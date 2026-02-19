@@ -2,14 +2,14 @@
 
 ## Project Overview
 
-HackerBoard is a live, interactive hackathon scoring dashboard built on **Azure Static Web Apps (Standard)** with **managed Azure Functions** (Node.js 20+) for the API layer and **Azure SQL Database** (Basic DTU) for persistence. Authentication uses the built-in GitHub OAuth provider.
+HackerBoard is a live, interactive hackathon scoring dashboard built on **Azure Static Web Apps (Standard)** with **managed Azure Functions** (Node.js 20+) for the API layer and **Azure Cosmos DB NoSQL (Serverless)** for persistence. Authentication uses dual providers: **GitHub OAuth** (team members) and **Microsoft Entra ID** (first admin = deployer, via automated app role assignment).
 
 ## Tech Stack
 
 - **Frontend**: Vanilla JavaScript SPA (ES2022+, no framework), single `index.html`
 - **API**: Azure Functions v4 programming model, Node.js 20+, ESM modules
-- **Storage**: Azure SQL Database (Basic DTU) via `mssql@^11` SDK
-- **Auth**: Azure Static Web Apps built-in GitHub OAuth (`.auth/` endpoints)
+- **Storage**: Azure Cosmos DB NoSQL (Serverless) via `@azure/cosmos` SDK + `@azure/identity` `DefaultAzureCredential`
+- **Auth**: GitHub OAuth + Microsoft Entra ID (SWA built-in `.auth/` endpoints); RBAC via managed identity
 - **IaC**: Bicep (Azure Verified Modules where available)
 - **CI/CD**: GitHub Actions → Azure Static Web Apps deployment
 
@@ -30,9 +30,9 @@ HackerBoard is a live, interactive hackathon scoring dashboard built on **Azure 
 - Use Azure Functions v4 `@azure/functions` patterns
 - Validate all inputs; return structured JSON error responses
 - Never hardcode secrets; use environment variables or Azure Key Vault references
-- Use parameterized queries via `db.query(sql, params)` — never string-interpolated SQL
-- Use `query()` from `api/shared/db.js` for all database access
-- Use `nextHackerNumber()` from `api/shared/db.js` for atomic sequence generation
+- Use the Cosmos DB SDK via `getContainer(name)` from `api/shared/cosmos.js` for all data access
+- Use `container.items.query()` with parameterized queries — never string-interpolate user input
+- Cosmos DB local auth is disabled by governance policy — always use `DefaultAzureCredential`
 
 ## Frontend Conventions
 

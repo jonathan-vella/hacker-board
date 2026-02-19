@@ -1,0 +1,228 @@
+{
+  "metadata": {
+    "generatedAt": "2026-02-19T00:00:00Z",
+    "subscription": {
+      "id": "00858ffc-dded-4f0f-8bbf-e17fff0d47d9",
+      "name": "noalz"
+    },
+    "tenant": {
+      "id": "2d04cb4c-999b-4e60-a3a7-e8993edc768b",
+      "name": "Lord of the Cloud"
+    },
+    "totalAssignments": 21,
+    "discoveryMethod": "REST API - Microsoft.Authorization/policyAssignments"
+  },
+  "blockers": [
+    {
+      "id": "B1",
+      "assignment": "sys.mfa-write",
+      "displayName": "MFA Enforcement for Resource Write Actions",
+      "scope": "managementGroup",
+      "effect": "Deny",
+      "affectsHackerBoard": true,
+      "impact": "Deployer must use MFA-authenticated session",
+      "action": "operational",
+      "codeChangeRequired": false
+    },
+    {
+      "id": "B3",
+      "assignment": "b1ad1a690a5148ec8707ff17",
+      "displayName": "JV-Enforce Resource Group Tags v3",
+      "scope": "managementGroup",
+      "effect": "Deny",
+      "affectsHackerBoard": true,
+      "impact": "Resource group creation blocked without 9 required tags",
+      "action": "bicep-change",
+      "codeChangeRequired": true,
+      "requiredTags": [
+        "environment",
+        "owner",
+        "costcenter",
+        "application",
+        "workload",
+        "sla",
+        "backup-policy",
+        "maint-window",
+        "tech-contact"
+      ]
+    },
+    {
+      "id": "B4",
+      "assignment": "918465337cff47588b23a6e9",
+      "displayName": "Block Classic (ASM) Resource Types",
+      "scope": "managementGroup",
+      "effect": "Deny",
+      "affectsHackerBoard": false,
+      "impact": "Blocks classic resources only",
+      "action": "none"
+    },
+    {
+      "id": "B5",
+      "assignment": "MCAPSGovDenyPolicies",
+      "displayName": "MCAPSGov Deny Policies (11 rules)",
+      "scope": "managementGroup",
+      "effect": "Deny",
+      "affectsHackerBoard": false,
+      "impact": "Blocks VM SKUs, AKS, VMSS, OpenAI, SQL without AAD — none apply to SWA+Cosmos",
+      "action": "none"
+    }
+  ],
+  "warnings": [
+    {
+      "assignment": "60a5fd56-f433-4006-9a32",
+      "displayName": "EU GDPR 2016/679",
+      "scope": "subscription",
+      "effect": "Audit",
+      "affectsHackerBoard": false
+    },
+    {
+      "assignment": "0c8e19ce-ea7d-40ec-a305",
+      "displayName": "PCI DSS v4",
+      "scope": "subscription",
+      "effect": "Audit",
+      "affectsHackerBoard": false
+    },
+    {
+      "assignment": "Azure_Security_Baseline",
+      "displayName": "Azure Security Baseline",
+      "scope": "managementGroup",
+      "effect": "Audit/AuditIfNotExists",
+      "affectsHackerBoard": false,
+      "notes": "DDoS protection disabled; FTPS checks disabled"
+    },
+    {
+      "assignment": "MCAPSGovAuditPolicies",
+      "displayName": "MCAPSGov Audit Policies (44 rules)",
+      "scope": "managementGroup",
+      "effect": "Audit",
+      "affectsHackerBoard": false,
+      "notes": "Includes Function Apps diagnostic settings audit"
+    },
+    {
+      "assignment": "DataProtectionSecurityCenter",
+      "displayName": "ASC DataProtection",
+      "scope": "subscription",
+      "effect": "AuditIfNotExists",
+      "affectsHackerBoard": false
+    }
+  ],
+  "autoRemediation": [
+    {
+      "assignment": "558bced8a4e7433e8662e202",
+      "displayName": "JV - Inherit Multiple Tags from Resource Group",
+      "scope": "managementGroup",
+      "effect": "Modify",
+      "affectsHackerBoard": true,
+      "impact": "Auto-copies 9 tags from RG to child resources",
+      "action": "Tags auto-inherited — no per-resource tagging needed in Bicep",
+      "inheritedTags": [
+        "environment",
+        "owner",
+        "costcenter",
+        "application",
+        "workload",
+        "sla",
+        "backup-policy",
+        "maint-window",
+        "tech-contact"
+      ]
+    },
+    {
+      "assignment": "MCAPSGovDeployPolicies/ModifyCosmosDBLocalAuth",
+      "displayName": "Cosmos DB - Disable Local Auth (Safe Secrets Standard)",
+      "scope": "managementGroup",
+      "effect": "Modify",
+      "affectsHackerBoard": true,
+      "impact": "Auto-sets disableLocalAuth=true on Cosmos DB accounts",
+      "action": "MUST use Entra ID RBAC (managed identity) — connection strings will be disabled",
+      "codeChangeRequired": true,
+      "changes": {
+        "bicep": "Enable system-assigned MI on SWA; assign Cosmos DB Built-in Data Contributor role",
+        "api": "Use @azure/identity DefaultAzureCredential instead of connection strings"
+      }
+    },
+    {
+      "assignment": "MCAPSGovDeployPolicies/ModifyAllowBlobAnonymousAccess",
+      "displayName": "Storage Account - Disable Blob Anonymous Access",
+      "scope": "managementGroup",
+      "effect": "Modify",
+      "affectsHackerBoard": false,
+      "impact": "Not using Blob Storage"
+    },
+    {
+      "assignment": "MCAPSGovDeployPolicies",
+      "displayName": "MCAPSGov Deploy and Modify Policies (27 rules)",
+      "scope": "managementGroup",
+      "effect": "Modify/DeployIfNotExists",
+      "affectsHackerBoard": false,
+      "notes": "Most rules target VMs, Storage, EventHub, ServiceBus, Cognitive Services — none apply"
+    }
+  ],
+  "notApplicable": [
+    {
+      "assignments": 6,
+      "description": "ArcBox policies scoped to rg-arcbox-swc01 — different resource group",
+      "scope": "resourceGroup/rg-arcbox-swc01"
+    },
+    {
+      "assignments": 2,
+      "description": "SQL/Arc SQL protection — using Cosmos DB, not SQL",
+      "scope": "subscription"
+    }
+  ],
+  "requiredAdjustments": {
+    "mandatory": [
+      {
+        "id": "ADJ-1",
+        "title": "Resource Group Tags",
+        "type": "bicep-change",
+        "severity": "critical",
+        "description": "All 9 tags must be present on the resource group or deployment is denied",
+        "tags": [
+          "environment",
+          "owner",
+          "costcenter",
+          "application",
+          "workload",
+          "sla",
+          "backup-policy",
+          "maint-window",
+          "tech-contact"
+        ]
+      },
+      {
+        "id": "ADJ-2",
+        "title": "Cosmos DB Entra ID RBAC Authentication",
+        "type": "architecture-change",
+        "severity": "critical",
+        "description": "Cosmos DB local auth (keys/connection strings) will be auto-disabled by policy. Must use managed identity + Entra ID RBAC.",
+        "bicepChanges": [
+          "Enable system-assigned managed identity on SWA",
+          "Assign Cosmos DB Built-in Data Contributor role to SWA MI",
+          "Set disableLocalAuth: true in Cosmos DB resource"
+        ],
+        "apiChanges": [
+          "Use @azure/identity DefaultAzureCredential",
+          "Initialize CosmosClient with aadCredentials instead of connection string",
+          "Store only COSMOS_ENDPOINT in app settings (no keys)"
+        ]
+      }
+    ],
+    "operational": [
+      {
+        "id": "ADJ-3",
+        "title": "MFA for Deployment",
+        "type": "process",
+        "severity": "medium",
+        "description": "Deployer must be MFA-authenticated. CI/CD service principals are exempt."
+      }
+    ],
+    "noActionRequired": [
+      "Classic resource block — ARM resources only",
+      "VM SKU restrictions — no VMs",
+      "SQL AAD-only auth — using Cosmos DB",
+      "Storage blob anonymous access — no Blob Storage",
+      "ArcBox policies — scoped to different RG"
+    ]
+  }
+}

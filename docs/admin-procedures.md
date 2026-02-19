@@ -2,27 +2,29 @@
 
 ![Type](https://img.shields.io/badge/Type-Procedures-blue)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
-![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth-181717)
+![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth%20%2B%20Entra%20ID-181717)
 
 > Operational runbook for assigning admins, running event-day admin workflows,
 > and resetting application data between events.
 
 ## Application Administrator
 
-By default, the Entra user running the deployment is automatically configured as the application administrator — no separate invite step is required. The same identity is also assigned as the **Microsoft Entra administrator** on the Azure SQL server, giving it full SQL access.
+By default, the Entra user running the deployment is automatically configured as the application administrator via **Entra ID app role assignment** — no separate invite step is required. During deployment, a Bicep `deploymentScript` creates an Entra ID app registration with an `admin` app role and assigns the deployer to it.
+
+The SWA system-assigned managed identity is also granted the **Cosmos DB Built-in Data Contributor** role for data access.
 
 This auto-configuration happens in two ways depending on the deployment path:
 
-| Deployment Path        | Admin auto-configuration                                                                                                                 |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `deploy.ps1`           | The signed-in `az login` user's email is detected automatically and used as `AdminEmail`; their OID is used as the SQL Entra admin       |
-| Deploy to Azure button | The deployer enters their details in the portal form — `adminEmail` and `sqlAdminObjectId` are resolved from the logged-in Entra session |
+| Deployment Path        | Admin auto-configuration                                                                                         |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `deploy.ps1`           | The signed-in `az login` user’s email is detected automatically and used as `adminEmail` for app role assignment |
+| Deploy to Azure button | The deployer enters their email in the portal form — `adminEmail` is used for Entra ID app role assignment       |
 
 ### Verify Admin Access
 
 After deployment completes:
 
-1. Navigate to the app URL and sign in with the same GitHub account linked to the deployment email
+1. Navigate to the app URL and sign in with **Entra ID** (the deployer account) or **GitHub** (if invited as admin)
 2. Admin-only routes (`/#/review`, `/#/rubrics`, `/#/flags`, `/#/attendees`, `/#/assign`) should be accessible
 3. The navigation bar should show admin links: Review Queue, Rubrics, Flags
 
@@ -93,19 +95,19 @@ node scripts/cleanup-app-data.js
 # Clear all data (requires --confirm flag for safety)
 node scripts/cleanup-app-data.js --confirm
 
-# Clear specific tables only
-node scripts/cleanup-app-data.js --confirm --tables scores,submissions
+# Clear specific containers only
+node scripts/cleanup-app-data.js --confirm --containers scores,submissions
 ```
 
 ## Troubleshooting
 
-| Issue                                      | Resolution                                                                                                                      |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| Deploying user cannot access admin routes  | Confirm their GitHub account email matches the `adminEmail` used at deploy time; re-run deployment with correct email if needed |
-| Additional admin invite link expired       | Generate a new invitation in Azure Portal → Role management                                                                     |
-| SQL schema migration fails with auth error | The deploying user must be the SQL Entra admin; confirm `az account show` matches the identity used during deployment           |
-| Feature flags not saving                   | Check browser console for API errors; verify SQL connection app settings are configured on the Static Web App                   |
-| Scores not appearing on leaderboard        | Ensure submissions are approved in Review Queue; check that `LEADERBOARD_LOCKED` is OFF                                         |
+| Issue                                     | Resolution                                                                                                                 |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Deploying user cannot access admin routes | Confirm the Entra ID account matches the `adminEmail` used at deploy time; re-run deployment with correct email if needed  |
+| Additional admin invite link expired      | Generate a new invitation in Azure Portal → Role management                                                                |
+| Cosmos DB data access fails               | Verify SWA managed identity has `Cosmos DB Built-in Data Contributor` role; check governance hasn't re-disabled local auth |
+| Feature flags not saving                  | Check browser console for API errors; verify Cosmos DB endpoint app setting is configured on the Static Web App            |
+| Scores not appearing on leaderboard       | Ensure submissions are approved in Review Queue; check that `LEADERBOARD_LOCKED` is OFF                                    |
 
 ---
 

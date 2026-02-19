@@ -29,17 +29,20 @@
 
 ## Current Status
 
-| Metric                  | Value                                                |
-| ----------------------- | ---------------------------------------------------- |
-| **Current Phase**       | Phase 15 — E2E Validation (pending clean deployment) |
-| **Last Updated**        | 2026-02-19                                           |
-| **Days Remaining**      | 5                                                    |
-| **Tasks Done**          | 213 / 237 (P1–P14 complete; P15–P16 pending)         |
-| **API Endpoints**       | 10 files / 16 routes                                 |
-| **Frontend Components** | 12 components + 5 services                           |
-| **Tests Passing**       | 69 (API unit) + 61 (frontend DOM) = 130              |
-| **Open Problems**       | 0                                                    |
-| **Open Decisions**      | 0                                                    |
+| Metric                  | Value                                                          |
+| ----------------------- | -------------------------------------------------------------- |
+| **Current Phase**       | Phase 17 — Cosmos DB Migration (starting from scratch)         |
+| **Last Updated**        | 2026-02-19                                                     |
+| **Days Remaining**      | 5                                                              |
+| **Tasks Done**          | 213 / 237 (P1–P14 complete; P15–P17 pending)                   |
+| **API Endpoints**       | 10 files / 16 routes                                           |
+| **Frontend Components** | 12 components + 5 services                                     |
+| **Tests Passing**       | 69 (API unit) + 61 (frontend DOM) = 130                        |
+| **Storage**             | Cosmos DB NoSQL (Serverless) — replacing Azure SQL             |
+| **Auth**                | GitHub OAuth + Entra ID (deployer = first admin via app roles) |
+| **Est. Daily Cost**     | ~$0.31/day (~$9.10/month)                                      |
+| **Open Problems**       | 0                                                              |
+| **Open Decisions**      | 0                                                              |
 
 ---
 
@@ -62,12 +65,13 @@ graph LR
     P10 --> P11[Phase 11: Ops Readiness]
     P11 --> P13[Phase 13: Anonymization]
     P13 --> P14[Phase 14: SQL Migration]
-    P14 --> P15[Phase 15: E2E Validation]
+    P14 --> P17[Phase 17: Cosmos DB Migration]
+    P17 --> P15[Phase 15: E2E Validation]
     P15 --> P16[Phase 16: CI/CD + Deploy]
     P11 -.-> P12[Phase 12: Future Enhancements]
 ```
 
-**Critical path**: P1 → P2 → P3 → P5 → P6 → P7 → P10 → P11 → P13 → P14 → P15 → P16
+**Critical path**: P1 → P2 → P3 → P5 → P6 → P7 → P10 → P11 → P13 → P14 → P17 → P15 → P16
 
 **Parallel tracks** (after P3):
 
@@ -789,30 +793,35 @@ monitoring shows data, feature flags toggle correctly.
 > Record architectural and design decisions here.
 > Format: `| ID | Date | Decision | Rationale | Status |`
 
-| ID  | Date       | Decision                                                                                    | Rationale                                                                                                                                                                                                                                                                                                  | Status                |
-| --- | ---------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| D1  | 2026-02-16 | Use ESM modules throughout                                                                  | `copilot-instructions.md` mandates ESM; Functions v4 supports it; fresh codebase                                                                                                                                                                                                                           | **Approved**          |
-| D2  | 2026-02-16 | Use Vitest for all testing                                                                  | Per `copilot-instructions.md`; fast, ESM-native, no config overhead                                                                                                                                                                                                                                        | **Approved**          |
-| D3  | 2026-02-16 | Vanilla JS SPA with hash router                                                             | Per PRD — no framework; single `index.html`; minimal build tooling                                                                                                                                                                                                                                         | **Approved**          |
-| D4  | 2026-02-16 | GitHub username ↔ Attendee mapping                                                          | Self-service claim (Option A from PRD F7/F10) — user claims on first login                                                                                                                                                                                                                                 | **Approved**          |
-| D5  | 2026-02-16 | Add Playwright for E2E testing                                                              | Critical flows (submit→approve→leaderboard) need browser-level validation; Chromium-only to stay lean                                                                                                                                                                                                      | **Superseded by D7**  |
-| D6  | 2026-02-16 | Templatized scoring rubric                                                                  | Rubric from azure-agentic-infraops-workshop is source of truth; template + prompt enables reuse across hackathons                                                                                                                                                                                          | **Approved**          |
-| D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom                                                  | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere                                                                                                                                                                         | **Approved**          |
-| D8  | 2026-02-17 | PRD Section 10 coding prompt superseded                                                     | Section references React/TypeScript/Tailwind but D3 chose Vanilla JS SPA; marked as historical reference only                                                                                                                                                                                              | **Approved**          |
-| D9  | 2026-02-18 | Full attendee anonymization                                                                 | No PII in any UI or API response; GitHub identity stays server-side in `_gitHubUsername` storage field only; alias = `TeamNN-HackerNN`                                                                                                                                                                     | **Approved**          |
-| D10 | 2026-02-18 | Bulk import removed                                                                         | Self-register via GitHub OAuth + "Join Event" is sufficient; CSV import increases PII risk surface                                                                                                                                                                                                         | **Approved**          |
-| D11 | 2026-02-18 | Hacker numbers globally sequential                                                          | Simpler counter logic; avoids per-team numbering collisions; counter ETag-protected in `_meta/counter` row                                                                                                                                                                                                 | **Approved**          |
-| D12 | 2026-02-18 | 6 default teams auto-seeded on first GET                                                    | Every event starts with Team01–Team06 without admin action; coaches can add/delete but not rename                                                                                                                                                                                                          | **Approved**          |
-| D13 | 2026-02-18 | SWA deploy auth: token-based (`SWA_DEPLOYMENT_TOKEN`)                                       | Simplest common denominator for both supported deployment paths; OIDC used for production CI/CD app code deployment only                                                                                                                                                                                   | **Approved**          |
-| D14 | 2026-02-18 | ~~E2E test environments use `enablePrivateEndpoint=false`~~                                 | ~~GitHub Actions hosted runners cannot reach private SQL endpoints; private endpoints are production-only~~                                                                                                                                                                                                | **Superseded by D22** |
-| D15 | 2026-02-18 | Canonical SWA role model: `admin`/`member`                                                  | `staticwebapp.config.json` uses `admin`/`member`; `writer`/`reader` references in scripts were contract drift — corrected                                                                                                                                                                                  | **Approved**          |
-| D16 | 2026-02-18 | SQL schema + db_owner grant via in-VNet ACI deploymentScript                                | Public SQL endpoint is not acceptable with private-endpoint topology; schema and grants run inside the VNet via Azure Container Instance in Bicep `deploymentScript` resource (`sql-grant.bicep`)                                                                                                          | **Approved**          |
-| D17 | 2026-02-18 | Directory Readers assigned via `az rest` in `deploy.ps1`, not Bicep                         | Bicep `extension microsoftGraph` (built-in) is retired (BCP407); dynamic OCI ref (`br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0`) compiled but `roleAssignments` type not found (BCP029); fell back to idempotent `az rest POST /roleManagement/directory/roleAssignments` after deploy | **Approved**          |
-| D18 | 2026-02-19 | Deploying Entra user is default app admin and SQL Entra administrator                       | Removes post-deploy manual invite step; the logged-in `az login` identity is used as both `adminEmail` (SWA app admin) and the SQL Entra administrator OID — no separate invite flow needed                                                                                                                | **Approved**          |
-| D19 | 2026-02-19 | Only two infrastructure deployment paths supported: `deploy.ps1` and Deploy to Azure button | GitHub Actions is a CI/CD path for app code only, not an infrastructure deployment path; two well-tested paths are sufficient for operator use                                                                                                                                                             | **Approved**          |
-| D20 | 2026-02-19 | Deleted `deploy-infra.yml` — GHA is not a supported infra deployment path                   | Per D19; `.github/workflows/deploy-infra.yml` removed; only `deploy.ps1` and Deploy to Azure button are supported; GHA CI/CD pipeline (`deploy-swa.yml`) remains for app code deployment                                                                                                                   | **Approved**          |
-| D21 | 2026-02-19 | Clean deployment — previous Azure resources deleted; fresh provisioning required            | Previous deployment torn down; Phase 15.2 and Phase 16 tasks reset to pending; `AZURE_STATIC_WEB_APPS_API_TOKEN` must be retrieved from the new SWA after provisioning completes                                                                                                                           | **Approved**          |
-| D22 | 2026-02-19 | `enablePrivateEndpoint=true` is mandatory in all environments — no exceptions               | Operator decision: private endpoints required everywhere; D14 superseded; `deploy.ps1` now passes `enablePrivateEndpoint=true` explicitly; SQL schema/grants handled by in-VNet ACI (D16); GitHub Actions CI/CD does not deploy infra (D19) so runner connectivity is not a concern                        | **Approved**          |
+| ID  | Date       | Decision                                                                                      | Rationale                                                                                                                                                                                                                                                                                                  | Status                |
+| --- | ---------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| D1  | 2026-02-16 | Use ESM modules throughout                                                                    | `copilot-instructions.md` mandates ESM; Functions v4 supports it; fresh codebase                                                                                                                                                                                                                           | **Approved**          |
+| D2  | 2026-02-16 | Use Vitest for all testing                                                                    | Per `copilot-instructions.md`; fast, ESM-native, no config overhead                                                                                                                                                                                                                                        | **Approved**          |
+| D3  | 2026-02-16 | Vanilla JS SPA with hash router                                                               | Per PRD — no framework; single `index.html`; minimal build tooling                                                                                                                                                                                                                                         | **Approved**          |
+| D4  | 2026-02-16 | GitHub username ↔ Attendee mapping                                                            | Self-service claim (Option A from PRD F7/F10) — user claims on first login                                                                                                                                                                                                                                 | **Approved**          |
+| D5  | 2026-02-16 | Add Playwright for E2E testing                                                                | Critical flows (submit→approve→leaderboard) need browser-level validation; Chromium-only to stay lean                                                                                                                                                                                                      | **Superseded by D7**  |
+| D6  | 2026-02-16 | Templatized scoring rubric                                                                    | Rubric from azure-agentic-infraops-workshop is source of truth; template + prompt enables reuse across hackathons                                                                                                                                                                                          | **Approved**          |
+| D7  | 2026-02-16 | Replace Playwright with Vitest + happy-dom                                                    | Playwright Chromium crashes devcontainer; mocked E2E tests are effectively DOM tests; happy-dom is lightweight and runs everywhere                                                                                                                                                                         | **Approved**          |
+| D8  | 2026-02-17 | PRD Section 10 coding prompt superseded                                                       | Section references React/TypeScript/Tailwind but D3 chose Vanilla JS SPA; marked as historical reference only                                                                                                                                                                                              | **Approved**          |
+| D9  | 2026-02-18 | Full attendee anonymization                                                                   | No PII in any UI or API response; GitHub identity stays server-side in `_gitHubUsername` storage field only; alias = `TeamNN-HackerNN`                                                                                                                                                                     | **Approved**          |
+| D10 | 2026-02-18 | Bulk import removed                                                                           | Self-register via GitHub OAuth + "Join Event" is sufficient; CSV import increases PII risk surface                                                                                                                                                                                                         | **Approved**          |
+| D11 | 2026-02-18 | Hacker numbers globally sequential                                                            | Simpler counter logic; avoids per-team numbering collisions; counter ETag-protected in `_meta/counter` row                                                                                                                                                                                                 | **Approved**          |
+| D12 | 2026-02-18 | 6 default teams auto-seeded on first GET                                                      | Every event starts with Team01–Team06 without admin action; coaches can add/delete but not rename                                                                                                                                                                                                          | **Approved**          |
+| D13 | 2026-02-18 | SWA deploy auth: token-based (`SWA_DEPLOYMENT_TOKEN`)                                         | Simplest common denominator for both supported deployment paths; OIDC used for production CI/CD app code deployment only                                                                                                                                                                                   | **Approved**          |
+| D14 | 2026-02-18 | ~~E2E test environments use `enablePrivateEndpoint=false`~~                                   | ~~GitHub Actions hosted runners cannot reach private SQL endpoints; private endpoints are production-only~~                                                                                                                                                                                                | **Superseded by D22** |
+| D15 | 2026-02-18 | Canonical SWA role model: `admin`/`member`                                                    | `staticwebapp.config.json` uses `admin`/`member`; `writer`/`reader` references in scripts were contract drift — corrected                                                                                                                                                                                  | **Approved**          |
+| D16 | 2026-02-18 | SQL schema + db_owner grant via in-VNet ACI deploymentScript                                  | Public SQL endpoint is not acceptable with private-endpoint topology; schema and grants run inside the VNet via Azure Container Instance in Bicep `deploymentScript` resource (`sql-grant.bicep`)                                                                                                          | **Approved**          |
+| D17 | 2026-02-18 | Directory Readers assigned via `az rest` in `deploy.ps1`, not Bicep                           | Bicep `extension microsoftGraph` (built-in) is retired (BCP407); dynamic OCI ref (`br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0`) compiled but `roleAssignments` type not found (BCP029); fell back to idempotent `az rest POST /roleManagement/directory/roleAssignments` after deploy | **Approved**          |
+| D18 | 2026-02-19 | Deploying Entra user is default app admin and SQL Entra administrator                         | Removes post-deploy manual invite step; the logged-in `az login` identity is used as both `adminEmail` (SWA app admin) and the SQL Entra administrator OID — no separate invite flow needed                                                                                                                | **Approved**          |
+| D19 | 2026-02-19 | Only two infrastructure deployment paths supported: `deploy.ps1` and Deploy to Azure button   | GitHub Actions is a CI/CD path for app code only, not an infrastructure deployment path; two well-tested paths are sufficient for operator use                                                                                                                                                             | **Approved**          |
+| D20 | 2026-02-19 | Deleted `deploy-infra.yml` — GHA is not a supported infra deployment path                     | Per D19; `.github/workflows/deploy-infra.yml` removed; only `deploy.ps1` and Deploy to Azure button are supported; GHA CI/CD pipeline (`deploy-swa.yml`) remains for app code deployment                                                                                                                   | **Approved**          |
+| D21 | 2026-02-19 | Clean deployment — previous Azure resources deleted; fresh provisioning required              | Previous deployment torn down; Phase 15.2 and Phase 16 tasks reset to pending; `AZURE_STATIC_WEB_APPS_API_TOKEN` must be retrieved from the new SWA after provisioning completes                                                                                                                           | **Approved**          |
+| D22 | 2026-02-19 | `enablePrivateEndpoint=true` is mandatory in all environments — no exceptions                 | Operator decision: private endpoints required everywhere; D14 superseded; `deploy.ps1` now passes `enablePrivateEndpoint=true` explicitly; SQL schema/grants handled by in-VNet ACI (D16); GitHub Actions CI/CD does not deploy infra (D19) so runner connectivity is not a concern                        | **Superseded by D23** |
+| D23 | 2026-02-19 | Replace Azure SQL Database with Cosmos DB NoSQL (Serverless)                                  | Cosmos DB Serverless is pay-per-request (~$0.01/day for this workload); schemaless JSON documents are a natural fit for rubrics, scores, submissions; no SQL schema migration needed; eliminates DTU capacity planning; total cost ~$9.10/month (within <$10 target)                                       | **Approved**          |
+| D24 | 2026-02-19 | Add Entra ID authentication alongside GitHub OAuth; deployer = first admin via App Roles      | Entra ID app registration with `admin` app role created during deployment via Bicep `deploymentScript`; deployer auto-assigned to admin role; SWA maps app roles automatically; team members continue using GitHub OAuth                                                                                   | **Approved**          |
+| D25 | 2026-02-19 | Cosmos DB must use Entra ID RBAC (managed identity) — no connection strings or access keys    | MCAPSGov policy `ModifyCosmosDBLocalAuth` auto-disables local auth on all Cosmos DB accounts; API must use `@azure/identity` `DefaultAzureCredential`; SWA system-assigned MI gets `Cosmos DB Built-in Data Contributor` role                                                                              | **Approved**          |
+| D26 | 2026-02-19 | 9 mandatory resource group tags enforced by governance policy                                 | JV-Enforce Resource Group Tags v3 (Deny effect) requires: `environment`, `owner`, `costcenter`, `application`, `workload`, `sla`, `backup-policy`, `maint-window`, `tech-contact`; tag inheritance policy auto-copies to child resources                                                                   | **Approved**          |
+| D27 | 2026-02-19 | Governance constraints documented in `agent-output/hacker-board/04-governance-constraints.md` | 21 Azure Policy assignments analysed; 2 mandatory adjustments identified (RG tags + Cosmos DB RBAC); all deny/audit/modify effects classified and impact-assessed for HackerBoard resources                                                                                                                | **Approved**          |
 
 <!-- TEMPLATE for new decisions:
 | D{N} | YYYY-MM-DD | {decision} | {rationale} | **{status}** |
@@ -854,7 +863,7 @@ monitoring shows data, feature flags toggle correctly.
 | R2  | Rubric parser edge cases cause scoring bugs         | Medium     | High   | Extensive test cases for malformed markdown; validate `baseTotal` matches sum                                      |
 | R3  | SWA managed Functions cold start affects UX         | Low        | Medium | Lightweight functions; keep-alive ping from frontend                                                               |
 | R4  | CommonJS → ESM migration breaks shared helpers      | Low        | Medium | Phase 1 migration with immediate `swa start` validation                                                            |
-| R5  | ~~Table Storage query limitations for leaderboard~~ | Low        | Medium | ~~Denormalize scores for fast reads; avoid cross-table joins~~ — Obsolete: superseded by P14 (Azure SQL migration) |
+| R5  | ~~Table Storage query limitations for leaderboard~~ | Low        | Medium | ~~Denormalize scores for fast reads; avoid cross-table joins~~ — Obsolete: superseded by D23 (Cosmos DB migration) |
 | R6  | Auth flow differences between local dev and prod    | Medium     | Medium | Test auth helpers with mocked headers; deploy early to catch issues                                                |
 | R7  | Incomplete smoke test coverage at deploy time       | Medium     | High   | Added rubric + flags endpoints to P11.3 checklist and handoff Phase 6.2                                            |
 
@@ -864,38 +873,45 @@ monitoring shows data, feature flags toggle correctly.
 
 > Every phase has validation criteria. This matrix tracks pass/fail.
 
-| Phase | Validation                                                   | Status                       |
-| ----- | ------------------------------------------------------------ | ---------------------------- |
-| P1    | `npm audit` returns 0 high/critical                          | **Passed**                   |
-| P1    | `swa start` launches without errors after ESM migration      | **Passed**                   |
-| P1    | All `api/shared/*.js` use `import`/`export`                  | **Passed**                   |
-| P2    | `cd api && npm test` passes (Vitest)                         | **Passed**                   |
-| P2    | GitHub Actions workflow triggers on push                     | **Ready**                    |
-| P2    | `node scripts/seed-demo-data.js --reset` populates Azurite   | **Passed**                   |
-| P3    | All API core tests pass (`npm test`)                         | **Passed**                   |
-| P3    | `curl` confirms auth enforcement on protected routes         | **Passed**                   |
-| P4    | All attendee/team/awards tests pass                          | **Passed**                   |
-| P5    | Rubric parser handles well-formed + malformed markdown       | **Passed**                   |
-| P5    | `GET /api/rubrics/active` returns default rubric on fresh DB | **Passed**                   |
-| P6    | Leaderboard renders seeded data in browser                   | **Passed**                   |
-| P6    | Theme toggle works + persists across reload                  | **Passed**                   |
-| P6    | Responsive at sm/md/lg/xl breakpoints                        | **Passed**                   |
-| P7    | Submit score → admin approve → leaderboard updates           | **Passed**                   |
-| P7    | Upload JSON → preview → submit works                         | **Passed**                   |
-| P8    | Self-service join → team assignment → roster displays        | **Passed**                   |
-| P9    | Upload rubric → preview → activate → form adapts             | **Passed**                   |
-| P10   | axe-core reports 0 violations                                | **Passed**                   |
-| P10   | Integration test flows covered by E2E specs                  | **Passed**                   |
-| P10   | Frontend DOM tests pass (Vitest + happy-dom)                 | **Passed**                   |
-| P11   | Production deploy + smoke test passes                        | Not run                      |
-| P11   | Feature flags toggle correctly                               | **Passed**                   |
-| P11   | Frontend component test coverage (8 components)              | **Passed**                   |
-| P12   | OpenAPI spec exists and validates as OpenAPI 3.0             | **Passed**                   |
-| P15   | Path A (PS): all provisioning outputs present + health 200   | Not run                      |
-| P15   | Path B (Button): ARM deployment + follow-up steps succeed    | Not run                      |
-| P16   | CI/CD deploys app code; `/api/health` returns 200            | Not run                      |
-| P16   | Directory Readers assigned to SQL MI via `az rest`           | Not run — requires re-deploy |
-| P16   | db_owner granted to SWA MI via in-VNet ACI script            | Not run — requires re-deploy |
+| Phase | Validation                                                                              | Status                       |
+| ----- | --------------------------------------------------------------------------------------- | ---------------------------- |
+| P1    | `npm audit` returns 0 high/critical                                                     | **Passed**                   |
+| P1    | `swa start` launches without errors after ESM migration                                 | **Passed**                   |
+| P1    | All `api/shared/*.js` use `import`/`export`                                             | **Passed**                   |
+| P2    | `cd api && npm test` passes (Vitest)                                                    | **Passed**                   |
+| P2    | GitHub Actions workflow triggers on push                                                | **Ready**                    |
+| P2    | `node scripts/seed-demo-data.js --reset` populates Azurite                              | **Passed**                   |
+| P3    | All API core tests pass (`npm test`)                                                    | **Passed**                   |
+| P3    | `curl` confirms auth enforcement on protected routes                                    | **Passed**                   |
+| P4    | All attendee/team/awards tests pass                                                     | **Passed**                   |
+| P5    | Rubric parser handles well-formed + malformed markdown                                  | **Passed**                   |
+| P5    | `GET /api/rubrics/active` returns default rubric on fresh DB                            | **Passed**                   |
+| P6    | Leaderboard renders seeded data in browser                                              | **Passed**                   |
+| P6    | Theme toggle works + persists across reload                                             | **Passed**                   |
+| P6    | Responsive at sm/md/lg/xl breakpoints                                                   | **Passed**                   |
+| P7    | Submit score → admin approve → leaderboard updates                                      | **Passed**                   |
+| P7    | Upload JSON → preview → submit works                                                    | **Passed**                   |
+| P8    | Self-service join → team assignment → roster displays                                   | **Passed**                   |
+| P9    | Upload rubric → preview → activate → form adapts                                        | **Passed**                   |
+| P10   | axe-core reports 0 violations                                                           | **Passed**                   |
+| P10   | Integration test flows covered by E2E specs                                             | **Passed**                   |
+| P10   | Frontend DOM tests pass (Vitest + happy-dom)                                            | **Passed**                   |
+| P11   | Production deploy + smoke test passes                                                   | Not run                      |
+| P11   | Feature flags toggle correctly                                                          | **Passed**                   |
+| P11   | Frontend component test coverage (8 components)                                         | **Passed**                   |
+| P12   | OpenAPI spec exists and validates as OpenAPI 3.0                                        | **Passed**                   |
+| P15   | Path A (PS): all provisioning outputs present + health 200                              | Not run                      |
+| P15   | Path B (Button): ARM deployment + follow-up steps succeed                               | Not run                      |
+| P16   | CI/CD deploys app code; `/api/health` returns 200                                       | Not run                      |
+| P16   | Directory Readers assigned to SQL MI via `az rest`                                      | Not run — requires re-deploy |
+| P16   | db_owner granted to SWA MI via in-VNet ACI script                                       | Not run — requires re-deploy |
+| P17   | Cosmos DB account deployed with `disableLocalAuth: true`                                | Not run                      |
+| P17   | SWA MI assigned `Cosmos DB Built-in Data Contributor` role                              | Not run                      |
+| P17   | API layer uses `@azure/cosmos` + `DefaultAzureCredential`                               | Not run                      |
+| P17   | 6 Cosmos DB containers created (teams, attendees, scores, submissions, rubrics, awards) | Not run                      |
+| P17   | Entra ID app registration with `admin` app role automated                               | Not run                      |
+| P17   | Resource group deployed with all 9 mandatory tags                                       | Not run                      |
+| P17   | All existing API tests updated for Cosmos DB SDK                                        | Not run                      |
 
 ---
 
@@ -905,6 +921,39 @@ monitoring shows data, feature flags toggle correctly.
 > This ensures the next session has full context.
 >
 > Full session history: [session-history.md](session-history.md)
+
+### Session: 2026-02-19 — Cosmos DB Architecture Migration + Governance Discovery
+
+**What was done**:
+
+- Confirmed all 11 functional requirements (F1–F11), 4 roles, and NFRs are unchanged.
+- Validated new architecture: **SWA Standard + Managed Functions + Cosmos DB NoSQL (Serverless)** (D23).
+- Estimated daily cost at **~$0.31/day (~$9.10/month)** — within <$10/month target.
+- Designed **Entra ID dual-auth** model: GitHub OAuth for team members + Entra ID for first admin (deployer auto-assigned `admin` app role via Bicep `deploymentScript`) (D24).
+- Discovered **Cosmos DB must use RBAC only** — MCAPSGov `ModifyCosmosDBLocalAuth` policy auto-disables connection strings/keys (D25).
+- Connected to Azure subscription `noalz` (00858ffc-...) and analysed **21 policy assignments** across 3 scopes.
+- Identified **9 mandatory RG tags** enforced by Deny policy (D26).
+- Created `agent-output/hacker-board/04-governance-constraints.md` + `.json` with full policy impact analysis (D27).
+- Updated all project documentation (8+ files) to reflect Cosmos DB + Entra ID architecture.
+
+**What's next**:
+
+- Implement Phase 17: Cosmos DB Migration
+  - Update Bicep templates (replace SQL modules with Cosmos DB + Entra ID app registration)
+  - Replace `api/shared/db.js` with Cosmos DB client using `@azure/cosmos` + `DefaultAzureCredential`
+  - Update all API function handlers for Cosmos DB SDK
+  - Update all API tests for new data layer
+  - Provision infrastructure and run E2E validation (P15)
+
+**Open questions**:
+
+- None.
+
+**Known issues**:
+
+- All existing API code still references `mssql`/Azure SQL — needs full migration to `@azure/cosmos`.
+
+---
 
 ### Session: 2026-02-19 — Clean Deployment Reset
 

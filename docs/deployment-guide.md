@@ -3,8 +3,8 @@
 ![Type](https://img.shields.io/badge/Type-Deployment%20Guide-blue)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![Platform](https://img.shields.io/badge/Platform-Azure%20Static%20Web%20Apps-0078D4)
-![DB](https://img.shields.io/badge/DB-Azure%20SQL%20Basic-0078D4)
-![Auth](https://img.shields.io/badge/Auth-OIDC%20%2B%20GitHub%20OAuth-181717)
+![DB](https://img.shields.io/badge/DB-Cosmos%20DB%20NoSQL%20Serverless-0078D4)
+![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth%20%2B%20Entra%20ID-181717)
 
 > End-to-end guide for deploying HackerBoard — from Azure infrastructure provisioning through CI/CD to production smoke testing.
 
@@ -13,23 +13,21 @@
 ```mermaid
 graph TD
     A[1. Prerequisites] --> B[2. Provision Infrastructure]
-    B --> C[3. Deploy SQL Schema]
-    C --> D[4. Configure OIDC Auth + Verify]
-    D --> E[5. First Deployment]
-    E --> F[6. Assign Roles + Smoke Test]
-    F --> G{Optional}
-    G --> H[Custom Domain]
-    G --> I[Local Dev Setup]
+    B --> C[3. Configure OIDC Auth + Verify]
+    C --> D[4. First Deployment]
+    D --> E[5. Assign Roles + Smoke Test]
+    E --> F{Optional}
+    F --> G[Custom Domain]
+    F --> H[Local Dev Setup]
 
     style A fill:#f0f0f0,stroke:#333
     style B fill:#0078D4,stroke:#333,color:#fff
-    style C fill:#0078D4,stroke:#333,color:#fff
-    style D fill:#e67e22,stroke:#333,color:#fff
+    style C fill:#e67e22,stroke:#333,color:#fff
+    style D fill:#27ae60,stroke:#333,color:#fff
     style E fill:#27ae60,stroke:#333,color:#fff
-    style F fill:#27ae60,stroke:#333,color:#fff
-    style G fill:#f0f0f0,stroke:#333
+    style F fill:#f0f0f0,stroke:#333
+    style G fill:#95a5a6,stroke:#333,color:#fff
     style H fill:#95a5a6,stroke:#333,color:#fff
-    style I fill:#95a5a6,stroke:#333,color:#fff
 ```
 
 ## Prerequisites
@@ -51,8 +49,9 @@ Two supported deployment paths: the **Deploy to Azure** button for 1-click provi
 **deploy script** for full control over parameters and phased deployment.
 
 > **Default admin behaviour**: The Entra user running the deployment is automatically
-> configured as the application administrator and assigned as the Microsoft Entra
-> administrator on the Azure SQL server — no separate invite step is required.
+> configured as the application administrator via an automated Entra ID app role
+> assignment — no separate invite step is required. The deployer is assigned the
+> `admin` app role on the Entra ID application.
 
 ### Option A — deploy.ps1 (Recommended)
 
@@ -93,8 +92,8 @@ cd infra
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjonathan-vella%2Fhacker-board%2Fmain%2Finfra%2Fazuredeploy.json)
 
 Deploys via the pre-compiled ARM template. In the portal form, fill in `costCenter` and
-`technicalContact`. Set `adminEmail` and `sqlAdminObjectId` to the signed-in deploying
-user's email and Entra Object ID — this user becomes the app admin and SQL Entra administrator.
+`technicalContact`. Set `adminEmail` to the signed-in deploying
+user's email — this user becomes the app admin via Entra ID app role assignment.
 
 > **Tip — find your Object ID**: `az ad signed-in-user show --query id -o tsv`
 
@@ -104,8 +103,7 @@ user's email and Entra Object ID — this user becomes the app admin and SQL Ent
 graph LR
     subgraph Foundation
         LA[Log Analytics<br/>law-hacker-board-prod]
-        SQL[Azure SQL Server<br/>sql-hacker-board-prod]
-        DB[SQL Database<br/>hacker-board-db<br/>Basic DTU]
+        COSMOS[Cosmos DB Account<br/>cosmos-hacker-board-prod<br/>NoSQL Serverless]
     end
 
     subgraph Application
@@ -114,66 +112,33 @@ graph LR
     end
 
     LA --> AI
-    SQL --> DB
-    DB --> SWA
-    SWA -->|Managed Identity<br/>Entra ID| DB
+    COSMOS -->|hackerboard DB<br/>6 containers| SWA
+    SWA -->|Managed Identity<br/>Entra ID RBAC| COSMOS
 ```
 
-| Resource             | Name Pattern            | SKU           |
-| -------------------- | ----------------------- | ------------- |
-| Resource Group       | `rg-hacker-board-{env}` | —             |
-| Log Analytics        | `law-{project}-{env}`   | PerGB2018     |
-| Azure SQL Server     | `sql-{project}-{env}`   | —             |
-| Azure SQL Database   | `{project}-db`          | Basic (5 DTU) |
-| Application Insights | `appi-{project}-{env}`  | —             |
-| Static Web App       | `swa-{project}-{env}`   | Standard      |
+| Resource             | Name Pattern             | SKU              |
+| -------------------- | ------------------------ | ---------------- |
+| Resource Group       | `rg-hacker-board-{env}`  | — (9 tags req'd) |
+| Log Analytics        | `law-{project}-{env}`    | PerGB2018        |
+| Cosmos DB Account    | `cosmos-{project}-{env}` | Serverless       |
+| Cosmos DB Database   | `hackerboard`            | —                |
+| Application Insights | `appi-{project}-{env}`   | —                |
+| Static Web App       | `swa-{project}-{env}`    | Standard         |
+| Entra ID App Reg     | `app-{project}-{env}`    | —                |
 
 The Bicep templates use [Azure Verified Modules](https://aka.ms/avm) and
 automatically configure:
 
-- Entra ID-only authentication on the SQL Server (`azureADOnlyAuthentication: true`)
-- System-assigned managed identity on the SWA
-- App settings for Application Insights, SQL FQDN and database name
+- Cosmos DB with Entra ID RBAC only (`disableLocalAuth: true` — enforced by governance)
+- 6 containers: `teams`, `attendees`, `scores`, `submissions`, `rubrics`, `awards`
+- System-assigned managed identity on the SWA with `Cosmos DB Built-in Data Contributor` role
+- Entra ID app registration with `admin` app role; deployer auto-assigned
+- 9 mandatory resource group tags (governance policy)
+- App settings for Application Insights and Cosmos DB endpoint
 
 ---
 
-## Step 2 — Deploy SQL Schema
-
-The SQL schema migration is idempotent — `api/schema/init.sql` uses
-`IF NOT EXISTS` guards so it is safe to run on every deployment.
-
-The `deploy.ps1` script runs this automatically after infrastructure is
-provisioned. To run manually:
-
-```bash
-export SQL_SERVER_FQDN="<sql-server>.database.windows.net"
-export SQL_DATABASE_NAME="hacker-board-db"
-
-node scripts/deploy-schema.js
-```
-
-Expected output confirms 7 tables created: `Teams`, `Attendees`, `Scores`,
-`Awards`, `Submissions`, `Rubrics`, `Config`, plus the `HackerNumberSequence`
-SEQUENCE.
-
-> **Entra ID access required**: The identity running the deployment is automatically
-> assigned as the SQL Entra administrator by `deploy.ps1`. This same identity must
-> be logged in via `az login` when running `deploy-schema.js` manually. The SWA
-> managed identity is granted `db_datareader` and `db_datawriter` roles automatically
-> by the schema script.
-
-### Verify Schema
-
-```bash
-# Connect with sqlcmd (install via brew/apt)
-sqlcmd -S $SQL_SERVER_FQDN -d $SQL_DATABASE_NAME \
-  --authentication-method ActiveDirectoryDefault \
-  -Q "SELECT name FROM sys.tables ORDER BY name"
-```
-
----
-
-## Step 3 — Configure OIDC Deployment Auth
+## Step 2 — Configure OIDC Deployment Auth
 
 The CI/CD workflow uses OIDC (identity tokens) instead of long-lived secrets.
 Azure SWA defaults to **DeploymentToken** auth policy, which rejects OIDC
@@ -256,7 +221,7 @@ Expected output: `policy = GitHub`, `provider = GitHub`.
 
 ---
 
-## Step 4 — First Deployment
+## Step 3 — First Deployment
 
 Push to `main` or trigger the workflow manually:
 
@@ -272,14 +237,12 @@ The CI/CD workflow runs six jobs:
 
 ```mermaid
 graph LR
-    BT[Build & Test] --> SM[Schema Migrate]
-    SM --> D[Deploy to SWA]
+    BT[Build & Test] --> D[Deploy to SWA]
     D --> ST[Smoke Test]
     BT --> DP[Deploy PR Preview]
     PR[PR Closed] --> CL[Close PR Env]
 
     style BT fill:#3498db,stroke:#333,color:#fff
-    style SM fill:#0078D4,stroke:#333,color:#fff
     style D fill:#27ae60,stroke:#333,color:#fff
     style ST fill:#f39c12,stroke:#333,color:#fff
     style DP fill:#9b59b6,stroke:#333,color:#fff
@@ -289,7 +252,6 @@ graph LR
 | Job                   | Triggers On             | Purpose                                       |
 | --------------------- | ----------------------- | --------------------------------------------- |
 | **Build & Test**      | push, PR, manual        | `npm ci`, Vitest (API + UI), `npm audit`      |
-| **Schema Migrate**    | push to `main`, manual  | OIDC login → `node scripts/deploy-schema.js`  |
 | **Deploy**            | push to `main`, manual  | OIDC auth → `Azure/static-web-apps-deploy@v1` |
 | **Smoke Test**        | after successful deploy | Health check + API reachability               |
 | **Deploy PR Preview** | PR opened/updated       | Staging environment for the PR                |
@@ -303,7 +265,7 @@ gh run watch --repo jonathan-vella/hacker-board
 
 ---
 
-## Step 5 — Assign User Roles
+## Step 4 — Assign User Roles
 
 HackerBoard uses two custom roles enforced by `staticwebapp.config.json`:
 
@@ -355,7 +317,7 @@ See [Admin Procedures](admin-procedures.md) for the full admin runbook.
 
 ---
 
-## Step 6 — Smoke Test
+## Step 5 — Smoke Test
 
 ### Automated (CI/CD)
 
@@ -405,27 +367,30 @@ hostname. Azure provisions a free managed SSL certificate automatically.
 
 ### Prerequisites
 
-| Tool                          | Install                                                                                                          |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| SWA CLI                       | `npm install -g @azure/static-web-apps-cli`                                                                      |
-| Azure Functions Core Tools v4 | [Install guide](https://learn.microsoft.com/azure/azure-functions/functions-run-local)                           |
-| SQL Server                    | Docker: `docker run -e ACCEPT_EULA=Y -e SA_PASSWORD=... -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest` |
+| Tool                          | Install                                                                                |
+| ----------------------------- | -------------------------------------------------------------------------------------- |
+| SWA CLI                       | `npm install -g @azure/static-web-apps-cli`                                            |
+| Azure Functions Core Tools v4 | [Install guide](https://learn.microsoft.com/azure/azure-functions/functions-run-local) |
+| Cosmos DB Emulator            | [Install guide](https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator)   |
 
 ### Start Local Environment
 
 ```bash
-# Set local SQL connection string
-export SQL_CONNECTION_STRING="Server=localhost;Database=hackerboard;User Id=sa;Password=<password>;Encrypt=false"
+# Set local Cosmos DB connection (emulator)
+export COSMOS_DB_ENDPOINT="https://localhost:8081"
+export COSMOS_DB_KEY="C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
 
-# Install deps + deploy schema + seed data
+# Install deps + seed data
 npm install && cd api && npm install && cd ..
-node scripts/deploy-schema.js
 node scripts/seed-demo-data.js --reset
 
 # Start local dev server (emulates SWA auth + routing)
 swa start src --api-location api
 # Open http://localhost:4280
 ```
+
+> **Note**: In production, connection strings/keys are disabled by governance policy.
+> The emulator key above is the well-known Cosmos DB emulator key for local development only.
 
 ### Run Tests
 
@@ -444,32 +409,31 @@ npm run test:all
 
 ## Troubleshooting
 
-| Symptom                                   | Cause                                                                             | Fix                                                                        |
-| ----------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Deploy action fails with "unauthorized"   | Deployment auth policy not set to GitHub                                          | Run `scripts/configure-swa-auth.sh` (Step 3)                               |
-| Deploy action fails with OIDC error       | Deployment auth policy still on DeploymentToken                                   | Run `scripts/configure-swa-auth.sh` (Step 3)                               |
-| `/api/*` returns 404                      | API not deployed or `api_location` mismatch                                       | Verify `api_location: "api"` in workflow                                   |
-| Health check returns 500                  | SQL schema not deployed or SWA identity lacks SQL access                          | Run `node scripts/deploy-schema.js`; grant `db_datareader`/`db_datawriter` |
-| Deploying user cannot access admin routes | Deploying user's GitHub email does not match the `adminEmail` used at deploy time | Re-run `deploy.ps1` with the correct `-AdminEmail` override                |
-| `swa start` fails locally                 | Missing SWA CLI or SQL not running                                                | Install prerequisites from the Local Development section                   |
-| Schema migration fails                    | `az login` identity is not the SQL Entra administrator                            | Ensure the same identity used for deployment runs `deploy-schema.js`       |
+| Symptom                                   | Cause                                                                 | Fix                                                             |
+| ----------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Deploy action fails with "unauthorized"   | Deployment auth policy not set to GitHub                              | Run `scripts/configure-swa-auth.sh` (Step 3)                    |
+| Deploy action fails with OIDC error       | Deployment auth policy still on DeploymentToken                       | Run `scripts/configure-swa-auth.sh` (Step 3)                    |
+| `/api/*` returns 404                      | API not deployed or `api_location` mismatch                           | Verify `api_location: "api"` in workflow                        |
+| Health check returns 500                  | Cosmos DB containers not created or SWA identity lacks RBAC role      | Verify `Cosmos DB Built-in Data Contributor` assigned to SWA MI |
+| Deploying user cannot access admin routes | Deploying user's Entra identity not matched to app role assignment    | Re-run `deploy.ps1` with the correct `-AdminEmail` override     |
+| `swa start` fails locally                 | Missing SWA CLI or Cosmos DB emulator not running                     | Install prerequisites from the Local Development section        |
+| Schema migration fails                    | N/A — Cosmos DB is schemaless; containers created by Bicep deployment | Re-run infrastructure deployment                                |
 
 ---
 
 ## Quick Reference
 
-| Item           | Value                                                          |
-| -------------- | -------------------------------------------------------------- |
-| Resource Group | `rg-hacker-board-prod`                                         |
-| SWA Resource   | `swa-hacker-board-prod`                                        |
-| SQL Server     | `sql-hacker-board-prod.database.windows.net`                   |
-| SQL Database   | `hacker-board-db` (Basic DTU)                                  |
-| Region         | `westeurope`                                                   |
-| Workflow File  | `.github/workflows/deploy-swa.yml`                             |
-| Deploy Auth    | OIDC (`deploymentAuthPolicy: GitHub`)                          |
-| Auth Provider  | GitHub OAuth (SWA built-in)                                    |
-| Schema Script  | `scripts/deploy-schema.js`                                     |
-| SQL Tables     | Teams, Attendees, Scores, Submissions, Awards, Rubrics, Config |
+| Item           | Value                                                  |
+| -------------- | ------------------------------------------------------ |
+| Resource Group | `rg-hacker-board-prod`                                 |
+| SWA Resource   | `swa-hacker-board-prod`                                |
+| Cosmos DB      | `cosmos-hacker-board-prod` (Serverless)                |
+| Database       | `hackerboard`                                          |
+| Region         | `westeurope`                                           |
+| Workflow File  | `.github/workflows/deploy-swa.yml`                     |
+| Deploy Auth    | OIDC (`deploymentAuthPolicy: GitHub`)                  |
+| Auth Providers | GitHub OAuth + Entra ID (SWA built-in)                 |
+| Containers     | teams, attendees, scores, submissions, rubrics, awards |
 
 ## References
 

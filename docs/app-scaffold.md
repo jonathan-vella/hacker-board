@@ -172,7 +172,7 @@ hacker-board/
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@azure/data-tables": "^13.3.0",
+    "@azure/cosmos": "^4.2.0",
     "@azure/functions": "^4.11.2",
     "@azure/identity": "^4.9.0"
   },
@@ -206,26 +206,33 @@ export function requireRole(req, role) {
 }
 ```
 
-### `api/shared/tables.js` — Table Client Factory
+### `api/shared/cosmos.js` — Cosmos DB Client Factory
 
 ```javascript
-import { TableClient } from "@azure/data-tables";
+import { CosmosClient } from "@azure/cosmos";
 import { DefaultAzureCredential } from "@azure/identity";
 
-const STORAGE_ACCOUNT = process.env.STORAGE_ACCOUNT_NAME;
-const CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
+const COSMOS_ENDPOINT = process.env.COSMOS_DB_ENDPOINT;
+const COSMOS_KEY = process.env.COSMOS_DB_KEY;
+const DATABASE_NAME = "hackerboard";
 
-let credential;
+let client;
 
-export function getTableClient(tableName) {
-  if (CONNECTION_STRING) {
-    return TableClient.fromConnectionString(CONNECTION_STRING, tableName, {
-      allowInsecureConnection: true,
-    });
+function getClient() {
+  if (!client) {
+    // Local dev: use emulator key; production: Entra ID RBAC (no keys)
+    client = COSMOS_KEY
+      ? new CosmosClient({ endpoint: COSMOS_ENDPOINT, key: COSMOS_KEY })
+      : new CosmosClient({
+          endpoint: COSMOS_ENDPOINT,
+          aadCredentials: new DefaultAzureCredential(),
+        });
   }
-  if (!credential) credential = new DefaultAzureCredential();
-  const url = `https://${STORAGE_ACCOUNT}.table.core.windows.net`;
-  return new TableClient(url, tableName, credential);
+  return client;
+}
+
+export function getContainer(containerName) {
+  return getClient().database(DATABASE_NAME).container(containerName);
 }
 ```
 
@@ -236,20 +243,18 @@ Each endpoint uses the v4 programming model — a single file registers one or m
 ```javascript
 import { app } from "@azure/functions";
 import { requireRole } from "../../shared/auth.js";
-import { getTableClient, ensureTable } from "../../shared/tables.js";
+import { getContainer } from "../../shared/cosmos.js";
 
 app.http("teams-get", {
   methods: ["GET"],
   authLevel: "anonymous",
   route: "teams",
   handler: async (req, context) => {
-    const client = getTableClient("Teams");
-    await ensureTable("Teams");
-    const entities = [];
-    for await (const entity of client.listEntities()) {
-      entities.push(entity);
-    }
-    return { jsonBody: entities };
+    const container = getContainer("teams");
+    const { resources } = await container.items
+      .query("SELECT * FROM c")
+      .fetchAll();
+    return { jsonBody: resources };
   },
 });
 ```
@@ -265,7 +270,8 @@ app.http("teams-get", {
 - Node.js 20+
 - [Azure Static Web Apps CLI](https://github.com/Azure/static-web-apps-cli): `npm install -g @azure/static-web-apps-cli`
 - [Azure Functions Core Tools](https://learn.microsoft.com/azure/azure-functions/functions-run-local) v4
-- [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite) for local Table Storage
+- [Azurite](https://learn.microsoft.com/azure/storage/common/storage-use-azurite) for local blob/queue storage (Functions runtime)
+- [Azure Cosmos DB Emulator](https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator) for local Cosmos DB
 
 > All prerequisites are pre-installed in the dev container (`.devcontainer/`).
 
@@ -276,8 +282,8 @@ app.http("teams-get", {
 npm install
 cd api && npm install && cd ..
 
-# Start Azurite (Table Storage emulator) in a separate terminal
-azurite --silent --location /tmp/azurite
+# Start Cosmos DB emulator (or use cloud endpoint)
+# See: https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator
 
 # Seed demo data
 node scripts/seed-demo-data.js --reset
@@ -309,7 +315,8 @@ Create `api/local.settings.json` (**do not commit**):
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "node",
-    "AZURE_STORAGE_CONNECTION_STRING": ""
+    "COSMOS_DB_ENDPOINT": "https://localhost:8081",
+    "COSMOS_DB_KEY": "C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
   }
 }
 ```

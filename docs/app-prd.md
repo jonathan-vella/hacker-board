@@ -39,7 +39,7 @@ scoring with a browser-based submission and review workflow.
 
 ### Architecture Context
 
-The app runs on **Azure Static Web Apps (Standard)** with **managed Azure Functions** (Node.js) for the API layer and **Azure Table Storage** for persistence. All infrastructure code is ready and will be deployed together with the application.. The app team only needs to build the SPA frontend and API functions.
+The app runs on **Azure Static Web Apps (Standard)** with **managed Azure Functions** (Node.js 20+) for the API layer and **Azure Cosmos DB NoSQL (Serverless)** for persistence. Authentication uses dual providers: **GitHub OAuth** (team members) and **Microsoft Entra ID** (first admin = deployer, via automated app role assignment). All infrastructure code is ready and will be deployed together with the application. The app team only needs to build the SPA frontend and API functions.
 
 ```text
 ┌─────────────────────────────────────────────────┐
@@ -50,15 +50,19 @@ The app runs on **Azure Static Web Apps (Standard)** with **managed Azure Functi
 │  │  Frontend    │────▶│  /api/*              │   │
 │  └─────────────┘     └──────────┬───────────┘   │
 │                                  │               │
-│  GitHub OAuth (built-in)         │               │
+│  GitHub OAuth + Entra ID         │               │
+│  (built-in SWA auth)             │               │
 └──────────────────────────────────┼───────────────┘
-                                   │
+                                   │ Managed Identity
+                                   │ (RBAC — no keys)
                          ┌─────────▼──────────┐
-                         │  Azure Table        │
-                         │  Storage             │
-                         │  6 tables            │
+                         │  Azure Cosmos DB    │
+                         │  NoSQL (Serverless) │
+                         │  6 containers       │
                          └────────────────────┘
 ```
+
+> **Governance note**: Azure policy auto-disables Cosmos DB local authentication (connection strings/keys). The API **must** use `@azure/identity` `DefaultAzureCredential` with the SWA system-assigned managed identity.
 
 ---
 
@@ -423,86 +427,97 @@ The uploaded `rubric.md` must follow a parseable structure. Example:
 
 ## Data Model
 
-### Table Storage Design
+### Cosmos DB NoSQL Design
 
-All data persists in Azure Table Storage (`stteamleadpromn2ksi`). Shared key access is disabled — the API must use managed identity with the **Storage Table Data Contributor** role.
+All data persists in **Azure Cosmos DB NoSQL (Serverless)**. Local authentication (connection strings/keys) is disabled by Azure governance policy — the API must use **Entra ID RBAC** via `DefaultAzureCredential` with the SWA system-assigned managed identity assigned the **Cosmos DB Built-in Data Contributor** role.
 
-#### Rubrics Table
+The database name is `hackerboard` with 6 containers. Each container uses a partition key optimised for the access patterns described below.
 
-| Field            | Type          | Key | Description                                                  |
-| ---------------- | ------------- | --- | ------------------------------------------------------------ |
-| `PartitionKey`   | string        | PK  | Fixed: `"rubric"`                                            |
-| `RowKey`         | string        | RK  | Rubric ID (GUID)                                             |
-| `name`           | string        |     | Rubric display name                                          |
-| `eventName`      | string        |     | Microhack / event name                                       |
-| `version`        | int32         |     | Rubric version number                                        |
-| `configJson`     | string (JSON) |     | Full parsed rubric JSON (categories, bonus, grading, awards) |
-| `sourceMarkdown` | string        |     | Original uploaded Markdown content                           |
-| `baseTotal`      | int32         |     | Computed base total from categories                          |
-| `bonusTotal`     | int32         |     | Computed bonus total                                         |
-| `isActive`       | boolean       |     | Whether this is the current active rubric                    |
-| `createdBy`      | string        |     | GitHub username of uploader                                  |
-| `createdAt`      | datetime      |     | Upload timestamp                                             |
+#### `rubrics` Container
 
-#### Teams Table
+**Partition key**: `/id`
 
-| Field          | Type                | Key | Description                      |
-| -------------- | ------------------- | --- | -------------------------------- |
-| `PartitionKey` | string              | PK  | Fixed: `"team"`                  |
-| `RowKey`       | string              | RK  | Team name (e.g., `"team-alpha"`) |
-| `teamName`     | string              |     | Display name                     |
-| `teamMembers`  | string (JSON array) |     | Array of GitHub usernames        |
-| `createdAt`    | datetime            |     | ISO 8601 timestamp               |
+| Field            | Type    | Description                                             |
+| ---------------- | ------- | ------------------------------------------------------- |
+| `id`             | string  | Rubric ID (GUID) — also partition key                   |
+| `name`           | string  | Rubric display name                                     |
+| `eventName`      | string  | Microhack / event name                                  |
+| `version`        | number  | Rubric version number                                   |
+| `configJson`     | object  | Full parsed rubric (categories, bonus, grading, awards) |
+| `sourceMarkdown` | string  | Original uploaded Markdown content                      |
+| `baseTotal`      | number  | Computed base total from categories                     |
+| `bonusTotal`     | number  | Computed bonus total                                    |
+| `isActive`       | boolean | Whether this is the current active rubric               |
+| `createdBy`      | string  | GitHub username of uploader                             |
+| `createdAt`      | string  | ISO 8601 timestamp                                      |
 
-#### Attendees Table
+#### `teams` Container
 
-| Field          | Type     | Key | Description                  |
-| -------------- | -------- | --- | ---------------------------- |
-| `PartitionKey` | string   | PK  | GitHub username              |
-| `RowKey`       | string   | RK  | Fixed: `"profile"`           |
-| `firstName`    | string   |     | First name                   |
-| `surname`      | string   |     | Surname                      |
-| `teamNumber`   | int32    |     | Team number (1-based)        |
-| `registeredAt` | datetime |     | First registration timestamp |
-| `updatedAt`    | datetime |     | Last update timestamp        |
+**Partition key**: `/id`
 
-#### Scores Table
+| Field         | Type   | Description                      |
+| ------------- | ------ | -------------------------------- |
+| `id`          | string | Team name (e.g., `"team-alpha"`) |
+| `teamName`    | string | Display name                     |
+| `teamMembers` | array  | Array of GitHub usernames        |
+| `createdAt`   | string | ISO 8601 timestamp               |
 
-| Field          | Type     | Key | Description                                                        |
-| -------------- | -------- | --- | ------------------------------------------------------------------ |
-| `PartitionKey` | string   | PK  | Team name                                                          |
-| `RowKey`       | string   | RK  | `"{category}_{criterion}"` (e.g., `"Requirements_ProjectContext"`) |
-| `category`     | string   |     | Category name                                                      |
-| `criterion`    | string   |     | Criterion name                                                     |
-| `points`       | int32    |     | Awarded points                                                     |
-| `maxPoints`    | int32    |     | Maximum possible points                                            |
-| `scoredBy`     | string   |     | GitHub username of scorer                                          |
-| `timestamp`    | datetime |     | When scored                                                        |
+#### `attendees` Container
 
-#### Submissions Table
+**Partition key**: `/username`
 
-| Field             | Type     | Key | Description                                |
-| ----------------- | -------- | --- | ------------------------------------------ |
-| `PartitionKey`    | string   | PK  | Team name                                  |
-| `RowKey`          | string   | RK  | Submission ID (GUID)                       |
-| `submittedBy`     | string   |     | GitHub username of submitter               |
-| `submittedAt`     | datetime |     | Submission timestamp                       |
-| `status`          | string   |     | `Pending`, `Approved`, or `Rejected`       |
-| `reviewedBy`      | string   |     | Admin username who validated               |
-| `reviewedAt`      | datetime |     | Review timestamp                           |
-| `reviewReason`    | string   |     | Required when rejected                     |
-| `payloadJson`     | string   |     | Original JSON payload for audit and replay |
-| `calculatedTotal` | int32    |     | Parsed grand total for queue sorting       |
+| Field          | Type   | Description                  |
+| -------------- | ------ | ---------------------------- |
+| `id`           | string | Auto-generated GUID          |
+| `username`     | string | GitHub username (PK)         |
+| `firstName`    | string | First name                   |
+| `surname`      | string | Surname                      |
+| `teamNumber`   | number | Team number (1-based)        |
+| `registeredAt` | string | First registration timestamp |
+| `updatedAt`    | string | Last update timestamp        |
 
-#### Awards Table
+#### `scores` Container
 
-| Field          | Type     | Key | Description                            |
-| -------------- | -------- | --- | -------------------------------------- |
-| `PartitionKey` | string   | PK  | Fixed: `"award"`                       |
-| `RowKey`       | string   | RK  | Award category (e.g., `"BestOverall"`) |
-| `teamName`     | string   |     | Winning team name                      |
-| `assignedBy`   | string   |     | GitHub username of assigner            |
-| `timestamp`    | datetime |     | When assigned                          |
+**Partition key**: `/teamName`
+
+| Field       | Type   | Description                                                                              |
+| ----------- | ------ | ---------------------------------------------------------------------------------------- |
+| `id`        | string | `"{teamName}_{category}_{criterion}"` (e.g., `"team-alpha_Requirements_ProjectContext"`) |
+| `teamName`  | string | Team name (partition key)                                                                |
+| `category`  | string | Category name                                                                            |
+| `criterion` | string | Criterion name                                                                           |
+| `points`    | number | Awarded points                                                                           |
+| `maxPoints` | number | Maximum possible points                                                                  |
+| `scoredBy`  | string | GitHub username of scorer                                                                |
+| `timestamp` | string | ISO 8601 timestamp                                                                       |
+
+#### `submissions` Container
+
+**Partition key**: `/teamName`
+
+| Field             | Type   | Description                                |
+| ----------------- | ------ | ------------------------------------------ |
+| `id`              | string | Submission ID (GUID)                       |
+| `teamName`        | string | Team name (partition key)                  |
+| `submittedBy`     | string | GitHub username of submitter               |
+| `submittedAt`     | string | ISO 8601 timestamp                         |
+| `status`          | string | `Pending`, `Approved`, or `Rejected`       |
+| `reviewedBy`      | string | Admin username who validated               |
+| `reviewedAt`      | string | ISO 8601 timestamp                         |
+| `reviewReason`    | string | Required when rejected                     |
+| `payloadJson`     | object | Original JSON payload for audit and replay |
+| `calculatedTotal` | number | Parsed grand total for queue sorting       |
+
+#### `awards` Container
+
+**Partition key**: `/id`
+
+| Field        | Type   | Description                            |
+| ------------ | ------ | -------------------------------------- |
+| `id`         | string | Award category (e.g., `"BestOverall"`) |
+| `teamName`   | string | Winning team name                      |
+| `assignedBy` | string | GitHub username of assigner            |
+| `timestamp`  | string | ISO 8601 timestamp                     |
 
 ---
 
@@ -765,7 +780,8 @@ Then add the required workflow surfaces from PRD features:
 - [API Specification](api-spec.md) — Full API specification
 - [App Handoff Checklist](app-handoff-checklist.md) — Infrastructure wiring instructions
 - [SWA Authentication Docs](https://learn.microsoft.com/azure/static-web-apps/authentication-authorization)
-- [Azure Table Storage API](https://learn.microsoft.com/rest/api/storageservices/table-service-rest-api)
+- [Cosmos DB NoSQL SDK for Node.js](https://learn.microsoft.com/azure/cosmos-db/nosql/sdk-nodejs)
+- [Cosmos DB RBAC with Entra ID](https://learn.microsoft.com/azure/cosmos-db/nosql/security/how-to-grant-data-plane-role-based-access)
 
 ---
 

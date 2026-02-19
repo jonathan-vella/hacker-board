@@ -31,14 +31,16 @@
 
 ## Deployed Infrastructure Reference
 
-| Resource        | Name                                              | Type         |
-| --------------- | ------------------------------------------------- | ------------ |
-| Resource Group  | `rg-hacker-board-prod`                            | —            |
-| Static Web App  | `stapp-hacker-board-prod`                         | Standard     |
-| Storage Account | `stteamleadpromn2ksi`                             | Standard_LRS |
-| App Insights    | `appi-hacker-board-prod`                          | —            |
-| Log Analytics   | `log-hacker-board-prod`                           | PerGB2018    |
-| SWA URL         | `https://<your-swa-hostname>.azurestaticapps.net` | —            |
+| Resource       | Name                                              | Type             |
+| -------------- | ------------------------------------------------- | ---------------- |
+| Resource Group | `rg-hacker-board-prod`                            | — (9 tags req’d) |
+| Static Web App | `swa-hacker-board-prod`                           | Standard         |
+| Cosmos DB      | `cosmos-hacker-board-prod`                        | NoSQL Serverless |
+| Database       | `hackerboard`                                     | 6 containers     |
+| App Insights   | `appi-hacker-board-prod`                          | —                |
+| Log Analytics  | `law-hacker-board-prod`                           | PerGB2018        |
+| SWA URL        | `https://<your-swa-hostname>.azurestaticapps.net` | —                |
+| Entra ID App   | `app-hacker-board-prod`                           | App Registration |
 
 ---
 

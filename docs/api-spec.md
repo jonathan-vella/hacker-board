@@ -5,7 +5,7 @@
 ![Type](https://img.shields.io/badge/Type-API%20Spec-blue)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 ![Runtime](https://img.shields.io/badge/Runtime-Node.js%2020-green)
-![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth-orange)
+![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth%20%2B%20Entra%20ID-orange)
 
 > All endpoints are managed Azure Functions behind the SWA reverse proxy.
 > Base URL: `https://<your-swa-hostname>.azurestaticapps.net/api`
@@ -15,22 +15,35 @@
 
 ## Authentication Context
 
-Every API request includes the SWA authentication context automatically. Access the caller's identity in Node.js:
+Every API request includes the SWA authentication context automatically. SWA supports two identity providers:
+
+- **GitHub OAuth** — for team members (identity provider: `github`)
+- **Microsoft Entra ID** — for the first admin/deployer (identity provider: `aad`)
+
+Access the caller's identity in Node.js:
 
 ```javascript
 function getClientPrincipal(req) {
-  const header = req.headers["x-ms-client-principal"];
-  if (!header) return null;
-  const encoded = Buffer.from(header, "base64");
-  return JSON.parse(encoded.toString("ascii"));
+  const header = req.headers.get("x-ms-client-principal");
+  if (!header) return undefined;
+  const decoded = Buffer.from(header, "base64").toString("utf-8");
+  return JSON.parse(decoded);
 }
 
-// Returns:
+// GitHub user returns:
 // {
 //   "identityProvider": "github",
 //   "userId": "<unique-id>",
 //   "userDetails": "<github-username>",
 //   "userRoles": ["authenticated", "member"]
+// }
+//
+// Entra ID user returns:
+// {
+//   "identityProvider": "aad",
+//   "userId": "<entra-object-id>",
+//   "userDetails": "<email>",
+//   "userRoles": ["authenticated", "admin"]
 // }
 ```
 
