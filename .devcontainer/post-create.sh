@@ -8,13 +8,13 @@ npm install
 cd api && npm install && cd ..
 
 # Install Python packages required by the azure-diagrams skill
-pip install --quiet diagrams matplotlib pillow
+pip3 install --quiet diagrams matplotlib pillow
 
 # Create Azurite data directory
 mkdir -p .azurite
 
 # Seed local API settings if they don't exist
-if [ ! -f api/local.settings.json ]; then
+if [[ ! -f api/local.settings.json ]]; then
   cat > api/local.settings.json <<'EOF'
 {
   "IsEncrypted": false,
