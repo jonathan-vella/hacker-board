@@ -7,7 +7,7 @@
 ![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth-orange)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-> Live, interactive hackathon scoring dashboard — Azure Static Web Apps + managed Functions + Table Storage.
+> Live, interactive hackathon scoring dashboard — Azure Static Web Apps + managed Functions + Azure SQL Database.
 
 ## Quick Links
 
@@ -23,6 +23,8 @@
 | 📊   | [Backlog](backlog.md)                         | Execution plan, task tracking, decision log                |
 | 👤   | [Admin Procedures](admin-procedures.md)       | Role invitations, data management                          |
 | 🤖   | [Agents & Skills](agents-and-skills.md)       | AI agent inventory, orchestration workflow, prompt guide   |
+| 🧪   | [E2E Validation](e2e-validation.md)           | Deployment validation test protocol                        |
+| 📜   | [Session History](session-history.md)         | Archived Copilot session handoff notes                     |
 
 ## Architecture Overview
 
@@ -31,25 +33,25 @@ graph TB
     Browser[Browser SPA] --> SWA[Azure Static Web Apps]
     SWA --> Auth[GitHub OAuth]
     SWA --> Functions[Managed Azure Functions]
-    Functions --> Tables[Azure Table Storage]
+    Functions --> SQL[Azure SQL Database]
     GH[GitHub Actions] --> SWA
 ```
 
 ## Feature Inventory
 
-| Feature                            | Status       | Primary Components                                                           |
-| ---------------------------------- | ------------ | ---------------------------------------------------------------------------- |
-| F1 — Team score submission form    | ✅ Delivered | `src/components/ScoreSubmission.js`, `api/src/functions/upload.js`           |
-| F2 — Live leaderboard              | ✅ Delivered | `src/components/Leaderboard.js`, `api/src/functions/scores.js`               |
-| F3 — Grading display               | ✅ Delivered | `src/components/Leaderboard.js`, `api/src/functions/scores.js`               |
-| F4 — Award categories              | ✅ Delivered | `src/components/Awards.js`, `api/src/functions/awards.js`                    |
-| F5 — Authentication (GitHub OAuth) | ✅ Delivered | `staticwebapp.config.json`, `api/shared/auth.js`                             |
-| F6 — JSON score upload             | ✅ Delivered | `src/components/ScoreSubmission.js`, `api/src/functions/upload.js`           |
-| F7 — Attendee registration         | ✅ Delivered | `src/components/Registration.js`, `api/src/functions/attendees.js`           |
-| F8 — Team roster management        | ✅ Delivered | `src/components/TeamRoster.js`, `api/src/functions/teams.js`                 |
-| F9 — Bulk import                   | ✅ Delivered | `src/components/AttendeeBulkEntry.js`, `api/src/functions/attendees-bulk.js` |
-| F10 — Team assignment              | ✅ Delivered | `src/components/TeamAssignment.js`, `api/src/functions/teams-assign.js`      |
-| F11 — Rubric import + grading      | ✅ Delivered | `src/components/RubricManager.js`, `api/src/functions/rubrics.js`            |
+| Feature                            | Status       | Primary Components                                                      |
+| ---------------------------------- | ------------ | ----------------------------------------------------------------------- |
+| F1 — Team score submission form    | ✅ Delivered | `src/components/ScoreSubmission.js`, `api/src/functions/upload.js`      |
+| F2 — Live leaderboard              | ✅ Delivered | `src/components/Leaderboard.js`, `api/src/functions/scores.js`          |
+| F3 — Grading display               | ✅ Delivered | `src/components/Leaderboard.js`, `api/src/functions/scores.js`          |
+| F4 — Award categories              | ✅ Delivered | `src/components/Awards.js`, `api/src/functions/awards.js`               |
+| F5 — Authentication (GitHub OAuth) | ✅ Delivered | `staticwebapp.config.json`, `api/shared/auth.js`                        |
+| F6 — JSON score upload             | ✅ Delivered | `src/components/ScoreSubmission.js`, `api/src/functions/upload.js`      |
+| F7 — Attendee registration         | ✅ Delivered | `src/components/Registration.js`, `api/src/functions/attendees.js`      |
+| F8 — Team roster management        | ✅ Delivered | `src/components/TeamRoster.js`, `api/src/functions/teams.js`            |
+| F9 — Self-service join             | ✅ Delivered | `src/components/Registration.js`, `api/src/functions/attendees.js`      |
+| F10 — Team assignment              | ✅ Delivered | `src/components/TeamAssignment.js`, `api/src/functions/teams-assign.js` |
+| F11 — Rubric import + grading      | ✅ Delivered | `src/components/RubricManager.js`, `api/src/functions/rubrics.js`       |
 
 ## Tech Stack
 
@@ -57,7 +59,7 @@ graph TB
 | -------- | ------------------------------- |
 | Frontend | Vanilla JS SPA (ES2022+)        |
 | API      | Azure Functions v4, Node.js 20+ |
-| Storage  | Azure Table Storage             |
+| Storage  | Azure SQL Database (Basic DTU)  |
 | Auth     | SWA built-in GitHub OAuth       |
 | IaC      | Bicep (Azure Verified Modules)  |
 | CI/CD    | GitHub Actions                  |

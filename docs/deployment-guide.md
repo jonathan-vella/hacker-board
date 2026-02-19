@@ -15,25 +15,23 @@ graph TD
     A[1. Prerequisites] --> B[2. Provision Infrastructure]
     B --> C[3. Deploy SQL Schema]
     C --> D[4. Configure OIDC Auth]
-    D --> E[5. Verify Readiness]
-    E --> F[6. First Deployment]
-    F --> G[7. Assign User Roles]
-    G --> H[8. Smoke Test]
-    H --> I{9. Optional}
-    I --> J[Custom Domain]
-    I --> K[Local Dev Setup]
+    D --> E[5. First Deployment]
+    E --> F[6. Assign User Roles]
+    F --> G[7. Smoke Test]
+    G --> H{Optional}
+    H --> I[Custom Domain]
+    H --> J[Local Dev Setup]
 
     style A fill:#f0f0f0,stroke:#333
     style B fill:#0078D4,stroke:#333,color:#fff
     style C fill:#0078D4,stroke:#333,color:#fff
     style D fill:#e67e22,stroke:#333,color:#fff
-    style E fill:#e67e22,stroke:#333,color:#fff
+    style E fill:#27ae60,stroke:#333,color:#fff
     style F fill:#27ae60,stroke:#333,color:#fff
     style G fill:#27ae60,stroke:#333,color:#fff
-    style H fill:#27ae60,stroke:#333,color:#fff
-    style I fill:#f0f0f0,stroke:#333
+    style H fill:#f0f0f0,stroke:#333
+    style I fill:#95a5a6,stroke:#333,color:#fff
     style J fill:#95a5a6,stroke:#333,color:#fff
-    style K fill:#95a5a6,stroke:#333,color:#fff
 ```
 
 ## Prerequisites
@@ -198,14 +196,18 @@ GITHUB_TOKEN="ghp_..." \
 The script verifies the change and exits with an error if it fails.
 Run `./scripts/configure-swa-auth.sh --help` for all options.
 
-### Option B — Azure Portal
+<details>
+<summary>Option B — Azure Portal</summary>
 
 1. Navigate to your Static Web App in the Azure Portal
 2. Go to **Settings** → **Configuration** → **Deployment configuration**
 3. Set **Deployment authorization policy** to **GitHub**
 4. Save
 
-### Option C — Direct CLI
+</details>
+
+<details>
+<summary>Option C — Direct CLI</summary>
 
 ```bash
 SWA_NAME="swa-hacker-board-prod"
@@ -225,9 +227,9 @@ az rest --method PATCH \
   }"
 ```
 
----
+</details>
 
-## Step 4 — Verify Deployment Readiness
+### Verify
 
 With OIDC auth the workflow authenticates using a GitHub-minted identity token
 — no long-lived deployment token secret is required. Verify the setup:
@@ -254,7 +256,7 @@ Expected output: `policy = GitHub`, `provider = GitHub`.
 
 ---
 
-## Step 5 — First Deployment
+## Step 4 — First Deployment
 
 Push to `main` or trigger the workflow manually:
 
@@ -301,7 +303,7 @@ gh run watch --repo jonathan-vella/hacker-board
 
 ---
 
-## Step 6 — Assign User Roles
+## Step 5 — Assign User Roles
 
 HackerBoard uses two custom roles enforced by `staticwebapp.config.json`:
 
@@ -353,7 +355,7 @@ See [Admin Procedures](admin-procedures.md) for the full admin runbook.
 
 ---
 
-## Step 7 — Smoke Test
+## Step 6 — Smoke Test
 
 ### Automated (CI/CD)
 
@@ -444,8 +446,8 @@ npm run test:all
 
 | Symptom                                   | Cause                                                                             | Fix                                                                        |
 | ----------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Deploy action fails with "unauthorized"   | Deployment auth policy not set to GitHub                                          | Run `scripts/configure-swa-auth.sh` (Step 4)                               |
-| Deploy action fails with OIDC error       | Deployment auth policy still on DeploymentToken                                   | Run `scripts/configure-swa-auth.sh` (Step 4)                               |
+| Deploy action fails with "unauthorized"   | Deployment auth policy not set to GitHub                                          | Run `scripts/configure-swa-auth.sh` (Step 3)                               |
+| Deploy action fails with OIDC error       | Deployment auth policy still on DeploymentToken                                   | Run `scripts/configure-swa-auth.sh` (Step 3)                               |
 | `/api/*` returns 404                      | API not deployed or `api_location` mismatch                                       | Verify `api_location: "api"` in workflow                                   |
 | Health check returns 500                  | SQL schema not deployed or SWA identity lacks SQL access                          | Run `node scripts/deploy-schema.js`; grant `db_datareader`/`db_datawriter` |
 | Deploying user cannot access admin routes | Deploying user's GitHub email does not match the `adminEmail` used at deploy time | Re-run `deploy.ps1` with the correct `-AdminEmail` override                |
@@ -464,7 +466,6 @@ npm run test:all
 | SQL Database   | `hacker-board-db` (Basic DTU)                                  |
 | Region         | `westeurope`                                                   |
 | Workflow File  | `.github/workflows/deploy-swa.yml`                             |
-| Infra Workflow | `.github/workflows/deploy-infra.yml`                           |
 | Deploy Auth    | OIDC (`deploymentAuthPolicy: GitHub`)                          |
 | Auth Provider  | GitHub OAuth (SWA built-in)                                    |
 | Schema Script  | `scripts/deploy-schema.js`                                     |
@@ -479,115 +480,13 @@ npm run test:all
 - [Admin Procedures](admin-procedures.md) — Operational runbook
 - [App Design](app-design.md) — Architecture and components
 - [Backlog](backlog.md) — Task tracking and decision log
+- [E2E Deployment Validation](e2e-validation.md) — Full test protocol
 
 ---
 
-## E2E Deployment Validation — Test Protocol
+## E2E Deployment Validation
 
-> This section defines the shared test protocol for validating both supported deployment paths: **Path A** (`deploy.ps1`) and **Path B** (Deploy to Azure button). Each path runs in its own disposable resource group.
-
-### Disposable Resource Groups
-
-| Path | Resource Group Pattern  | Deployment Method                     |
-| ---- | ----------------------- | ------------------------------------- |
-| A    | `hb-e2e-ps-<yyyyMMdd>`  | `infra/deploy.ps1`                    |
-| B    | `hb-e2e-btn-<yyyyMMdd>` | ARM button → `infra/azuredeploy.json` |
-
-### Required Evidence Per Run
-
-Each path run MUST capture:
-
-| Artifact                | Description                                                           |
-| ----------------------- | --------------------------------------------------------------------- |
-| Deployment ID/name      | Azure deployment name (e.g., `hacker-board-20260218-143022`)          |
-| Provisioning outputs    | `swaHostname`, `swaName`, `sqlServerFqdn`, `sqlDatabaseName`          |
-| Schema migration result | Exit code + output of `node scripts/deploy-schema.js`                 |
-| Health check response   | `curl -fsS https://<swaHostname>/api/health` — must return `200`      |
-| Teams endpoint response | `curl -i https://<swaHostname>/api/teams` — must return `200`, no 5xx |
-| Role access validation  | Unauthenticated request to admin route → must return `401`/`403`      |
-| Teardown confirmation   | `az group delete --name <rg> --yes --no-wait` + confirmation          |
-
-### Preflight Gate (Both Paths)
-
-Before executing any path, verify:
-
-- [ ] `infra/main.bicep` compiles cleanly: `az bicep build --file infra/main.bicep`
-- [ ] `infra/azuredeploy.json` is in sync with `main.bicep` (rebuild if changed)
-- [ ] Required parameters are available: `costCenter`, `technicalContact`
-- [ ] Azure CLI is authenticated with Contributor access to target subscription (`az login`)
-- [ ] The signed-in identity is the intended app admin and SQL Entra administrator
-
-### SQL Private Endpoint — Test Environment Constraint
-
-When `enablePrivateEndpoint=true`, schema migration requires connectivity inside the VNet. For E2E test environments:
-
-- Set `enablePrivateEndpoint=false` in both disposable test RGs
-- Use `--parameters enablePrivateEndpoint=false` in Path A's `deploy.ps1` invocation
-- This is expected behavior; private endpoints are for production only
-
-### Path Execution Commands
-
-**Path A — deploy.ps1**
-
-```powershell
-$date = Get-Date -Format 'yyyyMMdd'
-./infra/deploy.ps1 `
-  -ResourceGroupName "hb-e2e-ps-$date" `
-  -CostCenter "microhack" `
-  -TechnicalContact "you@contoso.com" `
-  -Environment dev
-```
-
-> The signed-in `az login` identity is automatically the app admin and SQL Entra administrator.
-> Schema migration runs automatically unless `-SkipSchema` is passed.
-
-**Path B — Deploy Button**
-
-1. Navigate to `README.md` and click **Deploy to Azure**
-2. Fill parameters: `costCenter`, `technicalContact`, `enablePrivateEndpoint=false`; set `adminEmail` and `sqlAdminObjectId` to the deploying user's email and Entra OID
-3. After ARM deployment completes, collect outputs from Azure Portal
-4. Run `node scripts/deploy-schema.js` manually (set `SQL_SERVER_FQDN` and `SQL_DATABASE_NAME` from portal outputs)
-
-### Runtime Smoke Checks (Both Paths)
-
-```bash
-export APP_URL=https://<swaHostname>
-
-# Health
-curl -fsS $APP_URL/api/health
-
-# Teams (unauthenticated — list is public)
-curl -i $APP_URL/api/teams
-
-# Admin route access control (expect 401)
-curl -i $APP_URL/api/scores -X POST -H "Content-Type: application/json" -d '{}'
-```
-
-### Test Matrix
-
-| Check                                     | Path A (PS) | Path B (Button) |
-| ----------------------------------------- | ----------- | --------------- |
-| Provisioning success                      |             |                 |
-| All outputs present                       |             |                 |
-| Schema migration success                  |             |                 |
-| App deployment success                    |             |                 |
-| `/api/health` → 200                       |             |                 |
-| `/api/teams` → 200, no 5xx                |             |                 |
-| Deploying user has `admin` access         |             |                 |
-| Deploying user is SQL Entra administrator |             |                 |
-| Admin route → 401 unauthenticated         |             |                 |
-| `admin`/`member` role behaviour           |             |                 |
-| Teardown complete                         |             |                 |
-
-### Teardown
-
-```bash
-# After run — preserve logs/artifacts before deletion if the run failed
-az group delete --name <rg-name> --yes --no-wait
-
-# Only if data was seeded into a shared environment
-node scripts/cleanup-app-data.js
-```
+For the full E2E test protocol, disposable RG patterns, evidence checklists, and runtime smoke checks, see [E2E Deployment Validation](e2e-validation.md).
 
 ---
 

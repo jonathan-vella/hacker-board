@@ -34,10 +34,10 @@
 | **Current Phase**       | Phase 16 — CI/CD + Post-Deploy Verification (in progress) |
 | **Last Updated**        | 2026-02-19                                                |
 | **Days Remaining**      | 5                                                         |
-| **Tasks Done**          | 218 / 218 (P1–P14) + Phase 15 partial                     |
+| **Tasks Done**          | 218 / 237 (P1–P14 complete; P15 partial; P16 pending)     |
 | **API Endpoints**       | 10 files / 16 routes                                      |
 | **Frontend Components** | 12 components + 5 services                                |
-| **Tests Passing**       | 69 (API unit) + 61 (frontend DOM)                         |
+| **Tests Passing**       | 69 (API unit) + 61 (frontend DOM) = 130                   |
 | **Open Problems**       | 0                                                         |
 | **Open Decisions**      | 0                                                         |
 
@@ -60,19 +60,26 @@ graph LR
     P8 --> P10[Phase 10: Polish]
     P9 --> P10
     P10 --> P11[Phase 11: Ops Readiness]
+    P11 --> P13[Phase 13: Anonymization]
+    P13 --> P14[Phase 14: SQL Migration]
+    P14 --> P15[Phase 15: E2E Validation]
+    P15 --> P16[Phase 16: CI/CD + Deploy]
+    P11 -.-> P12[Phase 12: Future Enhancements]
 ```
 
-**Critical path**: P1 → P2 → P3 → P5 → P6 → P7 → P10 → P11
+**Critical path**: P1 → P2 → P3 → P5 → P6 → P7 → P10 → P11 → P13 → P14 → P15 → P16
 
 **Parallel tracks** (after P3):
 
 - Track A: P4 (Attendee API) — can run alongside P5
 - Track B: P5 (Rubric API) → P6 (Shell) → P7 (Workflows)
 - P8 and P9 can start once their dependencies complete
+- P12 (Future Enhancements) is optional — not on the critical path
 
 ---
 
-## 7-Day Schedule
+<details>
+<summary>Original 7-Day Sprint Plan (completed)</summary>
 
 | Day | Focus               | Phases    | Target                                                       |
 | --- | ------------------- | --------- | ------------------------------------------------------------ |
@@ -83,6 +90,8 @@ graph LR
 | 5   | Core UI Workflows   | P7        | Score form, upload, admin review, awards, registration       |
 | 6   | Management UI       | P8 + P9   | Team roster, attendee mgmt, team assign, rubric UI           |
 | 7   | Polish + Ship       | P10 + P11 | Integration test, a11y, search, flags, prod deploy           |
+
+</details>
 
 ---
 
@@ -537,106 +546,6 @@ monitoring shows data, feature flags toggle correctly.
 
 ---
 
-## Phase 12 — Future Enhancements 🟢
-
-> Nice-to-have items for post-sprint iterations.
-> Once 12.1 (Agent Orchestration) is complete, all subsequent tasks should be
-> executed through the Conductor workflow with the assigned agent.
-
-### 12.1 — Agent Orchestration & Handoffs 🔴
-
-> **Priority**: Do this FIRST — all subsequent work uses the orchestrated workflow.
-
-- [x] Introduce a HackerBoard Conductor (orchestrator) agent — `Task Planner`
-  - Master orchestrator that coordinates all existing agents with defined handoff points
-  - Mandatory human approval gates at key decision points
-  - Ref: [Azure Agentic InfraOps Conductor pattern](https://github.com/jonathan-vella/azure-agentic-infraops)
-- [x] Update existing agents to support orchestrated handoffs — `Implementation Planner`
-  - Define input/output contracts for each agent (what it receives, what it produces)
-  - Add `agents` list and model fallback frontmatter to agent definitions
-  - Standardize agent output format for downstream consumption
-- [x] Update custom instructions (`.github/instructions/`) for orchestration awareness — `Implementation Planner`
-  - Add orchestration-aware guidance (when to defer to conductor, how to report status)
-  - Ensure instructions reference handoff checkpoints
-- [x] Update skills (`.github/skills/`) for conductor integration — `Implementation Planner`
-  - Skills should be invokable by both agents and conductor
-  - Add skill discovery metadata (trigger keywords, categories)
-- [x] Create agent/skill documentation in `docs/` — `docs-writer`
-  - Agent inventory table (name, role, step, description)
-  - Workflow diagram (Mermaid) showing orchestration flow and handoff points
-  - Prompt guide with examples for each agent and skill
-- [x] Modernize agents to VS Code custom agents & subagents spec (Feb 2026)
-  - Ref: [Custom Agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents)
-  - Ref: [Subagents](https://code.visualstudio.com/docs/copilot/agents/subagents)
-  - Add `handoffs` frontmatter to all agents for guided workflow transitions
-  - Update tool names to documented format (`read`, `search`, `edit`, `fetch`, `agent`, `problems`)
-  - Add `argument-hint` to all agents for dropdown guidance
-  - Fix Conductor `agents` array to use `name` property values (not kebab-case filenames)
-  - Add `agent` tool to Conductor for subagent invocation
-  - Add subagent delegation section to Conductor with parallel execution guidance
-  - Update `docs/agents-and-skills.md` with handoff chain diagram and subagent docs
-
-#### Current Agent & Skill Inventory
-
-| Type  | Name                   | Role                                          |
-| ----- | ---------------------- | --------------------------------------------- |
-| Agent | Task Planner           | Research, plan tasks, dependency analysis     |
-| Agent | Implementation Planner | Structured implementation plans, refactoring  |
-| Agent | Azure Architect        | WAF review, Azure architecture decisions      |
-| Agent | Bicep AVM Expert       | Bicep IaC with Azure Verified Modules         |
-| Agent | Security Reviewer      | OWASP Top 10, Zero Trust code review          |
-| Agent | UX Designer            | JTBD, user journeys, accessibility review     |
-| Skill | docs-writer            | Documentation maintenance, staleness checks   |
-| Skill | git-commit             | Conventional commits, diff-aware messages     |
-| Skill | github-operations      | Issues, PRs, Actions, releases via MCP/gh CLI |
-
-### 12.2 — Documentation Overhaul
-
-- [x] Create/update `.github/instructions/docs.instructions.md` with prettier documentation standards — `Implementation Planner`
-  - Consistent badge usage (shields.io) for status, version, license
-  - Quick Links table pattern (icon | link | description)
-  - Collapsible sections with `<details>` for long content
-  - Mermaid diagrams for architecture and workflows
-  - Structured tables for feature/component inventories
-  - Ref: [Azure Agentic InfraOps docs README](https://github.com/jonathan-vella/azure-agentic-infraops/blob/main/docs/README.md)
-- [x] Redesign `docs/README.md` as a polished documentation hub — `docs-writer`
-  - Hero section with badges (build status, license, Azure SWA, Node version)
-  - Quick Links table to all docs
-  - Architecture overview with Mermaid diagram
-  - Feature inventory table
-  - Project structure tree
-  - Getting Help section (issues, discussions)
-- [x] Prettify existing docs (`api-spec.md`, `app-design.md`, `app-prd.md`, etc.) — `docs-writer`
-  - Add consistent headers, badges, and navigation links
-  - Use tables instead of bullet lists where appropriate
-  - Add "Back to docs" navigation links between pages
-- [x] Second-pass documentation refinements (Feb 2026)
-  - Add `agents-and-skills.md`, `openapi.yaml`, and `swagger-ui.html` to docs/README.md Quick Links
-  - Add `admin-procedures.md`, `agents-and-skills.md`, and OpenAPI docs to root README.md docs table
-  - Rewrite `app-scaffold.md` folder structure to match actual v4 functions layout
-  - Update `app-scaffold.md` code samples from CJS to ESM
-  - Remove outdated v3 `function.json` binding example; add v4 `app.http()` pattern
-  - Remove broken "Starter README" section from `app-scaffold.md`
-  - Update `app-design.md` component model table to match actual components
-  - Add Mermaid architecture diagram and scoring workflow diagram to `app-design.md`
-  - Fix broken `scoring-rubric.md` link in `app-prd.md` references
-  - Verify all internal doc links across all markdown files
-
-### 12.3 — Feature Enhancements
-
-- [ ] Real-time updates via WebSocket or Server-Sent Events — `Azure Architect` → `Implementation Planner`
-- [ ] Export leaderboard to CSV/PDF — `Implementation Planner`
-- [ ] Rubric template gallery (share between events) — `UX Designer` → `Implementation Planner`
-- [ ] Rubric versioning with diff view — `Implementation Planner`
-- [ ] Historical score comparison across events — `UX Designer` → `Implementation Planner`
-- [ ] Multi-language / i18n support — `Implementation Planner`
-- [ ] Custom domain with SSL certificate — `Bicep AVM Expert`
-- [x] OpenAPI / Swagger documentation — `Implementation Planner` → `docs-writer`
-- [ ] ManualOverride component (admin score correction UI) — `UX Designer` → `Security Reviewer`
-- [ ] Admin drag-and-drop attendee reassignment between teams — `UX Designer` → `Implementation Planner`
-
----
-
 ## Phase 13 — Attendee Anonymization 🔴
 
 > Fully anonymize all attendee identity: no name, no surname, no GitHub links in any UI or API response. Aliases are `Team01-Hacker01` style.
@@ -773,6 +682,109 @@ monitoring shows data, feature flags toggle correctly.
 
 ---
 
+## Phase 12 — Future Enhancements 🟢
+
+> Nice-to-have items for post-sprint iterations. Phase 12 is numbered out of
+> sequence — it was planned as a future-work bucket before Phases 13–16 were
+> added as critical-path items.
+>
+> Once 12.1 (Agent Orchestration) is complete, all subsequent tasks should be
+> executed through the Conductor workflow with the assigned agent.
+
+### 12.1 — Agent Orchestration & Handoffs 🔴
+
+> **Priority**: Do this FIRST — all subsequent work uses the orchestrated workflow.
+
+- [x] Introduce a HackerBoard Conductor (orchestrator) agent — `Task Planner`
+  - Master orchestrator that coordinates all existing agents with defined handoff points
+  - Mandatory human approval gates at key decision points
+  - Ref: [Azure Agentic InfraOps Conductor pattern](https://github.com/jonathan-vella/azure-agentic-infraops)
+- [x] Update existing agents to support orchestrated handoffs — `Implementation Planner`
+  - Define input/output contracts for each agent (what it receives, what it produces)
+  - Add `agents` list and model fallback frontmatter to agent definitions
+  - Standardize agent output format for downstream consumption
+- [x] Update custom instructions (`.github/instructions/`) for orchestration awareness — `Implementation Planner`
+  - Add orchestration-aware guidance (when to defer to conductor, how to report status)
+  - Ensure instructions reference handoff checkpoints
+- [x] Update skills (`.github/skills/`) for conductor integration — `Implementation Planner`
+  - Skills should be invokable by both agents and conductor
+  - Add skill discovery metadata (trigger keywords, categories)
+- [x] Create agent/skill documentation in `docs/` — `docs-writer`
+  - Agent inventory table (name, role, step, description)
+  - Workflow diagram (Mermaid) showing orchestration flow and handoff points
+  - Prompt guide with examples for each agent and skill
+- [x] Modernize agents to VS Code custom agents & subagents spec (Feb 2026)
+  - Ref: [Custom Agents](https://code.visualstudio.com/docs/copilot/customization/custom-agents)
+  - Ref: [Subagents](https://code.visualstudio.com/docs/copilot/agents/subagents)
+  - Add `handoffs` frontmatter to all agents for guided workflow transitions
+  - Update tool names to documented format (`read`, `search`, `edit`, `fetch`, `agent`, `problems`)
+  - Add `argument-hint` to all agents for dropdown guidance
+  - Fix Conductor `agents` array to use `name` property values (not kebab-case filenames)
+  - Add `agent` tool to Conductor for subagent invocation
+  - Add subagent delegation section to Conductor with parallel execution guidance
+  - Update `docs/agents-and-skills.md` with handoff chain diagram and subagent docs
+
+#### Current Agent & Skill Inventory
+
+| Type  | Name                   | Role                                          |
+| ----- | ---------------------- | --------------------------------------------- |
+| Agent | Task Planner           | Research, plan tasks, dependency analysis     |
+| Agent | Implementation Planner | Structured implementation plans, refactoring  |
+| Agent | Azure Architect        | WAF review, Azure architecture decisions      |
+| Agent | Bicep AVM Expert       | Bicep IaC with Azure Verified Modules         |
+| Agent | Security Reviewer      | OWASP Top 10, Zero Trust code review          |
+| Agent | UX Designer            | JTBD, user journeys, accessibility review     |
+| Skill | docs-writer            | Documentation maintenance, staleness checks   |
+| Skill | git-commit             | Conventional commits, diff-aware messages     |
+| Skill | github-operations      | Issues, PRs, Actions, releases via MCP/gh CLI |
+
+### 12.2 — Documentation Overhaul
+
+- [x] Create/update `.github/instructions/docs.instructions.md` with prettier documentation standards — `Implementation Planner`
+  - Consistent badge usage (shields.io) for status, version, license
+  - Quick Links table pattern (icon | link | description)
+  - Collapsible sections with `<details>` for long content
+  - Mermaid diagrams for architecture and workflows
+  - Structured tables for feature/component inventories
+  - Ref: [Azure Agentic InfraOps docs README](https://github.com/jonathan-vella/azure-agentic-infraops/blob/main/docs/README.md)
+- [x] Redesign `docs/README.md` as a polished documentation hub — `docs-writer`
+  - Hero section with badges (build status, license, Azure SWA, Node version)
+  - Quick Links table to all docs
+  - Architecture overview with Mermaid diagram
+  - Feature inventory table
+  - Project structure tree
+  - Getting Help section (issues, discussions)
+- [x] Prettify existing docs (`api-spec.md`, `app-design.md`, `app-prd.md`, etc.) — `docs-writer`
+  - Add consistent headers, badges, and navigation links
+  - Use tables instead of bullet lists where appropriate
+  - Add "Back to docs" navigation links between pages
+- [x] Second-pass documentation refinements (Feb 2026)
+  - Add `agents-and-skills.md`, `openapi.yaml`, and `swagger-ui.html` to docs/README.md Quick Links
+  - Add `admin-procedures.md`, `agents-and-skills.md`, and OpenAPI docs to root README.md docs table
+  - Rewrite `app-scaffold.md` folder structure to match actual v4 functions layout
+  - Update `app-scaffold.md` code samples from CJS to ESM
+  - Remove outdated v3 `function.json` binding example; add v4 `app.http()` pattern
+  - Remove broken "Starter README" section from `app-scaffold.md`
+  - Update `app-design.md` component model table to match actual components
+  - Add Mermaid architecture diagram and scoring workflow diagram to `app-design.md`
+  - Fix broken `scoring-rubric.md` link in `app-prd.md` references
+  - Verify all internal doc links across all markdown files
+
+### 12.3 — Feature Enhancements
+
+- [ ] Real-time updates via WebSocket or Server-Sent Events — `Azure Architect` → `Implementation Planner`
+- [ ] Export leaderboard to CSV/PDF — `Implementation Planner`
+- [ ] Rubric template gallery (share between events) — `UX Designer` → `Implementation Planner`
+- [ ] Rubric versioning with diff view — `Implementation Planner`
+- [ ] Historical score comparison across events — `UX Designer` → `Implementation Planner`
+- [ ] Multi-language / i18n support — `Implementation Planner`
+- [ ] Custom domain with SSL certificate — `Bicep AVM Expert`
+- [x] OpenAPI / Swagger documentation — `Implementation Planner` → `docs-writer`
+- [ ] ManualOverride component (admin score correction UI) — `UX Designer` → `Security Reviewer`
+- [ ] Admin drag-and-drop attendee reassignment between teams — `UX Designer` → `Implementation Planner`
+
+---
+
 ## Decision Log
 
 > Record architectural and design decisions here.
@@ -799,6 +811,7 @@ monitoring shows data, feature flags toggle correctly.
 | D17 | 2026-02-18 | Directory Readers assigned via `az rest` in `deploy.ps1`, not Bicep                         | Bicep `extension microsoftGraph` (built-in) is retired (BCP407); dynamic OCI ref (`br:mcr.microsoft.com/bicep/extensions/microsoftgraph/v1.0:1.0.0`) compiled but `roleAssignments` type not found (BCP029); fell back to idempotent `az rest POST /roleManagement/directory/roleAssignments` after deploy | **Approved**         |
 | D18 | 2026-02-19 | Deploying Entra user is default app admin and SQL Entra administrator                       | Removes post-deploy manual invite step; the logged-in `az login` identity is used as both `adminEmail` (SWA app admin) and the SQL Entra administrator OID — no separate invite flow needed                                                                                                                | **Approved**         |
 | D19 | 2026-02-19 | Only two infrastructure deployment paths supported: `deploy.ps1` and Deploy to Azure button | GitHub Actions is a CI/CD path for app code only, not an infrastructure deployment path; two well-tested paths are sufficient for operator use                                                                                                                                                             | **Approved**         |
+| D20 | 2026-02-19 | Deleted `deploy-infra.yml` — GHA is not a supported infra deployment path                   | Per D19; `.github/workflows/deploy-infra.yml` removed; only `deploy.ps1` and Deploy to Azure button are supported; GHA CI/CD pipeline (`deploy-swa.yml`) remains for app code deployment                                                                                                                   | **Approved**         |
 
 <!-- TEMPLATE for new decisions:
 | D{N} | YYYY-MM-DD | {decision} | {rationale} | **{status}** |
@@ -832,15 +845,15 @@ monitoring shows data, feature flags toggle correctly.
 
 ## Risk Register
 
-| ID  | Risk                                             | Likelihood | Impact | Mitigation                                                                          |
-| --- | ------------------------------------------------ | ---------- | ------ | ----------------------------------------------------------------------------------- |
-| R1  | 7-day timeline too tight for full F1-F11         | Medium     | High   | Scope cut: defer P10.4 (search/notifications) and P11.4 (cleanup scripts) if behind |
-| R2  | Rubric parser edge cases cause scoring bugs      | Medium     | High   | Extensive test cases for malformed markdown; validate `baseTotal` matches sum       |
-| R3  | SWA managed Functions cold start affects UX      | Low        | Medium | Lightweight functions; keep-alive ping from frontend                                |
-| R4  | CommonJS → ESM migration breaks shared helpers   | Low        | Medium | Phase 1 migration with immediate `swa start` validation                             |
-| R5  | Table Storage query limitations for leaderboard  | Low        | Medium | Denormalize scores for fast reads; avoid cross-table joins                          |
-| R6  | Auth flow differences between local dev and prod | Medium     | Medium | Test auth helpers with mocked headers; deploy early to catch issues                 |
-| R7  | Incomplete smoke test coverage at deploy time    | Medium     | High   | Added rubric + flags endpoints to P11.3 checklist and handoff Phase 6.2             |
+| ID  | Risk                                                | Likelihood | Impact | Mitigation                                                                                                         |
+| --- | --------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------ |
+| R1  | 7-day timeline too tight for full F1-F11            | Medium     | High   | Scope cut: defer P10.4 (search/notifications) and P11.4 (cleanup scripts) if behind                                |
+| R2  | Rubric parser edge cases cause scoring bugs         | Medium     | High   | Extensive test cases for malformed markdown; validate `baseTotal` matches sum                                      |
+| R3  | SWA managed Functions cold start affects UX         | Low        | Medium | Lightweight functions; keep-alive ping from frontend                                                               |
+| R4  | CommonJS → ESM migration breaks shared helpers      | Low        | Medium | Phase 1 migration with immediate `swa start` validation                                                            |
+| R5  | ~~Table Storage query limitations for leaderboard~~ | Low        | Medium | ~~Denormalize scores for fast reads; avoid cross-table joins~~ — Obsolete: superseded by P14 (Azure SQL migration) |
+| R6  | Auth flow differences between local dev and prod    | Medium     | Medium | Test auth helpers with mocked headers; deploy early to catch issues                                                |
+| R7  | Incomplete smoke test coverage at deploy time       | Medium     | High   | Added rubric + flags endpoints to P11.3 checklist and handoff Phase 6.2                                            |
 
 ---
 
@@ -866,7 +879,7 @@ monitoring shows data, feature flags toggle correctly.
 | P6    | Responsive at sm/md/lg/xl breakpoints                        | **Passed**                                           |
 | P7    | Submit score → admin approve → leaderboard updates           | **Passed**                                           |
 | P7    | Upload JSON → preview → submit works                         | **Passed**                                           |
-| P8    | Bulk import → team assignment → roster displays              | **Passed**                                           |
+| P8    | Self-service join → team assignment → roster displays        | **Passed**                                           |
 | P9    | Upload rubric → preview → activate → form adapts             | **Passed**                                           |
 | P10   | axe-core reports 0 violations                                | **Passed**                                           |
 | P10   | Integration test flows covered by E2E specs                  | **Passed**                                           |
@@ -887,6 +900,40 @@ monitoring shows data, feature flags toggle correctly.
 
 > Each Copilot session MUST update this section before ending.
 > This ensures the next session has full context.
+>
+> Full session history: [session-history.md](session-history.md)
+
+### Session: 2026-02-19 — Backlog & Deployment Guide Restructure
+
+**What was done**:
+
+- Revised admin model across 5 docs: deploying Entra user = app admin + SQL Entra administrator (D18).
+- Reduced supported infra paths to `deploy.ps1` and Deploy to Azure button only (D19).
+- Deleted `.github/workflows/deploy-infra.yml` — not a supported infra path (D20).
+- Relocated Phase 12 (Future Enhancements) after Phase 16 — was disrupting chronological flow.
+- Updated dependency map Mermaid to include P13–P16 and dashed P12 edge.
+- Collapsed 7-Day Schedule into `<details>` block (all days completed).
+- Archived 13 older session notes to `docs/session-history.md` (~600 lines saved).
+- Extracted E2E Validation Test Protocol from `deployment-guide.md` to `docs/e2e-validation.md`.
+- Restructured `deployment-guide.md`: merged Steps 3+4, collapsed OIDC alt options, updated Mermaid, removed infra workflow reference.
+- Added `e2e-validation.md` and `session-history.md` to `docs/README.md` Quick Links.
+- Fixed stale references: R5 (Table Storage → obsolete), P8 test matrix (bulk import → self-service join).
+
+**What's next**:
+
+- Execute Phase 16 (CI/CD + post-deploy verification).
+- Complete Phase 15 remaining items (Path B button validation).
+- Run full smoke test suite after app code deployment.
+
+**Open questions**:
+
+- None.
+
+**Known issues**:
+
+- Production app code not yet deployed (blocked on P16.1 CI/CD token).
+
+---
 
 ### Session: 2026-02-18 — E2E Deployment Validation Preflight
 
@@ -924,28 +971,16 @@ monitoring shows data, feature flags toggle correctly.
   - 9 schema batches executed; admin invite sent to `vella.jonathan@outlook.com`
   - Smoke test: SWA 200, API `/api/health` 404 (app code not yet deployed — CI/CD token unset)
 - Fixed 4 bugs discovered during the deployment run (P5–P8 above); committed as `d04e773`.
-- Designed and implemented **in-VNet ACI deploymentScript** (`infra/modules/sql-grant.bicep`) to replace manual schema migration and db_owner grant (D16):
-  - New subnet `snet-scripts` (10.0.3.0/24) with `Microsoft.ContainerInstance/containerGroups` delegation
-  - New UAMI `id-deploy-{suffix}` used as SQL Entra admin (`principalType='Application'`)
-  - `sql-grant.bicep` runs inside the VNet: installs mssql-tools18, loads `init.sql` (base64), grants `db_owner` to SWA MI and operator
-  - Committed as `735186a`.
-- Attempted **Bicep `extension microsoftGraph`** for Directory Readers automation:
-  - Built-in extension retired (BCP407); dynamic OCI ref compiled but `roleAssignments` type not found (BCP029) — see D17
-  - Fell back to idempotent **`az rest POST`** call in `deploy.ps1` (idempotent, non-breaking, reads `sqlMiPrincipalId` from deployment outputs)
-  - Fixed BCP321 in `sql-server.bicep` with `!` non-null assertion
-  - Bicep builds clean: zero errors, zero warnings
-  - Committed as `9454163`.
-- Removed all manual PREREQUISITE warning blocks from `sql-grant.bicep` and `deploy.ps1`.
-- `deploy.ps1` next-steps reduced to 3 items (no manual Entra steps).
+- Designed and implemented **in-VNet ACI deploymentScript** (`infra/modules/sql-grant.bicep`) to replace manual schema migration and db_owner grant (D16).
+- Attempted **Bicep `extension microsoftGraph`** for Directory Readers automation — fell back to idempotent `az rest POST` in `deploy.ps1` (D17).
+- Bicep builds clean: zero errors, zero warnings.
 
 **What's next**:
 
-- **IMMEDIATE**: Set `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub secret (token in P16.1 task above) and push to `main` → app code deploys via CI/CD.
-- **Re-run `deploy.ps1`** against `rg-hacker-board-prod` with same params to:
-  - Execute `sql-grant.bicep` (in-VNet ACI) — applies schema + db_owner grant via private endpoint
-  - Trigger `az rest` Directory Readers step for SQL server MI
+- Set `AZURE_STATIC_WEB_APPS_API_TOKEN` GitHub secret and push to `main` → app code deploys via CI/CD.
+- Re-run `deploy.ps1` to apply in-VNet ACI script and Directory Readers grant.
 - Verify `/api/health` and `/api/teams` return 200 from deployed SWA.
-- Run Path B (Deploy button) validation in a disposable RG (`hb-e2e-btn-<date>`).
+- Run Path B (Deploy button) validation in a disposable RG.
 
 **Open questions**:
 
@@ -954,301 +989,6 @@ monitoring shows data, feature flags toggle correctly.
 **Known issues**:
 
 - The existing live deployment (`rg-hacker-board-prod`) does NOT yet have the in-VNet script or Directory Readers grant applied — requires a re-deploy.
-
-**What was done**:
-
-- Rewrote the entire attendee identity system to eliminate PII from all UI and API surfaces.
-- New data model: `attendees` partition with `HackerNN` rowKeys; `_github` lookup rows; `_meta/counter` ETag-guarded atomic counter.
-- Alias format: `TeamNN-HackerNN` (e.g. `Team03-Hacker07`) shown everywhere instead of real name or GitHub username.
-- Teams auto-seed 6 defaults (Team01–Team06); fixed names; coaches can add/delete but not rename.
-- Deleted `attendees-bulk.js`, `AttendeeBulkEntry.js`, `.test.js` — self-service join via GitHub OAuth replaces CSV import.
-- All audit fields (`scoredBy`, `submittedBy`, `reviewedBy`, `assignedBy`) retained in storage but stripped from API responses.
-- Updated 12 source files and 6 test files; 135 tests all pass (74 API + 61 UI).
-- Updated `docs/backlog.md`: Phase 13 tasks, D9–D12 decisions, session handoff.
-
-**What's next**:
-
-- Deploy to Azure Static Web Apps and smoke-test the join → alias → leaderboard flow end-to-end.
-- Verify `_gitHubUsername` is not accidentally surfaced by any table query in production logs.
-- Consider an admin "Alias Manifest" page (alias ↔ GitHub username mapping, `admin` role only) for event organizers.
-
-**Open questions**:
-
-- Should the alias manifest (PII bridge) be available to admins in-app, or remain purely in Table Storage?
-
-**Known issues**:
-
-- None.
-
-### Session: 2026-02-17 — Agent Modernization (VS Code Custom Agents & Subagents)
-
-**What was done**:
-
-- Modernized all 7 agent files to align with VS Code custom agents & subagents spec (Feb 2026).
-- Added `handoffs` frontmatter to 6 agents for guided workflow transitions between steps.
-- Updated tool names from legacy (`codebase`, `editFiles`) to documented format (`read`, `search`, `edit`, `fetch`, `agent`, `problems`).
-- Added `argument-hint` property to all agents for dropdown guidance text.
-- Fixed Conductor `agents` array to use display `name` values instead of kebab-case filenames.
-- Added `agent` tool to Conductor for proper subagent invocation.
-- Added subagent delegation section to Conductor with parallel execution guidance.
-- Updated `docs/agents-and-skills.md` with handoff chain diagram, subagent docs, tools column, and usage modes table.
-- Refs: [Custom Agents docs](https://code.visualstudio.com/docs/copilot/customization/custom-agents), [Subagents docs](https://code.visualstudio.com/docs/copilot/agents/subagents).
-
-**What's next**:
-
-- Test handoff buttons work in VS Code Copilot Chat by running a workflow with `@hackerboard-conductor`.
-- Consider adding `model` fallback arrays once team settles on preferred models.
-- Consider `user-invokable: false` for worker agents if they should only be subagent-accessible.
-
-**Open questions**:
-
-- None.
-
-**Known issues**:
-
-- Existing CI deploy failure is unrelated (`deployment_token was not provided`).
-
----
-
-### Session: 2026-02-16 — OpenAPI + Swagger docs
-
-**What was done**:
-
-- Added `docs/openapi.yaml` with OpenAPI 3.0.3 definitions for all currently documented API routes.
-- Added SWA auth header security scheme (`x-ms-client-principal`) and shared component schemas.
-- Added `docs/swagger-ui.html` to render the spec in Swagger UI from the docs folder.
-- Added OpenAPI/Swagger links to `docs/api-spec.md`.
-- Marked Phase 12.3 OpenAPI/Swagger backlog item as complete.
-
-**What's next**:
-
-- Keep `docs/openapi.yaml` in sync whenever API contracts change.
-- Decide whether to surface Swagger UI directly from the deployed app experience.
-
-**Open questions**:
-
-- None.
-
-**Known issues**:
-
-- Existing CI deploy failure is unrelated to this change (`deployment_token was not provided` in SWA deploy job).
-
----
-
-### Session: 2026-02-16 — Issue Sync + Docs Prettification (3-pass)
-
-**What was done**:
-
-- Synced backlog Phase 12.1 and 12.2 checkboxes with closed GitHub issues #1 through #5 and verified repository state.
-- Confirmed OpenAPI/Swagger work from issue #6 remains complete in Phase 12.3.
-- Executed documentation polish in three passes across root `README.md`, `docs/`, and `templates/`.
-- Added a static hero banner and badge strip treatment to the top of root `README.md`.
-
-**Three-pass approach**:
-
-- Pass 1: Baseline normalization (headers, badges, description blocks, footer consistency).
-- Pass 2: Visual polish (navigation readability, table consistency, and top-level doc flow).
-- Pass 3: QA sweep (relative link checks, rendering checks, and final cleanup).
-
-**What's next**:
-
-- Keep docs styling and navigation patterns consistent for any newly added documentation files.
-
-**Open questions**:
-
-- None.
-
-**Known issues**:
-
-- None.
-
----
-
-### Session: 2026-02-16 — Planning
-
-**What was done**:
-
-- Researched and ported 8 instructions + 3 skills from azure-agentic-infraops
-- Eliminated all npm deprecation warnings (0 warnings, 0 vulnerabilities)
-- Analyzed full codebase state: infra deployed, no app code, detailed PRD/API spec
-- Created this execution plan replacing the old backlog
-
-**What's next**:
-
-- Start Phase 1.1: Pin `engines` in root `package.json`
-- Start Phase 1.2: ESM migration of `api/shared/*.js`
-- Start Phase 1.3: Add CSP and HSTS headers
-
-**Open questions**:
-
-- ~~Decision D4: Confirm attendee mapping approach (self-service claim vs admin pre-fill)~~ → Resolved: D4 Approved (self-service claim)
-
-**Known issues**:
-
-- ~~`api/shared/*.js` files use CommonJS — must convert before any new API work~~ → Resolved in P1
-
----
-
-### Session: 2026-02-16 — Phases 1–6 Implementation + Playwright + Rubric Templatization
-
-**What was done**:
-
-Phase 1 (Foundation):
-
-- Pinned `engines` in root + api `package.json`, added `"type": "module"` to both
-- Converted all 3 shared helpers (`auth.js`, `tables.js`, `errors.js`) to ESM
-- Added CSP + HSTS security headers to `staticwebapp.config.json`
-- Updated auth.js to Functions v4 patterns (`req.headers.get()`, `jsonBody`)
-- Updated tables.js to support Azurite + DefaultAzureCredential (prod)
-
-Phase 2 (DevOps):
-
-- Installed Vitest `^4.0.18`, created `api/vitest.config.js`, 8 smoke tests passing
-- Updated `.github/workflows/deploy-swa.yml` (4 jobs: build-test → deploy → preview → close)
-- Created `.env.example`, `scripts/seed-demo-data.js` (verified working against Azurite)
-- Updated `README.md` with local dev QuickStart
-
-Phase 3 (API Core):
-
-- Implemented all 6 core endpoints: `teams.js`, `scores.js`, `upload.js`, `submissions.js`
-- Created `api/tests/helpers/mock-table.js` (in-memory Map-based mock with filter parsing)
-- 29 tests passing across `teams.test.js`, `scores.test.js`, `upload-submissions.test.js`
-
-Phase 4 (Attendee API):
-
-- Implemented `attendees.js`, `attendees-bulk.js`, `teams-assign.js`, `awards.js`
-- Fisher-Yates shuffle for random team assignment
-- 5 valid award categories
-
-Phase 5 (Rubric Engine):
-
-- Implemented `api/shared/rubricParser.js` (regex-based markdown parser)
-- Implemented `api/src/functions/rubrics.js` (list, active, create+activate)
-- 12 parser tests + 11 attendees-awards tests = 52 total tests passing
-
-Phase 6 (Frontend Shell):
-
-- Created `src/styles/main.css` (~460 lines: light/dark themes, components, responsive)
-- Created 3 service modules: `api.js`, `auth.js`, `rubric.js`
-- Created `src/components/Navigation.js` (role-aware nav, theme toggle)
-- Created `src/components/Leaderboard.js` (champion spotlight, ranked table, auto-refresh)
-- Updated `src/index.html` (app shell with skip link, SR live region)
-
-Phase 7–9 (All Frontend Components):
-
-- Created all 10 remaining components as full implementations:
-  - `ScoreSubmission.js` — rubric-driven dynamic form with subtotal validation
-  - `UploadScores.js` — drag-and-drop JSON with preview
-  - `SubmissionStatus.js` — submission history table
-  - `AdminReviewQueue.js` — approve/reject workflow with reason input
-  - `Awards.js` — 5 award categories with admin assignment
-  - `Registration.js` — GitHub pre-fill, self-service profile
-  - `TeamRoster.js` — card grid of teams + members
-  - `AttendeeBulkEntry.js` — multi-line/CSV paste bulk import
-  - `TeamAssignment.js` — Fisher-Yates shuffle with confirmation
-  - `RubricManager.js` — drag-and-drop .md upload, preview, activate
-- `src/app.js` — hash-based SPA router with 12 routes
-
-Playwright Setup:
-
-- Installed `@playwright/test` as dev dependency in root `package.json`
-- Added Playwright + Chromium system deps to devcontainer Dockerfile
-- Created `playwright.config.js` (Chromium-only, SWA webServer)
-- Created `e2e/leaderboard.spec.js` (5 smoke tests)
-- Updated `post-create.sh` to install Playwright browsers
-- Decision D5 updated: Playwright is now part of the project (not deferred)
-
-Rubric Templatization:
-
-- Created `templates/scoring-rubric.reference.md` (105+25 golden reference from azure-agentic-infraops-workshop)
-- Created `templates/scoring-rubric.template.md` (Handlebars-style template with placeholders)
-- Created `templates/GENERATE-RUBRIC.md` (full prompt + instructions for generating new rubrics with Copilot)
-- Decision D6 added: templatized rubric approach approved
-
-**What's next**:
-
-- **Phase 10**: Run Playwright E2E tests against SWA emulator, validate critical flows
-- **Phase 10**: Accessibility audit (axe-core + manual keyboard check)
-- **Phase 10**: Responsive check across breakpoints
-- **Phase 10**: Search/filter + notification area
-- **Phase 11**: Feature flags, Application Insights, production deploy + smoke test
-- **Remaining P7 item**: `ManualOverride.js` component (admin score correction)
-- **Remaining P8 item**: Admin drag-and-drop attendee reassignment
-- **Remaining P9 item**: Verify rubric switch updates score form + leaderboard dynamically
-- **Remaining P6 item**: Responsive card fallback for leaderboard on small screens
-
-**Open questions**:
-
-- None
-
-**Known issues**:
-
-- Playwright E2E tests need SWA emulator running — not yet validated in CI
-- ManualOverride.js component deferred to Phase 12 (admin can use score POST API directly)
-- Admin attendee drag-and-drop reassignment deferred to Phase 12
-
-**Inventory of files created/modified this session**:
-
-```text
-MODIFIED:
-  .devcontainer/Dockerfile           — Added Playwright system deps
-  .devcontainer/post-create.sh       — Added Playwright browser install
-  .github/workflows/deploy-swa.yml   — 4-job CI/CD pipeline
-  api/package.json                   — ESM + Vitest + @azure/functions
-  api/shared/auth.js                 — ESM + Functions v4 patterns
-  api/shared/errors.js               — ESM + jsonBody
-  api/shared/tables.js               — ESM + dual-mode auth
-  docs/backlog.md                    — Full progress update
-  package.json                       — ESM + Playwright + test scripts
-  src/index.html                     — Full app shell
-  staticwebapp.config.json           — CSP + HSTS headers
-
-CREATED:
-  .env.example
-  api/src/functions/attendees-bulk.js
-  api/src/functions/attendees.js
-  api/src/functions/awards.js
-  api/src/functions/rubrics.js
-  api/src/functions/scores.js
-  api/src/functions/submissions.js
-  api/src/functions/teams-assign.js
-  api/src/functions/teams.js
-  api/src/functions/upload.js
-  api/shared/rubricParser.js
-  api/tests/attendees-awards.test.js
-  api/tests/helpers/mock-table.js
-  api/tests/rubric-parser.test.js
-  api/tests/scores.test.js
-  api/tests/shared-helpers.test.js
-  api/tests/teams.test.js
-  api/tests/upload-submissions.test.js
-  api/vitest.config.js
-  e2e/leaderboard.spec.js
-  playwright.config.js
-  scripts/seed-demo-data.js
-  src/app.js
-  src/components/AdminReviewQueue.js
-  src/components/AttendeeBulkEntry.js
-  src/components/Awards.js
-  src/components/Leaderboard.js
-  src/components/Navigation.js
-  src/components/Registration.js
-  src/components/RubricManager.js
-  src/components/ScoreSubmission.js
-  src/components/SubmissionStatus.js
-  src/components/TeamAssignment.js
-  src/components/TeamRoster.js
-  src/components/UploadScores.js
-  src/services/api.js
-  src/services/auth.js
-  src/services/rubric.js
-  src/styles/main.css
-  templates/GENERATE-RUBRIC.md
-  templates/scoring-rubric.reference.md
-  templates/scoring-rubric.template.md
-```
-
-**Test summary**: 52 unit tests passing (6 files), 0 vulnerabilities, 5 E2E specs ready
 
 <!-- TEMPLATE for new session entries:
 
@@ -1274,505 +1014,6 @@ CREATED:
 
 ---
 
-### Session: 2026-02-16 — Phases 10–11 Implementation
-
-**What was done**:
-
-Phase 10 (Integration & Polish):
-
-- Added search bar to navbar with debounced team/attendee filtering
-- Added responsive card fallback for leaderboard on small screens (≤640px)
-- Added E2E test stage to CI pipeline (`e2e-test` job with Playwright, artifact upload on failure)
-
-Phase 11 (Operational Readiness):
-
-- Created `api/shared/featureFlags.js` — 5 flags with table-backed persistence + caching
-- Created `api/src/functions/flags.js` — GET/PUT `/api/flags` endpoint (admin-only PUT)
-- Integrated feature flags into `upload.js` (SUBMISSIONS_ENABLED) and `rubrics.js` (RUBRIC_UPLOAD_ENABLED)
-- Created `src/components/FeatureFlags.js` — admin toggle UI with save/reset
-- Added flags route to SPA router (`#/flags`) and admin nav link
-- Added `api.flags.get()` / `api.flags.update()` to frontend `src/services/api.js`
-- Created `api/shared/logger.js` — structured JSON logging (requestId, user, operation, durationMs)
-- Integrated structured logging into `teams.js`, `upload.js`, `flags.js`
-- Created `scripts/cleanup-app-data.js` — table purge with `--confirm` safety flag and `--tables` filter
-- Wrote 13 new unit tests (`api/tests/feature-flags.test.js`) for flags + logger modules
-
-Bug fixes:
-
-- **CRITICAL**: Fixed import paths in ALL 9 API function files (`../shared/` → `../../shared/`)
-  - Affected: teams.js, scores.js, upload.js, submissions.js, attendees.js, attendees-bulk.js, teams-assign.js, awards.js, rubrics.js
-  - Root cause: Files in `api/src/functions/` need `../../shared/` (two levels up)
-  - Tests didn't catch this because they mock imports directly
-
-CSS additions:
-
-- Search input + results dropdown styles
-- Feature flag badge styles (on/off)
-- Leaderboard card view for mobile breakpoint
-
-**What's next**:
-
-- **P10.1**: Write Playwright E2E flow tests (submit→review→leaderboard, rubric upload→activate)
-- **P10.2**: Run axe-core accessibility audit on all pages
-- **P10.3**: Verify responsive breakpoints (sm/md/lg/xl) and touch targets
-- **P10.4**: Notification area + admin pending count badge
-- **P11.2**: Enable Application Insights, add client-side telemetry
-- **P11.3**: Deploy to production SWA + smoke test
-- **P11.4**: Document admin invitation and rotation procedures
-
-**Open questions**:
-
-- None
-
-**Known issues**:
-
-- Playwright E2E tests require SWA emulator — not validated in CI yet
-- Notification area (P10.4) deferred per R1 risk mitigation if timeline tight
-- ManualOverride + admin drag-and-drop remain in Phase 12
-
-**Files created/modified this session**:
-
-```text
-CREATED:
-  api/shared/featureFlags.js       — Feature flag persistence + caching
-  api/shared/logger.js             — Structured JSON request logger
-  api/src/functions/flags.js       — GET/PUT /api/flags endpoint
-  api/tests/feature-flags.test.js  — 13 tests for flags + logger
-  scripts/cleanup-app-data.js      — Table purge with --confirm safety
-  src/components/FeatureFlags.js   — Admin flag toggle UI
-
-MODIFIED:
-  .github/workflows/deploy-swa.yml — Added e2e-test job
-  api/src/functions/attendees-bulk.js — Fixed import paths
-  api/src/functions/attendees.js   — Fixed import paths
-  api/src/functions/awards.js      — Fixed import paths
-  api/src/functions/rubrics.js     — Fixed imports + RUBRIC_UPLOAD_ENABLED flag
-  api/src/functions/scores.js      — Fixed import paths
-  api/src/functions/submissions.js — Fixed import paths
-  api/src/functions/teams-assign.js — Fixed import paths
-  api/src/functions/teams.js       — Fixed imports + structured logging
-  api/src/functions/upload.js      — Fixed imports + SUBMISSIONS_ENABLED flag + logging
-  docs/backlog.md                  — Full progress update
-  src/app.js                       — Added flags route
-  src/components/Leaderboard.js    — Added mobile card fallback
-  src/components/Navigation.js     — Added search bar + flags nav link
-  src/services/api.js              — Added flags endpoints
-  src/styles/main.css              — Search, flag badges, mobile cards
-```
-
-**Test summary**: 65 unit tests passing (7 files), 0 vulnerabilities, 5 E2E specs ready
-
----
-
-### Session: 2026-02-16 — Phases 10–11 Completion (accessibility, notifications, telemetry)
-
-**What was done**:
-
-Phase 9 (Rubric UI — final item):
-
-- Fixed rubric cache invalidation: `clearRubricCache()` now called in `RubricManager.js` after rubric activation
-- Score form and leaderboard dynamically update when rubric switches (P9.2 verified)
-
-Phase 10 (Integration & Polish):
-
-- **Accessibility audit + fixes**:
-  - Added `.form-input` CSS class with proper focus ring (`outline: 2px solid`) — previously undefined
-  - Fixed header element: added `app-header` class (was missing, CSS targeted it but class wasn't applied)
-  - Added mobile hamburger menu with `aria-expanded`, `aria-controls`, and keyboard support
-  - Auto-closes mobile nav on link click
-  - Fixed leaderboard mobile cards: removed inline `display:none` that overrode CSS media query
-  - Added `.leaderboard-cards { display: none }` on desktop with `!important` override for mobile
-  - Touch target sizing: min 44×44px for buttons and icon buttons on mobile
-  - All interactive elements have visible focus indicators and proper ARIA labels
-
-- **Responsive breakpoints**:
-  - Mobile nav (`≤768px`): hamburger menu with slide-down nav panel
-  - Leaderboard cards (`≤640px`): card fallback replaces table
-  - Grid layouts collapse to single column on mobile
-  - Search input responsive sizing on mobile
-  - Touch targets enforced via CSS min-height/min-width
-
-- **Notification area + admin badge**:
-  - Created `src/services/notifications.js` — toast system with auto-dismiss, close button, localStorage persistence
-  - Added pending count badge on "Review Queue" nav link (red circle with count)
-  - Toast notifications on score submission (success), approve/reject actions
-  - Badge auto-updates from API on admin login
-
-- **E2E flow tests** (3 new spec files with API route interception):
-  - `e2e/score-flow.spec.js` — submit score → review queue → leaderboard
-  - `e2e/rubric-flow.spec.js` — rubric activation → score form adapts
-  - `e2e/attendee-flow.spec.js` — bulk import → team assignment → roster
-
-Phase 11 (Operational Readiness):
-
-- **Application Insights** already provisioned via Bicep (connection string wired to SWA app settings)
-- Created `src/services/telemetry.js` — lightweight client-side telemetry:
-  - Page views tracked on route change
-  - Uncaught errors and unhandled rejections captured
-  - Custom events API (`trackEvent`)
-  - Session ID via `sessionStorage` + `crypto.randomUUID()`
-  - Uses `navigator.sendBeacon` for reliable delivery
-  - Gracefully degrades when connection string is absent
-- Integrated telemetry init into `src/app.js`
-- Created `docs/admin-procedures.md` — admin invitation, rotation, data cleanup, troubleshooting
-
-**What's next**:
-
-- **P10.1**: Integration test flows (manual verification with SWA emulator)
-- **P11.3**: Deploy to production SWA + smoke test (requires Azure credentials)
-- **Phase 12**: ManualOverride component, admin drag-and-drop attendee reassignment (deferred)
-
-**Open questions**:
-
-- None
-
-**Known issues**:
-
-- E2E tests use API route interception (offline-capable); full integration tests need SWA emulator
-- ManualOverride.js and admin drag-and-drop remain deferred to Phase 12
-- Production deploy requires Azure credentials not available in dev container
-
-**Files created/modified this session**:
-
-```text
-CREATED:
-  docs/admin-procedures.md            — Admin invitation, rotation, cleanup docs
-  e2e/attendee-flow.spec.js           — E2E: bulk import → assign → roster
-  e2e/rubric-flow.spec.js             — E2E: rubric upload → activate → form
-  e2e/score-flow.spec.js              — E2E: submit → review → leaderboard
-  src/services/notifications.js       — Toast system + dismissed persistence
-  src/services/telemetry.js           — Client-side App Insights telemetry
-
-MODIFIED:
-  .env.example                        — Added APPLICATIONINSIGHTS_CONNECTION_STRING
-  docs/backlog.md                     — Full progress update + session notes
-  src/app.js                          — Integrated telemetry init
-  src/components/AdminReviewQueue.js  — Toast on approve/reject
-  src/components/Leaderboard.js       — Fixed mobile cards display
-  src/components/Navigation.js        — Hamburger menu, pending badge, imports
-  src/components/RubricManager.js     — clearRubricCache on activation
-  src/components/ScoreSubmission.js   — Toast on submit
-  src/index.html                      — app-header class on header
-  src/styles/main.css                 — form-input, hamburger, badges, touch targets
-```
-
-**Test summary**: 65 unit tests passing (7 files), 0 vulnerabilities, 12 E2E specs ready
-
----
-
-### Session: 2026-02-16 — E2E Test Infrastructure Fix
-
-**What was done**:
-
-- Fixed Playwright E2E test infrastructure for devcontainer + CI compatibility:
-  - Changed `playwright.config.js` webServer from `swa start` to `python3 -m http.server` (lightweight, no auth/Functions deps)
-  - Added full API mock setup to `e2e/leaderboard.spec.js` (was missing, caused failures when SWA auth redirected)
-  - All 12 E2E specs use browser-level route interception — no backend needed
-- Started Azurite and SWA for manual testing:
-  - `api/shared/tables.js` already handles Azurite via `UseDevelopmentStorage=true`
-  - `api/package.json` already has `"main": "src/functions/*.js"` for Functions v4 discovery
-  - `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` must be set as env vars for SWA CLI (dummy values OK for local dev)
-- Installed Playwright system dependencies (`npx playwright install-deps chromium`)
-- Confirmed 65 unit tests pass, 12 E2E specs list correctly
-- Marked P10.1 integration test flows as complete (covered by E2E spec files)
-- P11.3 deploy pipeline verified: CI/CD workflow ready, needs `AZURE_STATIC_WEB_APPS_API_TOKEN` repo secret
-
-**What's next**:
-
-- **P11.3**: Set `AZURE_STATIC_WEB_APPS_API_TOKEN` repo secret and push to trigger deploy
-- **P11.3**: Smoke test production after deploy (manual)
-- **P11.3**: Verify SWA role invitations for admin users (manual, Azure portal)
-- **Phase 12** (deferred): ManualOverride.js, admin drag-and-drop attendee reassignment
-
-**Open questions**:
-
-- None
-
-**Known issues**:
-
-- Playwright E2E cannot run in devcontainer (Chromium too resource-heavy, crashes connection)
-- E2E tests run in CI (GitHub Actions ubuntu-latest) with `python3` static server — no SWA needed
-- Production deploy blocked on `AZURE_STATIC_WEB_APPS_API_TOKEN` repo secret
-
-**Files modified this session**:
-
-```text
-MODIFIED:
-  playwright.config.js         — Changed webServer to python3 static server
-  e2e/leaderboard.spec.js      — Added full API mock setup (auth, scores, rubrics, etc.)
-  docs/backlog.md              — Session handoff notes + progress update
-```
-
----
-
-### Session: 2026-02-16 — Playwright → Vitest + happy-dom Migration
-
-**What was done**:
-
-- Replaced Playwright with Vitest + happy-dom for frontend component testing:
-  - Removed `@playwright/test` from `package.json`
-  - Added `vitest: ^4.0.18` and `happy-dom: ^20.6.1` as devDependencies
-  - Created `vitest.config.js` (root) with `environment: "happy-dom"`, includes `src/**/*.test.js`
-  - Replaced `test:e2e` script with `test:ui: "vitest run --config vitest.config.js"`
-- Created 5 frontend component test files (26 tests total):
-  - `src/components/Leaderboard.test.js` — 5 tests (champion spotlight, awards badges, empty state, error, mobile cards)
-  - `src/components/Navigation.test.js` — 6 tests (auth links, admin links, theme toggle, search, mobile menu)
-  - `src/components/TeamRoster.test.js` — 4 tests (members, empty state, error, no members)
-  - `src/components/Awards.test.js` — 5 tests (categories, assigned, unassigned, admin dropdown, non-admin)
-  - `src/components/ScoreSubmission.test.js` — 6 tests (sign-in, no rubric, dynamic form, bonus, teams, inputs)
-- All 91 tests pass: 65 API unit + 26 frontend DOM
-- Cleaned up Playwright artifacts:
-  - Deleted `e2e/` directory (4 spec files) and `playwright.config.js`
-  - Removed Chromium install from `.devcontainer/Dockerfile` and `.devcontainer/post-create.sh`
-- Updated CI pipeline (`.github/workflows/deploy-swa.yml`):
-  - Removed `e2e-test` job (Playwright + Chromium)
-  - Added `npm run test:ui` step to `build-and-test` job
-- Added `github.vscode-github-actions` extension to `.devcontainer/devcontainer.json`
-
-**What's next**:
-
-- **P11.3**: Set `AZURE_STATIC_WEB_APPS_API_TOKEN` repo secret and push to trigger deploy
-- **P11.3**: Smoke test production after deploy (manual)
-- **P11.3**: Verify SWA role invitations for admin users (manual, Azure portal)
-- Consider adding more component test files (Registration, UploadScores, AdminReviewQueue, etc.)
-
-**Open questions**:
-
-- None
-
-**Known issues**:
-
-- Production deploy blocked on `AZURE_STATIC_WEB_APPS_API_TOKEN` repo secret
-
-**Files modified this session**:
-
-```text
-CREATED:
-  vitest.config.js                       — Root Vitest config for frontend DOM tests
-  src/components/Leaderboard.test.js     — Leaderboard component tests
-  src/components/Navigation.test.js      — Navigation component tests
-  src/components/TeamRoster.test.js       — TeamRoster component tests
-  src/components/Awards.test.js           — Awards component tests
-  src/components/ScoreSubmission.test.js  — ScoreSubmission component tests
-
-MODIFIED:
-  package.json                           — Swapped Playwright for Vitest + happy-dom
-  .github/workflows/deploy-swa.yml       — Replaced e2e-test job with test:ui step
-  .devcontainer/devcontainer.json         — Added GitHub Actions extension
-  .devcontainer/Dockerfile               — Removed Playwright Chromium install
-  .devcontainer/post-create.sh            — Removed Playwright browser install
-  docs/backlog.md                         — Session handoff notes + progress update
-
-DELETED:
-  e2e/leaderboard.spec.js
-  e2e/score-flow.spec.js
-  e2e/rubric-flow.spec.js
-  e2e/attendee-flow.spec.js
-  playwright.config.js
-```
-
-### Session — 2026-02-17 (Documentation Overhaul, continued)
-
-**Summary**: Second-pass documentation refinements for Phase 12.2. Fixed outdated
-content, broken links, and gaps found during audit against docs.instructions.md standards.
-
-**What was done**:
-
-- Added `agents-and-skills.md`, `openapi.yaml`, `swagger-ui.html` links to `docs/README.md` Quick Links
-- Added `admin-procedures.md`, `agents-and-skills.md`, OpenAPI docs to root `README.md` docs table
-- Rewrote `docs/app-scaffold.md` folder structure to match actual v4 Functions layout
-  - Updated code samples from CommonJS to ESM
-  - Replaced v3 `function.json` example with v4 `app.http()` pattern
-  - Added missing folders: `.github/agents/`, `.github/skills/`, `.github/instructions/`, `templates/`, `.vscode/`, `api/tests/`, `scripts/`, `.devcontainer/`
-  - Removed non-existent components (ManualOverride.js, RubricUpload.js, RubricPreview.js, TeamDetail.js)
-  - Added real components (FeatureFlags.js) and services (notifications.js, telemetry.js)
-  - Removed broken "Starter README" section with invalid links
-  - Added testing table and expanded references
-- Updated `docs/app-design.md`
-  - Added Mermaid application architecture diagram
-  - Added scoring workflow Mermaid diagram
-  - Updated component model table to list actual 13 components with file paths
-  - Added note about deferred `ManualOverride` component
-  - Fixed reference link style for consistency
-- Fixed broken link in `docs/app-prd.md` (scoring rubric → templates/ folder)
-- Verified all internal links across all doc files — zero broken links
-
-**What's next**:
-
-- Commit and push documentation changes
-- Phase 12.3 feature enhancements (if desired)
-
-**Files modified this session**:
-
-```text
-MODIFIED:
-  docs/README.md            — Added agents-and-skills, OpenAPI Quick Links
-  README.md                 — Added admin-procedures, agents-and-skills, OpenAPI to docs table
-  docs/app-scaffold.md      — Full rewrite: v4 structure, ESM code, actual components
-  docs/app-design.md        — Mermaid diagrams, updated component table, workflow diagram
-  docs/app-prd.md           — Fixed broken scoring rubric reference link
-  docs/backlog.md           — Added 12.2 second-pass sub-task, session handoff notes
-```
-
----
-
-### Session: 2026-02-17 — Phase 11.5 Frontend Component Test Coverage
-
-**What was done**:
-
-- Wrote tests for all 8 remaining frontend components (Phase 11.5):
-  - `Registration.test.js` — 5 tests (sign-in gate, new user form, pre-fill, API error, validation)
-  - `AdminReviewQueue.test.js` — 5 tests (access denied, empty state, pending cards, payload details, API error)
-  - `FeatureFlags.test.js` — 6 tests (access denied, flag toggles, checked state, ON/OFF badges, buttons, API error)
-  - `RubricManager.test.js` — 6 tests (access denied, upload form, active badge, empty table, disabled button, API error)
-  - `SubmissionStatus.test.js` — 5 tests (sign-in gate, history table, empty state, table headers, API error)
-  - `AttendeeBulkEntry.test.js` — 6 tests (access denied, bulk form, attendee count, unclaimed badge, empty table, API error)
-  - `TeamAssignment.test.js` — 5 tests (access denied, assignment form, default values, accessible labels, feedback areas)
-  - `UploadScores.test.js` — 6 tests (sign-in gate, drop zone, keyboard a11y, hidden preview, buttons, live region)
-- All 135 tests pass: 65 API unit + 70 frontend DOM (was 26, now 70 with 44 new tests)
-- Updated backlog task count from 170/193 to 178/193
-
-### Session: 2026-02-17 — Health Endpoint, RBAC, Smoke Tests
-
-**What was done**:
-
-- Created `/api/health` endpoint — verifies connectivity to all 7 tables,
-  returns `healthy`/`degraded` status with per-table results.
-- Added anonymous route for `/api/health` in `staticwebapp.config.json`.
-- Enabled system-assigned managed identity on the SWA via Bicep AVM.
-- Created `infra/modules/storage-rbac.bicep` — assigns Storage Table Data
-  Contributor role to the SWA identity on the storage account.
-- Added `smoke-test` job to CI/CD workflow with health check + API reachability.
-- Recompiled `azuredeploy.json` (ARM template) with identity + RBAC.
-- All 139 tests pass: 69 API unit + 70 frontend DOM.
-
-**Files created/modified**:
-
-```text
-CREATED:
-  api/src/functions/health.js        — /api/health endpoint (GET, anonymous)
-  api/tests/health.test.js           — 4 tests
-  infra/modules/storage-rbac.bicep   — RBAC role assignment module
-
-MODIFIED:
-  staticwebapp.config.json           — anonymous /api/health route
-  infra/modules/static-web-app.bicep — managed identity + principalId output
-  infra/main.bicep                   — wired storage-rbac module
-  infra/azuredeploy.json             — recompiled ARM template
-  .github/workflows/deploy-swa.yml   — smoke-test job + deploy outputs
-  docs/backlog.md                    — progress update + session notes
-```
-
-**What's next**:
-
-- Deploy to production SWA (P11.3) — requires `AZURE_STATIC_WEB_APPS_API_TOKEN`.
-- Run manual smoke tests post-deploy.
-- Verify SWA role invitations for admin users.
-
-**Known issues**:
-
-- Production deploy still blocked on `AZURE_STATIC_WEB_APPS_API_TOKEN` repo secret.
-- BCP318 warnings in Bicep from conditional module references (harmless).
-
-### Session: 2026-02-17 — Config Table Seeding
-
-**What was done**:
-
-- Auto-seed `getFlags()`: on first 404, writes `DEFAULT_FLAGS` to Config table
-  so feature flags are immediately persisted (self-healing on fresh deploy).
-- Added Config table to `scripts/seed-demo-data.js` (7th table, default flags).
-- All 135 tests pass (65 API + 70 frontend DOM).
-
-**What's next**:
-
-- Deploy to production SWA (P11.3).
-- Add health check endpoint + post-deploy smoke test job.
-- Automate RBAC role assignment in Bicep.
-
-**Files modified**:
-
-```text
-MODIFIED:
-  api/shared/featureFlags.js      — auto-seed defaults on 404
-  scripts/seed-demo-data.js       — added Config table + feature flags
-  docs/backlog.md                 — progress update + session notes
-```
-
-**What's next**:
-
-- **P11.3**: Deploy to production SWA (requires `AZURE_STATIC_WEB_APPS_API_TOKEN` repo secret)
-- **P11.3**: Create `Rubrics` table in Table Storage
-- **P11.3**: Smoke test all endpoints post-deploy
-- **P11.3**: Verify SWA role invitations for admin users
-- **Phase 12**: Feature enhancements (deferred)
-
-**Open questions**:
-
-- None.
-
-**Known issues**:
-
-- Production deploy blocked on `AZURE_STATIC_WEB_APPS_API_TOKEN` repo secret.
-- Platform-team handoff items need manual verification in Azure portal.
-
-**Files created this session**:
-
-```text
-CREATED:
-  src/components/Registration.test.js      — 5 tests
-  src/components/AdminReviewQueue.test.js   — 5 tests
-  src/components/FeatureFlags.test.js       — 6 tests
-  src/components/RubricManager.test.js      — 6 tests
-  src/components/SubmissionStatus.test.js   — 5 tests
-  src/components/AttendeeBulkEntry.test.js  — 6 tests
-  src/components/TeamAssignment.test.js     — 5 tests
-  src/components/UploadScores.test.js       — 6 tests
-
-MODIFIED:
-  docs/backlog.md                           — Progress update + session notes
-```
-
----
-
-### Session: 2026-02-17 — Cross-Document Audit & Backlog Reconciliation
-
-**What was done**:
-
-- Full cross-document audit of all 11 docs in `docs/` against codebase state.
-- Verified PRD features F1–F11 map to completed backlog tasks (all covered).
-- Verified all 16 API routes in `api-spec.md` map to function files (all present).
-- Verified all 13 components in `app-design.md` match `src/components/` (all present).
-- Recounted backlog tasks: confirmed 169 `[x]` + 12 `[ ]` = 181 (header was accurate).
-- Added 11 new tasks to Phase 11 (3 deploy/smoke-test gaps + 8 component tests).
-- Updated task count from 169/181 to 169/192.
-- Added Decision D8: PRD Section 10 coding prompt superseded by D3 (Vanilla JS).
-- Added Problems P2–P4: handoff checklist missing Rubrics table, incomplete smoke tests, stale completion table.
-- Added Risk R7: incomplete smoke test coverage at deploy time.
-- Fixed `docs/app-handoff-checklist.md`:
-  - Added `Rubrics` table to Phase 4.3 table creation commands.
-  - Added rubric + flags API endpoints to Phase 6.2 smoke tests.
-  - Updated completion table: dev-team items marked ✅.
-- Annotated PRD Section 10 (Coding Agent Prompt) as superseded by D3.
-- Verified `docs/README.md` Feature Inventory — all F1–F11 ✅ accurate.
-
-**What's next**:
-
-- Complete 8 frontend component tests (P11.5).
-- Deploy to production SWA (P11.3).
-- Run smoke tests including rubric + flags endpoints.
-- Verify SWA role invitations for admin users.
-
-**Open questions**:
-
-- None.
-
-**Known issues**:
-
-- Production deploy blocked on `AZURE_STATIC_WEB_APPS_API_TOKEN` repo secret.
-- Platform-team handoff items (roles, RBAC, tables, app settings) need manual verification.
-
----
-
 ## References
 
 - [Product Requirements (PRD)](./app-prd.md) — F1-F11 feature definitions
@@ -1780,4 +1021,7 @@ MODIFIED:
 - [App Design](./app-design.md) — UI/UX, component model, responsive strategy
 - [Scaffold Guide](./app-scaffold.md) — Folder structure, dependencies, helpers
 - [Handoff Checklist](./app-handoff-checklist.md) — Infra wiring steps
+- [Deployment Guide](./deployment-guide.md) — End-to-end deployment
+- [E2E Validation](./e2e-validation.md) — Deployment test protocol
+- [Session History](./session-history.md) — Archived session notes
 - [Copilot Instructions](../.github/copilot-instructions.md) — Coding standards
