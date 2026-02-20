@@ -1,0 +1,8 @@
+node_modules/
+dist/
+build/
+.azurite/
+api/local.settings.json
+*.log
+.env
+.env.local

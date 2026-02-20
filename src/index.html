@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="HackerBoard — Live hackathon scoring dashboard"
+    />
+    <title>HackerBoard</title>
+    <link rel="stylesheet" href="styles/main.css" />
+  </head>
+  <body>
+    <a href="#maincontent" class="skip-link">Skip to main content</a>
+
+    <header id="app-nav" class="app-header">
+      <!-- Navigation rendered by src/components/Navigation.js -->
+    </header>
+
+    <main id="maincontent" class="main-content" role="main">
+      <div class="loading">
+        <div class="spinner"></div>
+        Loading...
+      </div>
+    </main>
+
+    <footer
+      role="contentinfo"
+      style="
+        text-align: center;
+        padding: 1rem;
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        border-top: 1px solid var(--border);
+      "
+    >
+      HackerBoard &mdash; Microhack Scoring Dashboard
+    </footer>
+
+    <div
+      id="sr-announcer"
+      class="sr-live"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

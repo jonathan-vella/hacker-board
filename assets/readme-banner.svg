@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title desc">
+  <title id="title">HackerBoard banner</title>
+  <desc id="desc">A polished HackerBoard hero banner with Azure-inspired gradient and scoreboard motif.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="45%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.06"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="360" fill="url(#bg)" rx="24"/>
+  <rect x="48" y="38" width="1184" height="284" fill="url(#panel)" rx="18" stroke="#ffffff" stroke-opacity="0.22"/>
+
+  <text x="90" y="138" fill="#ffffff" font-size="56" font-family="Segoe UI, Inter, Arial, sans-serif" font-weight="700">
+    HackerBoard
+  </text>
+  <text x="90" y="184" fill="#dbeafe" font-size="24" font-family="Segoe UI, Inter, Arial, sans-serif">
+    Live Hackathon Scoring Dashboard
+  </text>
+  <text x="90" y="226" fill="#bfdbfe" font-size="20" font-family="Segoe UI, Inter, Arial, sans-serif">
+    Azure Static Web Apps • Managed Functions • Table Storage
+  </text>
+
+  <g transform="translate(880,82)">
+    <rect width="300" height="200" rx="16" fill="#0b1220" fill-opacity="0.65" stroke="#93c5fd" stroke-opacity="0.45"/>
+    <text x="24" y="36" fill="#e0f2fe" font-size="18" font-family="Segoe UI, Inter, Arial, sans-serif" font-weight="600">Leaderboard</text>
+    <line x1="24" y1="48" x2="276" y2="48" stroke="#93c5fd" stroke-opacity="0.35"/>
+    <text x="24" y="82" fill="#fde68a" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">1  Team Nova</text>
+    <text x="220" y="82" fill="#fef3c7" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">126</text>
+    <text x="24" y="116" fill="#bfdbfe" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">2  ByteForge</text>
+    <text x="220" y="116" fill="#dbeafe" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">118</text>
+    <text x="24" y="150" fill="#99f6e4" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">3  CloudSprint</text>
+    <text x="220" y="150" fill="#ccfbf1" font-size="16" font-family="Segoe UI, Inter, Arial, sans-serif">111</text>
+  </g>
+</svg>

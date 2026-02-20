@@ -1,0 +1,1205 @@
+openapi: 3.0.3
+info:
+  title: HackerBoard API
+  version: 1.0.0
+  description: |
+    Machine-readable OpenAPI specification for HackerBoard Express adapter API.
+    Authentication context is passed via App Service Easy Auth `x-ms-client-principal`.
+servers:
+  - url: https://app-hacker-board-prod.azurewebsites.net
+tags:
+  - name: Teams
+  - name: Attendees
+  - name: Scores
+  - name: Rubrics
+  - name: Awards
+  - name: Flags
+  - name: Submissions
+  - name: Upload
+security:
+  - swaClientPrincipal: []
+paths:
+  /api/teams:
+    get:
+      tags: [Teams]
+      summary: Retrieve all teams
+      x-roles: [authenticated]
+      responses:
+        "200":
+          description: Team list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Team"
+              examples:
+                default:
+                  value:
+                    - teamName: team-alpha
+                      teamMembers: [user1, user2, user3]
+                      createdAt: "2026-02-13T10:00:00Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Teams]
+      summary: Create a new team
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamCreateRequest"
+      responses:
+        "201":
+          description: Team created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/TeamExists"
+    put:
+      tags: [Teams]
+      summary: Update an existing team
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamUpdateRequest"
+      responses:
+        "200":
+          description: Team updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamUpdateResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/TeamNotFound"
+    delete:
+      tags: [Teams]
+      summary: Delete a team and related scores
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamDeleteRequest"
+      responses:
+        "204":
+          description: Team deleted
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/TeamNotFound"
+
+  /api/scores:
+    get:
+      tags: [Scores]
+      summary: Retrieve scores or leaderboard summary
+      x-roles: [authenticated]
+      parameters:
+        - in: query
+          name: team
+          schema:
+            type: string
+          required: false
+          description: Optional team filter
+        - in: query
+          name: category
+          schema:
+            type: string
+          required: false
+          description: Optional category filter (documented; currently ignored by API implementation)
+      responses:
+        "200":
+          description: Score records or leaderboard
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: "#/components/schemas/Score"
+                  - $ref: "#/components/schemas/LeaderboardResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Scores]
+      summary: Upsert manual score overrides for a team
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScoreOverrideRequest"
+      responses:
+        "200":
+          description: Override saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScoreOverrideResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/TeamNotFound"
+
+  /api/submissions:
+    get:
+      tags: [Submissions]
+      summary: Retrieve submissions for review
+      x-roles: [admin]
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [Pending, Approved, Rejected]
+          required: false
+        - in: query
+          name: team
+          schema:
+            type: string
+          required: false
+      responses:
+        "200":
+          description: Submission list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Submission"
+
+  /api/submissions/validate:
+    post:
+      tags: [Submissions]
+      summary: Approve or reject a submission
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmissionValidationRequest"
+      responses:
+        "200":
+          description: Submission validated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionValidationResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/SubmissionNotFound"
+
+  /api/awards:
+    get:
+      tags: [Awards]
+      summary: Retrieve all awards
+      x-roles: [authenticated]
+      responses:
+        "200":
+          description: Award list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Award"
+    post:
+      tags: [Awards]
+      summary: Assign or upsert award for a team
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AwardRequest"
+      responses:
+        "200":
+          description: Award assignment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Award"
+        "400":
+          $ref: "#/components/responses/InvalidAward"
+        "404":
+          $ref: "#/components/responses/TeamNotFound"
+
+  /api/attendees:
+    get:
+      tags: [Attendees]
+      summary: Retrieve all attendee registrations
+      x-roles: [admin]
+      responses:
+        "200":
+          description: Attendee list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Attendee"
+
+  /api/attendees/me:
+    get:
+      tags: [Attendees]
+      summary: Retrieve current user registration profile
+      x-roles: [authenticated]
+      responses:
+        "200":
+          description: Current attendee profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attendee"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/AttendeeNotFound"
+    post:
+      tags: [Attendees]
+      summary: Create or update current user profile
+      x-roles: [authenticated]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendeeSelfRequest"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attendee"
+        "201":
+          description: Profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attendee"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+    put:
+      tags: [Attendees]
+      summary: Create or update current user profile
+      x-roles: [authenticated]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendeeSelfRequest"
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attendee"
+        "201":
+          description: Profile created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Attendee"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/attendees/bulk:
+    post:
+      tags: [Attendees]
+      summary: Bulk import attendees
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendeeBulkRequest"
+      responses:
+        "201":
+          description: Bulk import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendeeBulkResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/teams/assign:
+    post:
+      tags: [Teams]
+      summary: Randomly assign attendees to teams
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamAssignmentRequest"
+      responses:
+        "200":
+          description: Team assignment result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamAssignmentResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /api/upload:
+    post:
+      tags: [Upload]
+      summary: Upload score payload for admin validation
+      x-roles: [member]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadPayload"
+      responses:
+        "202":
+          description: Submission queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/TeamNotFound"
+
+  /api/rubrics:
+    get:
+      tags: [Rubrics]
+      summary: Retrieve all rubric metadata
+      x-roles: [authenticated]
+      responses:
+        "200":
+          description: Rubric list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RubricSummary"
+    post:
+      tags: [Rubrics]
+      summary: Upload and parse a rubric
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RubricCreateRequest"
+          text/markdown:
+            schema:
+              type: string
+      responses:
+        "201":
+          description: Rubric created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RubricCreateResponse"
+        "400":
+          $ref: "#/components/responses/RubricParseError"
+
+  /api/rubrics/active:
+    get:
+      tags: [Rubrics]
+      summary: Retrieve the active rubric configuration
+      x-roles: [authenticated]
+      responses:
+        "200":
+          description: Active rubric
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rubric"
+        "404":
+          $ref: "#/components/responses/RubricNotFound"
+
+  /api/flags:
+    get:
+      tags: [Flags]
+      summary: Retrieve feature flags and descriptions
+      x-roles: [authenticated]
+      responses:
+        "200":
+          description: Current flag values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagState"
+    put:
+      tags: [Flags]
+      summary: Update feature flags
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FlagUpdateRequest"
+      responses:
+        "200":
+          description: Updated flag values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlagUpdateResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+components:
+  securitySchemes:
+    swaClientPrincipal:
+      type: apiKey
+      in: header
+      name: x-ms-client-principal
+      description: |
+        Base64-encoded SWA authentication context. Includes `userDetails` and `userRoles`
+        (for example: `authenticated`, `admin`, `member`).
+
+  responses:
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Missing required fields
+    Unauthorized:
+      description: Missing or invalid auth context
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Authentication required
+    Forbidden:
+      description: Insufficient role for operation
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: FORBIDDEN
+              message: Insufficient permissions
+    TeamNotFound:
+      description: Referenced team does not exist
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: TEAM_NOT_FOUND
+              message: Team 'team-alpha' does not exist
+    TeamExists:
+      description: Team already exists
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: TEAM_EXISTS
+              message: Team 'team-alpha' already exists
+    InvalidAward:
+      description: Award category is invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: INVALID_AWARD
+              message: Invalid award category
+    SubmissionNotFound:
+      description: Submission ID does not exist
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: SUBMISSION_NOT_FOUND
+              message: Submission 'id' not found
+    AttendeeNotFound:
+      description: User profile not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: NOT_FOUND
+              message: User has not registered yet
+    RubricParseError:
+      description: Rubric markdown parse failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: RUBRIC_PARSE_ERROR
+              message: Markdown could not be parsed
+    RubricNotFound:
+      description: Active rubric not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: RUBRIC_NOT_FOUND
+              message: No active rubric configured
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+
+    Team:
+      type: object
+      required: [teamName, teamMembers]
+      properties:
+        teamName:
+          type: string
+        teamMembers:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TeamCreateRequest:
+      type: object
+      required: [teamName]
+      properties:
+        teamName:
+          type: string
+        teamMembers:
+          type: array
+          items:
+            type: string
+
+    TeamUpdateRequest:
+      type: object
+      required: [teamName]
+      properties:
+        teamName:
+          type: string
+        teamMembers:
+          type: array
+          items:
+            type: string
+
+    TeamUpdateResponse:
+      allOf:
+        - $ref: "#/components/schemas/Team"
+
+    TeamDeleteRequest:
+      type: object
+      required: [teamName]
+      properties:
+        teamName:
+          type: string
+
+    Attendee:
+      type: object
+      properties:
+        gitHubUsername:
+          type: string
+        firstName:
+          type: string
+        surname:
+          type: string
+        teamNumber:
+          type: integer
+        teamId:
+          type: string
+        registeredAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    AttendeeSelfRequest:
+      type: object
+      required: [firstName, surname]
+      properties:
+        firstName:
+          type: string
+        surname:
+          type: string
+        teamNumber:
+          type: integer
+          minimum: 1
+
+    AttendeeBulkRequest:
+      type: object
+      required: [attendees]
+      properties:
+        attendees:
+          type: array
+          items:
+            type: object
+            required: [firstName, surname]
+            properties:
+              firstName:
+                type: string
+              surname:
+                type: string
+
+    AttendeeBulkResponse:
+      type: object
+      required: [created, duplicates, attendees]
+      properties:
+        created:
+          type: integer
+        duplicates:
+          type: integer
+        attendees:
+          type: array
+          items:
+            type: object
+            required: [firstName, surname, id]
+            properties:
+              firstName:
+                type: string
+              surname:
+                type: string
+              id:
+                type: string
+
+    Score:
+      type: object
+      required: [teamName, category, criterion, points, maxPoints]
+      properties:
+        teamName:
+          type: string
+        category:
+          type: string
+        criterion:
+          type: string
+        points:
+          type: number
+        maxPoints:
+          type: number
+        scoredBy:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ScoreOverrideItem:
+      type: object
+      required: [category, criterion, points, maxPoints]
+      properties:
+        category:
+          type: string
+        criterion:
+          type: string
+        points:
+          type: number
+        maxPoints:
+          type: number
+
+    BonusOverrideItem:
+      type: object
+      required: [enhancement, points, verified]
+      properties:
+        enhancement:
+          type: string
+        points:
+          type: number
+        verified:
+          type: boolean
+
+    ScoreOverrideRequest:
+      type: object
+      required: [teamName, overrideReason]
+      properties:
+        teamName:
+          type: string
+        overrideReason:
+          type: string
+        scores:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScoreOverrideItem"
+        bonus:
+          type: array
+          items:
+            $ref: "#/components/schemas/BonusOverrideItem"
+
+    ScoreOverrideResponse:
+      type: object
+      required: [teamName, scoresUpserted, bonusUpserted, newTotal]
+      properties:
+        teamName:
+          type: string
+        scoresUpserted:
+          type: integer
+        bonusUpserted:
+          type: integer
+        newTotal:
+          type: number
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        teamName:
+          type: string
+        baseScore:
+          type: number
+        bonusScore:
+          type: number
+        totalScore:
+          type: number
+        maxBaseScore:
+          type: number
+        percentage:
+          type: number
+        grade:
+          type: string
+        awards:
+          type: array
+          items:
+            type: string
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        leaderboard:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+        lastUpdated:
+          type: string
+          format: date-time
+
+    Submission:
+      type: object
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+        teamName:
+          type: string
+        submittedBy:
+          type: string
+        submittedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [Pending, Approved, Rejected]
+        calculatedTotal:
+          type: number
+        reviewedBy:
+          type: string
+        reviewedAt:
+          type: string
+          format: date-time
+        reason:
+          type: string
+
+    SubmissionValidationRequest:
+      type: object
+      required: [submissionId, action]
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [approve, reject]
+        reason:
+          type: string
+          description: Required when action is reject
+
+    SubmissionValidationResponse:
+      type: object
+      required: [submissionId, teamName, status, reviewedBy, reviewedAt]
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+        teamName:
+          type: string
+        status:
+          type: string
+          enum: [Approved, Rejected]
+        reviewedBy:
+          type: string
+        reviewedAt:
+          type: string
+          format: date-time
+
+    Award:
+      type: object
+      properties:
+        category:
+          type: string
+          enum:
+            [
+              BestOverall,
+              SecurityChampion,
+              CostOptimizer,
+              BestArchitecture,
+              SpeedDemon,
+            ]
+        teamName:
+          type: string
+        assignedBy:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    AwardRequest:
+      type: object
+      required: [category, teamName]
+      properties:
+        category:
+          type: string
+          enum:
+            [
+              BestOverall,
+              SecurityChampion,
+              CostOptimizer,
+              BestArchitecture,
+              SpeedDemon,
+            ]
+        teamName:
+          type: string
+
+    TeamAssignmentRequest:
+      type: object
+      required: [teamCount]
+      properties:
+        teamCount:
+          type: integer
+          minimum: 1
+
+    TeamAssignmentMember:
+      type: object
+      required: [firstName, surname]
+      properties:
+        firstName:
+          type: string
+        surname:
+          type: string
+        gitHubUsername:
+          type: string
+          nullable: true
+
+    TeamAssignmentTeam:
+      type: object
+      properties:
+        teamName:
+          type: string
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamAssignmentMember"
+
+    TeamAssignmentResponse:
+      type: object
+      properties:
+        teams:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamAssignmentTeam"
+        totalAttendees:
+          type: integer
+        teamCount:
+          type: integer
+
+    UploadPayload:
+      type: object
+      required: [TeamName]
+      properties:
+        TeamName:
+          type: string
+        Timestamp:
+          type: string
+          format: date-time
+        Categories:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              Score:
+                type: number
+              MaxPoints:
+                type: number
+              Criteria:
+                type: object
+                additionalProperties:
+                  type: number
+        Bonus:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              Points:
+                type: number
+              Verified:
+                type: boolean
+        ShowcaseScore:
+          type: number
+        Total:
+          type: object
+          properties:
+            Base:
+              type: number
+            Bonus:
+              type: number
+            Showcase:
+              type: number
+            Grand:
+              type: number
+            MaxBase:
+              type: number
+        Grade:
+          type: string
+
+    UploadResponse:
+      type: object
+      required: [submissionId, teamName, status, message]
+      properties:
+        submissionId:
+          type: string
+          format: uuid
+        teamName:
+          type: string
+        status:
+          type: string
+          enum: [Pending]
+        message:
+          type: string
+
+    RubricSummary:
+      type: object
+      properties:
+        rubricId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        eventName:
+          type: string
+        version:
+          type: integer
+        baseTotal:
+          type: number
+        bonusTotal:
+          type: number
+        isActive:
+          type: boolean
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    RubricCategoryCriterion:
+      type: object
+      properties:
+        name:
+          type: string
+        maxPoints:
+          type: number
+
+    RubricCategory:
+      type: object
+      properties:
+        name:
+          type: string
+        maxPoints:
+          type: number
+        criteria:
+          type: array
+          items:
+            $ref: "#/components/schemas/RubricCategoryCriterion"
+
+    RubricBonusItem:
+      type: object
+      properties:
+        name:
+          type: string
+        points:
+          type: number
+        inputType:
+          type: string
+
+    RubricGradeBand:
+      type: object
+      properties:
+        minPercentage:
+          type: number
+        grade:
+          type: string
+        emoji:
+          type: string
+
+    RubricAwardDefinition:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        emoji:
+          type: string
+
+    Rubric:
+      type: object
+      properties:
+        rubricId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        version:
+          type: integer
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/RubricCategory"
+        bonus:
+          type: array
+          items:
+            $ref: "#/components/schemas/RubricBonusItem"
+        gradingScale:
+          type: array
+          items:
+            $ref: "#/components/schemas/RubricGradeBand"
+        awards:
+          type: array
+          items:
+            $ref: "#/components/schemas/RubricAwardDefinition"
+        baseTotal:
+          type: number
+        bonusTotal:
+          type: number
+        isActive:
+          type: boolean
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    RubricCreateRequest:
+      type: object
+      required: [name, sourceMarkdown]
+      properties:
+        name:
+          type: string
+        eventName:
+          type: string
+        sourceMarkdown:
+          type: string
+        activate:
+          type: boolean
+          default: true
+
+    RubricCreateResponse:
+      type: object
+      properties:
+        rubricId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        baseTotal:
+          type: number
+        bonusTotal:
+          type: number
+        isActive:
+          type: boolean
+        categoriesCount:
+          type: integer
+        bonusCount:
+          type: integer
+        message:
+          type: string
+
+    Flag:
+      type: object
+      additionalProperties:
+        type: boolean
+
+    FlagDescriptions:
+      type: object
+      additionalProperties:
+        type: string
+
+    FlagState:
+      type: object
+      properties:
+        flags:
+          $ref: "#/components/schemas/Flag"
+        descriptions:
+          $ref: "#/components/schemas/FlagDescriptions"
+
+    FlagUpdateRequest:
+      type: object
+      additionalProperties:
+        type: boolean
+
+    FlagUpdateResponse:
+      type: object
+      properties:
+        flags:
+          $ref: "#/components/schemas/Flag"

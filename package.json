@@ -1,0 +1,33 @@
+{
+  "name": "hacker-board",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Serverless microhack scoring dashboard — Azure Static Web Apps + managed Functions + Table Storage",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "start": "node api/server.js",
+    "start:docker": "docker build -t hacker-board . && docker run -p 8080:8080 hacker-board",
+    "build": "echo 'No build step for vanilla JS'",
+    "test": "cd api && npm test",
+    "test:ui": "vitest run --config vitest.config.js",
+    "test:all": "npm test && npm run test:ui",
+    "lint": "echo 'Add ESLint configuration'"
+  },
+  "devDependencies": {
+    "@azure/cosmos": "^4.9.1",
+    "@azure/identity": "^4.13.0",
+    "happy-dom": "^20.6.1",
+    "vitest": "^4.0.18"
+  },
+  "overrides": {
+    "cookie": "^1.1.0",
+    "glob": "^13.0.0",
+    "inflight": "npm:@npmcli/fs@4.0.0",
+    "rimraf": "^6.0.0",
+    "sudo-prompt": "npm:@vscode/sudo-prompt@^9.3.1",
+    "tmp": "^0.2.5"
+  }
+}

@@ -1,0 +1,158 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "Dockerfile"
+      - ".dockerignore"
+      - ".github/workflows/deploy-app.yml"
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - "src/**"
+      - "api/**"
+      - "Dockerfile"
+      - ".github/workflows/deploy-app.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ACR_NAME: crhackerboardprod
+  IMAGE_NAME: hacker-board
+  APP_NAME: app-hacker-board-prod
+  RESOURCE_GROUP: rg-hacker-board-prod
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: |
+            package-lock.json
+            api/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install API dependencies
+        run: cd api && npm ci
+
+      - name: Run API tests
+        run: cd api && npm test
+
+      - name: Run frontend UI tests
+        run: npm run test:ui
+
+      - name: Audit API dependencies
+        run: cd api && npm audit --audit-level=high
+
+  docker-build-push:
+    name: Build & Push Container
+    needs: build-and-test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Login to ACR
+        run: az acr login --name ${{ env.ACR_NAME }}
+
+      - name: Generate image tag
+        id: meta
+        run: |
+          TAG="${{ github.sha }}"
+          echo "tag=${TAG:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push container image
+        run: |
+          IMAGE="${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}"
+          TAG="${{ steps.meta.outputs.tag }}"
+          docker build -t "${IMAGE}:${TAG}" -t "${IMAGE}:latest" .
+          docker push "${IMAGE}:${TAG}"
+          docker push "${IMAGE}:latest"
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: "${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+
+  deploy:
+    name: Deploy to App Service
+    needs: docker-build-push
+    runs-on: ubuntu-latest
+    outputs:
+      app_url: ${{ steps.deploy.outputs.webapp-url }}
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App
+        id: deploy
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.APP_NAME }}
+          images: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ needs.docker-build-push.outputs.image_tag }}
+
+  smoke-test:
+    name: Post-Deploy Smoke Test
+    needs: deploy
+    if: needs.deploy.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for deployment to stabilize
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          URL="https://${{ env.APP_NAME }}.azurewebsites.net/api/health"
+          echo "Checking: $URL"
+          RESPONSE=$(curl -s -o /tmp/health.json -w "%{http_code}" "$URL")
+          cat /tmp/health.json | python3 -m json.tool || true
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "::error::Health check failed with status $RESPONSE"
+            exit 1
+          fi
+          echo "Health check passed"
+
+      - name: Verify API reachability
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.APP_NAME }}.azurewebsites.net/api/teams")
+          echo "GET /api/teams returned: $STATUS"
+          if [ "$STATUS" -eq 500 ] || [ "$STATUS" -eq 502 ] || [ "$STATUS" -eq 503 ]; then
+            echo "::error::API returned server error $STATUS"
+            exit 1
+          fi
+          echo "API reachability check passed"

@@ -1,0 +1,22 @@
+{
+  "recommendations": [
+    "GitHub.copilot-chat",
+    "ms-azuretools.vscode-azure-github-copilot",
+    "ms-azuretools.vscode-azure-mcp-server",
+    "ms-azuretools.vscode-azurefunctions",
+    "ms-azuretools.vscode-azurestaticwebapps",
+    "ms-vscode.azurecli",
+    "ms-azuretools.vscode-bicep",
+    "Azurite.azurite",
+    "ms-vscode.powershell",
+    "ms-python.python",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "EditorConfig.EditorConfig",
+    "vitest.explorer",
+    "ms-playwright.playwright",
+    "github.vscode-github-actions",
+    "redhat.vscode-yaml",
+    "eamodio.gitlens"
+  ]
+}
