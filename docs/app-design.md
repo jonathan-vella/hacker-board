@@ -9,12 +9,11 @@
 
 ## Quick Links
 
-| Area | Link                                          | Description                                  |
-| ---- | --------------------------------------------- | -------------------------------------------- |
-| 🔌   | [API Specification](api-spec.md)              | Endpoint contracts and payloads              |
-| 📋   | [Product Requirements](app-prd.md)            | Feature requirements and acceptance criteria |
-| 🧱   | [Scaffold Guide](app-scaffold.md)             | Recommended implementation structure         |
-| 🚀   | [Handoff Checklist](app-handoff-checklist.md) | Deployment wiring and validation steps       |
+| Area | Link                                    | Description                                  |
+| ---- | --------------------------------------- | -------------------------------------------- |
+| 🔌   | [API Specification](api-spec.md)        | Endpoint contracts and payloads              |
+| 📋   | [Product Requirements](app-prd.md)      | Feature requirements and acceptance criteria |
+| 🚀   | [Deployment Guide](deployment-guide.md) | End-to-end deployment instructions           |
 
 ## Problem, Users, Value
 
@@ -189,9 +188,7 @@ graph LR
 
 - [Product Requirements](app-prd.md)
 - [API Specification](api-spec.md)
-- [Handoff Checklist](app-handoff-checklist.md)
-- [Scaffold Guide](app-scaffold.md)
-- [Admin Procedures](admin-procedures.md)
+- [Deployment Guide](deployment-guide.md)
 - [Repository README](../README.md)
 
 ---

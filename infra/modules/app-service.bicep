@@ -36,8 +36,13 @@ param gitHubOAuthClientSecret string
 @description('Comma-separated admin identities in provider:username format (e.g. "github:octocat"). Injected as ADMIN_USERS app setting.')
 param adminUsers string
 
+@description('Resource ID of the VNet subnet for App Service regional VNet integration (B7).')
+param vnetSubnetId string = ''
+
 // ──────────────────────────────────────────────────────────────────────────────
-// 2a. App Service Plan — Premium v3 P1V3 Linux via AVM
+// 2a. App Service Plan — Standard S1 Linux via AVM
+// S1 supports regional VNet integration; P1v3 requires PremiumV3 quota not
+// available in this subscription.
 // ──────────────────────────────────────────────────────────────────────────────
 
 module appServicePlan 'br/public:avm/res/web/serverfarm:0.7.0' = {
@@ -48,7 +53,7 @@ module appServicePlan 'br/public:avm/res/web/serverfarm:0.7.0' = {
     tags: tags
     kind: 'Linux'
     reserved: true
-    skuName: 'P1v3'
+    skuName: 'S1'
     skuCapacity: 1
   }
 }
@@ -71,6 +76,7 @@ module webApp 'br/public:avm/res/web/site:0.21.0' = {
       systemAssigned: true
     }
     httpsOnly: true
+    virtualNetworkSubnetResourceId: !empty(vnetSubnetId) ? vnetSubnetId : null
     siteConfig: {
       linuxFxVersion: 'DOCKER|${acrLoginServer}/${containerImage}'
       acrUseManagedIdentityCreds: true
@@ -78,6 +84,7 @@ module webApp 'br/public:avm/res/web/site:0.21.0' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true
+      vnetRouteAllEnabled: !empty(vnetSubnetId)
     }
     configs: [
       {

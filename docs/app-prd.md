@@ -767,7 +767,7 @@ Then add the required workflow surfaces from PRD features:
 
 - Custom domain configuration (handled by platform team)
 - Infrastructure provisioning (already deployed)
-- CI/CD pipeline setup (covered in [app-handoff-checklist.md](./app-handoff-checklist.md))
+- CI/CD pipeline setup (covered in [deployment-guide.md](./deployment-guide.md))
 - Load testing
 - Multi-language / i18n support
 
@@ -778,7 +778,7 @@ Then add the required workflow surfaces from PRD features:
 - [Scoring Rubric Template](../templates/scoring-rubric.template.md) — Scoring criteria template
 - [Scoring Rubric Reference](../templates/scoring-rubric.reference.md) — Reference rubric (105+25 pts)
 - [API Specification](api-spec.md) — Full API specification
-- [App Handoff Checklist](app-handoff-checklist.md) — Infrastructure wiring instructions
+- [Deployment Guide](deployment-guide.md) — End-to-end deployment instructions
 - [App Service Easy Auth Docs](https://learn.microsoft.com/azure/app-service/overview-authentication-authorization)
 - [Cosmos DB NoSQL SDK for Node.js](https://learn.microsoft.com/azure/cosmos-db/nosql/sdk-nodejs)
 - [Cosmos DB RBAC with Entra ID](https://learn.microsoft.com/azure/cosmos-db/nosql/security/how-to-grant-data-plane-role-based-access)

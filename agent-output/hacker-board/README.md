@@ -61,16 +61,16 @@
 
 > **Updated for Phase 18.4** — App Service + ACR migration (replaces original Cosmos DB migration plan)
 
-| File                                                             | Description                                                                    |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [04-implementation-plan.md](04-implementation-plan.md)           | Phase 18.4 — App Service + ACR migration implementation plan (4 phases)        |
-| [04-preflight-check.md](04-preflight-check.md)                   | AVM schema validation, pitfall analysis, advisory items — Step 4b (prior plan) |
-| [04-governance-constraints.md](04-governance-constraints.md)     | Governance policy analysis (21 assignments, 2 mandatory adjustments)           |
-| [04-governance-constraints.json](04-governance-constraints.json) | Machine-readable governance policy data                                        |
-| [04-dependency-diagram.py](04-dependency-diagram.py)             | Python source for deployment dependency diagram (ACR + App Service)            |
-| [04-dependency-diagram.png](04-dependency-diagram.png)           | Deployment dependency diagram (generated)                                      |
-| [04-runtime-diagram.py](04-runtime-diagram.py)                   | Python source for runtime flow diagram (Express + Easy Auth + Cosmos)          |
-| [04-runtime-diagram.png](04-runtime-diagram.png)                 | Runtime flow diagram (generated)                                               |
+| File                                                             | Description                                                                           |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| [04-implementation-plan.md](04-implementation-plan.md)           | Phase 18.4 — App Service + ACR + VNet/PE implementation plan (5 phases, 11 resources) |
+| [04-preflight-check.md](04-preflight-check.md)                   | AVM schema validation, pitfall analysis, advisory items — Step 4b (prior plan)        |
+| [04-governance-constraints.md](04-governance-constraints.md)     | Governance policy analysis (23 assignments, 7 blockers, 4 mandatory adjustments)      |
+| [04-governance-constraints.json](04-governance-constraints.json) | Machine-readable governance policy data                                               |
+| [04-dependency-diagram.py](04-dependency-diagram.py)             | Python source for deployment dependency diagram (incl. VNet/PE/DNS)                   |
+| [04-dependency-diagram.png](04-dependency-diagram.png)           | Deployment dependency diagram (generated)                                             |
+| [04-runtime-diagram.py](04-runtime-diagram.py)                   | Python source for runtime flow diagram (private endpoint data path)                   |
+| [04-runtime-diagram.png](04-runtime-diagram.png)                 | Runtime flow diagram (generated)                                                      |
 
 ---
 
@@ -84,9 +84,9 @@
 
 ## Step 6 Artifacts
 
-| File                                                 | Description                                                                |
-| ---------------------------------------------------- | -------------------------------------------------------------------------- |
-| [06-deployment-summary.md](06-deployment-summary.md) | Deployment summary — pending redeployment for App Service + ACR (Phase 18) |
+| File                                                 | Description                                                                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| [06-deployment-summary.md](06-deployment-summary.md) | Deployment summary — `hacker-board-20260221-153137` Succeeded; 14 resources, VNet+PE+AppService (Phase 18.4) |
 
 ---
 

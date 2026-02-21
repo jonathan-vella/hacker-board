@@ -31,7 +31,7 @@
 | **Management Group Assignments** | 9 (inherited from root tenant MG)                      |
 | **Subscription Assignments**     | 6 (subscription scope)                                 |
 | **Resource Group Assignments**   | 6 (ArcBox RG only — not relevant)                      |
-| **Deny Policies**                | 5 blockers requiring action                            |
+| **Deny Policies**                | 6 blockers requiring action                            |
 | **Audit Policies**               | 44+ (warnings only, no deployment blockers)            |
 | **Modify/Deploy Policies**       | 27 auto-remediation rules                              |
 | **Status**                       | COMPLETE                                               |
@@ -123,6 +123,26 @@ These policies **will block deployments** if not satisfied. Each must be address
 - This is a **hard architectural constraint** — cannot be worked around within Bicep
 
 **Resolution (D27)**: The Entra ID app registration (formerly `entra-app.bicep`) is moved to a post-deployment step in `deploy.ps1`, using the deployer’s own MFA-authenticated Graph token.
+
+### B7 — Cosmos DB Private Endpoint Required (USER-REPORTED)
+
+| Field            | Value                                                                           |
+| ---------------- | ------------------------------------------------------------------------------- |
+| **Assignment**   | User-reported governance constraint                                             |
+| **Display Name** | Cosmos DB must use Private Endpoint                                             |
+| **Scope**        | Organizational policy                                                           |
+| **Effect**       | **Deny** (Cosmos DB without private endpoint is non-compliant)                  |
+| **Impact**       | Cosmos DB account must disable public network access and use a private endpoint |
+
+**Action Required**: **CRITICAL**. Cosmos DB must be accessed exclusively through a private endpoint. This requires:
+
+- A **Virtual Network** with two subnets: one for the private endpoint, one for App Service VNet integration
+- A **Private DNS Zone** (`privatelink.documents.azure.com`) linked to the VNet
+- A **Private Endpoint** connecting Cosmos DB to the VNet subnet
+- **App Service VNet integration** so the app can resolve and reach the Cosmos DB private endpoint
+- Cosmos DB `publicNetworkAccess` set to `Disabled`
+
+**Resolution (D31)**: Add networking layer (VNet + Private Endpoint + Private DNS) and integrate App Service into the VNet. This changes the architecture from public-endpoint Cosmos to fully private connectivity.
 
 ### B5 — MCAPSGov Deny Policies (Policy Set — 11 rules)
 
@@ -263,13 +283,16 @@ These policies **automatically modify** resources after deployment. Plan for the
 
 ### Resources Planned
 
-| Resource                       | Type                                                            | Affected By Policies?                           |
-| ------------------------------ | --------------------------------------------------------------- | ----------------------------------------------- |
-| Resource Group                 | `Microsoft.Resources/subscriptions/resourceGroups`              | **YES** — B3 (9 required tags)                  |
-| Static Web App (Standard)      | `Microsoft.Web/staticSites`                                     | No blockers; tag inheritance auto-applies       |
-| Cosmos DB Account (Serverless) | `Microsoft.DocumentDB/databaseAccounts`                         | **YES** — Cosmos DB local auth will be DISABLED |
-| Cosmos DB SQL Database         | `Microsoft.DocumentDB/databaseAccounts/sqlDatabases`            | Inherits from account                           |
-| Cosmos DB Containers (6)       | `Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers` | Inherits from account                           |
+| Resource                       | Type                                                            | Affected By Policies?                                                  |
+| ------------------------------ | --------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Resource Group                 | `Microsoft.Resources/subscriptions/resourceGroups`              | **YES** — B3 (9 required tags)                                         |
+| App Service (Linux Container)  | `Microsoft.Web/sites`                                           | No blockers; tag inheritance auto-applies; needs VNet integration (B7) |
+| Cosmos DB Account (Serverless) | `Microsoft.DocumentDB/databaseAccounts`                         | **YES** — local auth DISABLED + **private endpoint required** (B7)     |
+| Cosmos DB SQL Database         | `Microsoft.DocumentDB/databaseAccounts/sqlDatabases`            | Inherits from account                                                  |
+| Cosmos DB Containers (6)       | `Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers` | Inherits from account                                                  |
+| Virtual Network (NEW)          | `Microsoft.Network/virtualNetworks`                             | **YES** — required for private endpoint (B7)                           |
+| Private Endpoint (NEW)         | `Microsoft.Network/privateEndpoints`                            | **YES** — required for Cosmos DB private connectivity (B7)             |
+| Private DNS Zone (NEW)         | `Microsoft.Network/privateDnsZones`                             | **YES** — required for private endpoint DNS resolution (B7)            |
 
 > **Removed from plan** (D27): Deployment Script (`Microsoft.Resources/deploymentScripts`) — blocked by B6 (storage key auth deny).
 > Entra ID app registration moved to `deploy.ps1` post-deployment step.
@@ -341,7 +364,33 @@ The B6 governance policy blocks key-based auth on all storage accounts. Since `M
 
 The deployer must authenticate with MFA before running deployments. This is an operational requirement, not a code change. CI/CD pipelines using service principals are unaffected.
 
-### 5. No Code Changes Required For
+### 5. Cosmos DB Private Endpoint + VNet Integration (Architecture Change — MANDATORY)
+
+Cosmos DB must be accessed exclusively via private endpoint (B7). This requires a full networking layer:
+
+**New Bicep modules**:
+
+- `modules/networking.bicep` — VNet with two subnets:
+  - `snet-pe` — for Private Endpoint (no delegations)
+  - `snet-app` — for App Service VNet integration (delegated to `Microsoft.Web/serverFarms`)
+- `modules/cosmos-private-endpoint.bicep` — Private Endpoint + Private DNS Zone + VNet link
+
+**Bicep changes to existing modules**:
+
+- `modules/cosmos-account.bicep` — set `publicNetworkAccess: 'Disabled'`
+- `modules/app-service.bicep` — add `virtualNetworkSubnetId` for VNet integration
+
+**Naming** (CAF conventions):
+
+| Resource               | Name                              |
+| ---------------------- | --------------------------------- |
+| Virtual Network        | `vnet-hacker-board-prod`          |
+| PE Subnet              | `snet-pe`                         |
+| App Integration Subnet | `snet-app`                        |
+| Private Endpoint       | `pep-cosmos-hacker-board-prod`    |
+| Private DNS Zone       | `privatelink.documents.azure.com` |
+
+### 6. No Code Changes Required For
 
 - Classic resource block — not using any classic resources
 - VM SKU restrictions — no VMs
@@ -351,11 +400,12 @@ The deployer must authenticate with MFA before running deployments. This is an o
 
 ---
 
-> **Bottom Line**: Three mandatory adjustments are needed:
+> **Bottom Line**: Four mandatory adjustments are needed:
 >
 > 1. **9 required tags on resource group** (Bicep template change)
 > 2. **Cosmos DB must use Entra ID RBAC** (no connection strings — architecture + code change)
 > 3. **Deployment scripts cannot be used** — B6 policy blocks storage key auth (move Entra app registration to `deploy.ps1`)
+> 4. **Cosmos DB must use a Private Endpoint** — requires VNet, Private DNS Zone, Private Endpoint, and App Service VNet integration (B7 — architecture + Bicep change)
 >
 > Everything else either doesn't apply to HackerBoard or is auto-remediated.
 

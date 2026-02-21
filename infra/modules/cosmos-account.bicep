@@ -27,7 +27,7 @@ module cosmosAccount 'br/public:avm/res/document-db/database-account:0.18.0' = {
     enableAutomaticFailover: false
     minimumTlsVersion: 'Tls12'
     networkRestrictions: {
-      publicNetworkAccess: 'Enabled'
+      publicNetworkAccess: 'Disabled'
     }
     failoverLocations: [
       {

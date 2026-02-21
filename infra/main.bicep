@@ -69,6 +69,9 @@ param gitHubOAuthClientSecret string = ''
 @description('Comma-separated admin identities in provider:username format (e.g. "github:octocat"). Required at deploy time — determines who gets the admin role.')
 param adminUsers string
 
+@description('VNet address space for private connectivity. Default: 10.0.0.0/16')
+param vnetAddressPrefix string = '10.0.0.0/16'
+
 @description('UTC timestamp used to generate unique sub-deployment names. Prevents DeploymentActive conflicts on re-deploy.')
 param deploymentTimestamp string = utcNow('yyyyMMddHHmmss')
 
@@ -86,6 +89,12 @@ var aspName = 'asp-${suffix}'
 
 // Web App: CAF abbreviation 'app'
 var appName = 'app-${suffix}'
+
+// Virtual Network: CAF abbreviation 'vnet'
+var vnetName = 'vnet-${suffix}'
+
+// Private Endpoint for Cosmos DB: CAF abbreviation 'pep'
+var pepCosmosName = 'pep-cosmos-${suffix}'
 
 // All 9 governance tags required by B3 (JV-Enforce Resource Group Tags v3).
 // Tag inheritance policy auto-propagates these from the RG to child resources.
@@ -138,6 +147,30 @@ module cosmosAccount 'modules/cosmos-account.bicep' = {
   }
 }
 
+// Phase 2.5: Networking — VNet + subnets (required for Cosmos PE + App Service VNet integration)
+module networking 'modules/networking.bicep' = {
+  name: 'networking-${deploymentTimestamp}'
+  params: {
+    name: vnetName
+    location: location
+    tags: tags
+    addressPrefix: vnetAddressPrefix
+  }
+}
+
+// Phase 2.5: Cosmos DB Private Endpoint + Private DNS Zone
+module cosmosPrivateEndpoint 'modules/cosmos-private-endpoint.bicep' = {
+  name: 'cosmos-pe-${deploymentTimestamp}'
+  params: {
+    name: pepCosmosName
+    location: location
+    tags: tags
+    subnetId: networking.outputs.snetPeId
+    cosmosAccountId: cosmosAccount.outputs.resourceId
+    vnetId: networking.outputs.vnetId
+  }
+}
+
 // Phase 3: Container Registry
 module acr 'modules/acr.bicep' = {
   name: 'acr-${deploymentTimestamp}'
@@ -164,6 +197,7 @@ module appService 'modules/app-service.bicep' = {
     gitHubOAuthClientId: gitHubOAuthClientId
     gitHubOAuthClientSecret: gitHubOAuthClientSecret
     adminUsers: adminUsers
+    vnetSubnetId: networking.outputs.snetAppId
   }
 }
 
@@ -200,6 +234,12 @@ output cosmosEndpoint string = cosmosAccount.outputs.accountEndpoint
 
 @description('Name of the Cosmos DB account.')
 output cosmosAccountName string = cosmosAccount.outputs.accountName
+
+@description('Name of the Virtual Network.')
+output vnetName string = networking.outputs.vnetName
+
+@description('Resource ID of the Cosmos DB Private Endpoint.')
+output privateEndpointId string = cosmosPrivateEndpoint.outputs.privateEndpointId
 
 // NOTE: appInsightsConnectionString intentionally omitted from outputs.
 // It contains the instrumentation key, which would be visible in deployment

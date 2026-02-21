@@ -4,7 +4,8 @@
 
 .DESCRIPTION
     Provisions App Service for Linux Containers + Azure Container Registry (ACR),
-    Azure Cosmos DB NoSQL (Serverless), Log Analytics, and Application Insights.
+    Azure Cosmos DB NoSQL (Serverless) with Private Endpoint, VNet integration,
+    Log Analytics, and Application Insights.
     Easy Auth (GitHub OAuth) is configured via Bicep authSettingsV2. Admin role
     injection uses the ADMIN_USERS env var. Authentication to Cosmos DB uses
     DefaultAzureCredential (managed identity) — no connection strings or access
@@ -282,6 +283,12 @@ if ($deploymentResult.properties.outputs) {
         if ($o.cosmosAccountName.value) {
             Write-Host "     Cosmos Account:   $($o.cosmosAccountName.value)"
         }
+        if ($o.vnetName.value) {
+            Write-Host "     VNet Name:        $($o.vnetName.value)"
+        }
+        if ($o.privateEndpointId.value) {
+            Write-Host "     Private Endpoint: $($o.privateEndpointId.value)"
+        }
 
     }
 
@@ -355,6 +362,47 @@ if ($deploymentResult.properties.outputs) {
     }
 
     # App Service app settings verification
+    if ($o.appServiceName.value) {
+        $vnetIntegration = az webapp vnet-integration list `
+            --name $o.appServiceName.value `
+            --resource-group $ResourceGroupName `
+            --query "length(@)" `
+            --output tsv 2>&1
+        if ([int]$vnetIntegration -gt 0) {
+            Write-Host "  \u2705 App Service VNet integration: active" -ForegroundColor Green
+        } else {
+            Write-Host "  \u26a0\ufe0f  App Service VNet integration not detected" -ForegroundColor Yellow
+        }
+    }
+
+    # Private Endpoint verification
+    if ($o.cosmosAccountName.value) {
+        $peState = az network private-endpoint list `
+            --resource-group $ResourceGroupName `
+            --query "[?contains(name,'cosmos')].provisioningState | [0]" `
+            --output tsv 2>&1
+        if ($peState -eq 'Succeeded') {
+            Write-Host "  \u2705 Cosmos DB Private Endpoint: Succeeded" -ForegroundColor Green
+        } elseif (-not [string]::IsNullOrEmpty($peState)) {
+            Write-Host "  \u26a0\ufe0f  Cosmos DB Private Endpoint state: $peState" -ForegroundColor Yellow
+        }
+    }
+
+    # Cosmos DB public network access verification
+    if ($o.cosmosAccountName.value) {
+        $publicAccess = az cosmosdb show `
+            --name $o.cosmosAccountName.value `
+            --resource-group $ResourceGroupName `
+            --query "publicNetworkAccess" `
+            --output tsv 2>&1
+        if ($publicAccess -eq 'Disabled') {
+            Write-Host "  \u2705 Cosmos DB publicNetworkAccess: Disabled (B7 compliant)" -ForegroundColor Green
+        } else {
+            Write-Host "  \u26a0\ufe0f  Cosmos DB publicNetworkAccess: $publicAccess" -ForegroundColor Yellow
+        }
+    }
+
+    # App Service app settings verification (original)
     if ($o.appServiceName.value) {
         $cosmosEndpointSetting = az webapp config appsettings list `
             --name $o.appServiceName.value `

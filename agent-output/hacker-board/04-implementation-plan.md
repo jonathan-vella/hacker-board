@@ -35,7 +35,7 @@
 
 > **Subscription**: noalz (`00858ffc-dded-4f0f-8bbf-e17fff0d47d9`)
 > **Tenant**: Lord of the Cloud (`2d04cb4c-999b-4e60-a3a7-e8993edc768b`)
-> **Deployment Strategy**: Phased (4 phases — Phases 1–2 already deployed) | **Est. Implementation**: ~2.5 hours
+> **Deployment Strategy**: Phased (5 phases — Phases 1–2 already deployed) | **Est. Implementation**: ~4 hours
 
 This plan replaces the **Azure Static Web App** module with **Azure App Service for Linux Containers** + **Azure Container Registry (ACR)**, addressing the SWA managed identity sidecar `expires_on` bug that makes Cosmos DB MI authentication unreliable. The Express adapter pattern (Steps 18.1–18.3) wraps existing Azure Functions handlers without modifying business logic; this plan covers **Step 18.4 — Bicep infrastructure changes only**.
 
@@ -46,6 +46,7 @@ This plan replaces the **Azure Static Web App** module with **Azure App Service 
 | D28 | Replace SWA with App Service for Linux Containers + ACR                    |
 | D29 | Express adapter wraps existing Functions handlers unchanged                |
 | D30 | App Service Easy Auth for GitHub OAuth — same `/.auth/*` + header contract |
+| D31 | Cosmos DB accessed exclusively via Private Endpoint (B7 governance)        |
 
 ### What Changes (Infrastructure)
 
@@ -57,6 +58,8 @@ This plan replaces the **Azure Static Web App** module with **Azure App Service 
 | Managed identity   | SWA system-assigned MI (broken sidecar)    | App Service system-assigned MI (battle-tested)                         |
 | Image pull         | N/A                                        | `acrPull` role assignment — MI-based, no admin credentials             |
 | Cosmos RBAC        | SWA MI → Cosmos Data Contributor           | App Service MI → Cosmos Data Contributor (same role, different caller) |
+| **Networking**     | **Public endpoint (no VNet)**              | **VNet + Private Endpoint + Private DNS for Cosmos DB (B7)**           |
+| **Cosmos access**  | **Public network**                         | **Private endpoint only — public access disabled**                     |
 
 ### What Stays Unchanged
 
@@ -64,25 +67,28 @@ This plan replaces the **Azure Static Web App** module with **Azure App Service 
 | ------------------------------ | ---------------------------------------- | ------- | ------------------------------------------- |
 | Log Analytics Workspace        | `avm/res/operational-insights/workspace` | 0.15.0  | No changes                                  |
 | Application Insights           | `avm/res/insights/component`             | 0.7.1   | No changes                                  |
-| Cosmos DB Account (Serverless) | `avm/res/document-db/database-account`   | 0.18.0  | No changes                                  |
+| Cosmos DB Account (Serverless) | `avm/res/document-db/database-account`   | 0.18.0  | Modified — `publicNetworkAccess: Disabled`  |
 | Cosmos DB RBAC module          | Native Bicep resource                    | —       | Same contract, different principalId source |
 
 ---
 
 ## Resource Inventory
 
-| Resource                | Type                                          | SKU / Tier   | AVM Status | AVM Module                               | Version  | Dependencies                   | Status      |
-| ----------------------- | --------------------------------------------- | ------------ | ---------- | ---------------------------------------- | -------- | ------------------------------ | ----------- |
-| Log Analytics Workspace | `Microsoft.OperationalInsights/workspaces`    | PerGB2018    | ✅ AVM     | `avm/res/operational-insights/workspace` | `0.15.0` | —                              | ✅ Deployed |
-| Application Insights    | `Microsoft.Insights/components`               | web          | ✅ AVM     | `avm/res/insights/component`             | `0.7.1`  | Log Analytics                  | ✅ Deployed |
-| Cosmos DB Account       | `Microsoft.DocumentDB/databaseAccounts`       | Serverless   | ✅ AVM     | `avm/res/document-db/database-account`   | `0.18.0` | —                              | ✅ Deployed |
-| **Container Registry**  | `Microsoft.ContainerRegistry/registries`      | **Basic**    | ✅ AVM     | `avm/res/container-registry/registry`    | `0.10.0` | —                              | ⬜ New      |
-| **App Service Plan**    | `Microsoft.Web/serverfarms`                   | **B1 Linux** | ✅ AVM     | `avm/res/web/serverfarm`                 | `0.7.0`  | —                              | ⬜ New      |
-| **Web App (Container)** | `Microsoft.Web/sites`                         | Linux        | ✅ AVM     | `avm/res/web/site`                       | `0.21.0` | ASP, ACR, Cosmos, App Insights | ⬜ New      |
-| **ACR Pull Role**       | `Microsoft.Authorization/roleAssignments`     | —            | ❌ Native  | (simple role assignment)                 | —        | ACR, Web App MI                | ⬜ New      |
-| Cosmos DB RBAC          | `Microsoft.DocumentDB/.../sqlRoleAssignments` | —            | ❌ Native  | (Cosmos data-plane RBAC)                 | —        | Cosmos DB, Web App MI          | 🔄 Modified |
+| Resource                | Type                                          | SKU / Tier   | AVM Status | AVM Module                               | Version  | Dependencies                         | Status      |
+| ----------------------- | --------------------------------------------- | ------------ | ---------- | ---------------------------------------- | -------- | ------------------------------------ | ----------- |
+| Log Analytics Workspace | `Microsoft.OperationalInsights/workspaces`    | PerGB2018    | ✅ AVM     | `avm/res/operational-insights/workspace` | `0.15.0` | —                                    | ✅ Deployed |
+| Application Insights    | `Microsoft.Insights/components`               | web          | ✅ AVM     | `avm/res/insights/component`             | `0.7.1`  | Log Analytics                        | ✅ Deployed |
+| Cosmos DB Account       | `Microsoft.DocumentDB/databaseAccounts`       | Serverless   | ✅ AVM     | `avm/res/document-db/database-account`   | `0.18.0` | —                                    | 🔄 Modified |
+| **Virtual Network**     | `Microsoft.Network/virtualNetworks`           | **—**        | ✅ AVM     | `avm/res/network/virtual-network`        | `0.7.2`  | —                                    | ⬜ New      |
+| **Private DNS Zone**    | `Microsoft.Network/privateDnsZones`           | **—**        | ✅ AVM     | `avm/res/network/private-dns-zone`       | `0.8.0`  | VNet                                 | ⬜ New      |
+| **Private Endpoint**    | `Microsoft.Network/privateEndpoints`          | **—**        | ✅ AVM     | `avm/res/network/private-endpoint`       | `0.11.1` | VNet, Cosmos DB, Private DNS         | ⬜ New      |
+| **Container Registry**  | `Microsoft.ContainerRegistry/registries`      | **Basic**    | ✅ AVM     | `avm/res/container-registry/registry`    | `0.10.0` | —                                    | ⬜ New      |
+| **App Service Plan**    | `Microsoft.Web/serverfarms`                   | **B1 Linux** | ✅ AVM     | `avm/res/web/serverfarm`                 | `0.7.0`  | —                                    | ⬜ New      |
+| **Web App (Container)** | `Microsoft.Web/sites`                         | Linux        | ✅ AVM     | `avm/res/web/site`                       | `0.21.0` | ASP, ACR, Cosmos, App Insights, VNet | ⬜ New      |
+| **ACR Pull Role**       | `Microsoft.Authorization/roleAssignments`     | —            | ❌ Native  | (simple role assignment)                 | —        | ACR, Web App MI                      | ⬜ New      |
+| Cosmos DB RBAC          | `Microsoft.DocumentDB/.../sqlRoleAssignments` | —            | ❌ Native  | (Cosmos data-plane RBAC)                 | —        | Cosmos DB, Web App MI                | 🔄 Modified |
 
-> **AVM coverage**: 6 of 8 resources use AVM modules. The 2 native resources are simple role assignments where AVM would add unnecessary complexity.
+> **AVM coverage**: 9 of 11 resources use AVM modules. The 2 native resources are simple role assignments where AVM would add unnecessary complexity.
 
 ---
 
@@ -90,34 +96,174 @@ This plan replaces the **Azure Static Web App** module with **Azure App Service 
 
 ```text
 infra/
-├── main.bicep              ← MODIFY (replace SWA module, add ACR + App Service)
+├── main.bicep              ← MODIFY (replace SWA module, add networking + ACR + App Service)
 ├── main.bicepparam         ← MODIFY (new OAuth + container params, remove SWA params)
 ├── azuredeploy.json        ← REBUILD (az bicep build)
 ├── deploy.ps1              ← MODIFY (separate Phase 18.6)
 └── modules/
-    ├── log-analytics.bicep     NO CHANGE
-    ├── app-insights.bicep      NO CHANGE
-    ├── cosmos-account.bicep    NO CHANGE
-    ├── cosmos-rbac.bicep       NO CHANGE (same interface, different principalId source)
-    ├── acr.bicep               NEW — ACR Basic via AVM
-    ├── app-service.bicep       NEW — ASP B1 + Web App + Easy Auth + acrPull via AVM
-    └── static-web-app.bicep    DELETE (deferred to Phase 18.9 cleanup)
+    ├── log-analytics.bicep            NO CHANGE
+    ├── app-insights.bicep             NO CHANGE
+    ├── cosmos-account.bicep           MODIFY (publicNetworkAccess: Disabled)
+    ├── cosmos-rbac.bicep              NO CHANGE (same interface, different principalId source)
+    ├── networking.bicep               NEW — VNet + 2 subnets via AVM
+    ├── cosmos-private-endpoint.bicep  NEW — PE + Private DNS Zone + VNet link via AVM
+    ├── acr.bicep                      NEW — ACR Basic via AVM
+    ├── app-service.bicep              NEW — ASP B1 + Web App + Easy Auth + acrPull + VNet integration via AVM
+    └── static-web-app.bicep           DELETE (deferred to Phase 18.9 cleanup)
 ```
 
-| Module                | AVM Source                                                        | Version                | Purpose                             |
-| --------------------- | ----------------------------------------------------------------- | ---------------------- | ----------------------------------- |
-| log-analytics.bicep   | `br/public:avm/res/operational-insights/workspace`                | `0.15.0`               | Log Analytics Workspace (unchanged) |
-| app-insights.bicep    | `br/public:avm/res/insights/component`                            | `0.7.1`                | Application Insights (unchanged)    |
-| cosmos-account.bicep  | `br/public:avm/res/document-db/database-account`                  | `0.18.0`               | Cosmos DB Serverless (unchanged)    |
-| cosmos-rbac.bicep     | Native `Microsoft.DocumentDB` resource                            | —                      | Cosmos Data Contributor (unchanged) |
-| **acr.bicep**         | `br/public:avm/res/container-registry/registry`                   | **`0.10.0`**           | Azure Container Registry Basic      |
-| **app-service.bicep** | `br/public:avm/res/web/serverfarm` + `br/public:avm/res/web/site` | **`0.7.0` + `0.21.0`** | ASP B1 Linux + Web App + Easy Auth  |
+| Module                            | AVM Source                                                        | Version                | Purpose                                     |
+| --------------------------------- | ----------------------------------------------------------------- | ---------------------- | ------------------------------------------- |
+| log-analytics.bicep               | `br/public:avm/res/operational-insights/workspace`                | `0.15.0`               | Log Analytics Workspace (unchanged)         |
+| app-insights.bicep                | `br/public:avm/res/insights/component`                            | `0.7.1`                | Application Insights (unchanged)            |
+| cosmos-account.bicep              | `br/public:avm/res/document-db/database-account`                  | `0.18.0`               | Cosmos DB Serverless (modified — PE access) |
+| cosmos-rbac.bicep                 | Native `Microsoft.DocumentDB` resource                            | —                      | Cosmos Data Contributor (unchanged)         |
+| **networking.bicep**              | `br/public:avm/res/network/virtual-network`                       | **`0.7.2`**            | VNet + snet-pe + snet-app subnets           |
+| **cosmos-private-endpoint.bicep** | `br/public:avm/res/network/private-endpoint` + `private-dns-zone` | **`0.11.1` + `0.8.0`** | PE + Private DNS + VNet link for Cosmos DB  |
+| **acr.bicep**                     | `br/public:avm/res/container-registry/registry`                   | **`0.10.0`**           | Azure Container Registry Basic              |
+| **app-service.bicep**             | `br/public:avm/res/web/serverfarm` + `br/public:avm/res/web/site` | **`0.7.0` + `0.21.0`** | ASP B1 Linux + Web App + Easy Auth + VNet   |
 
 ---
 
 ## Implementation Tasks
 
-### Task 1: Create `infra/modules/acr.bicep` (NEW)
+### Task 1: Create `infra/modules/networking.bicep` (NEW)
+
+**Purpose**: Provision a Virtual Network with two subnets — one for the Cosmos DB Private Endpoint and one for App Service VNet integration. Required by B7 governance constraint.
+
+**Parameters**:
+
+| Parameter  | Type     | Description     | Source in `main.bicep`   |
+| ---------- | -------- | --------------- | ------------------------ |
+| `name`     | `string` | VNet name       | `var vnetName` (derived) |
+| `location` | `string` | Azure region    | `param location`         |
+| `tags`     | `object` | Governance tags | `var tags`               |
+
+**AVM Module**: `br/public:avm/res/network/virtual-network:0.7.2`
+
+**Key Configuration**:
+
+```bicep
+module virtualNetwork 'br/public:avm/res/network/virtual-network:0.7.2' = {
+  params: {
+    name: name
+    location: location
+    tags: tags
+    addressPrefixes: ['10.0.0.0/16']
+    subnets: [
+      {
+        name: 'snet-pe'
+        addressPrefix: '10.0.1.0/24'
+      }
+      {
+        name: 'snet-app'
+        addressPrefix: '10.0.2.0/24'
+        delegation: 'Microsoft.Web/serverFarms'
+      }
+    ]
+  }
+}
+```
+
+**Outputs**:
+
+| Output      | Type     | Description                         |
+| ----------- | -------- | ----------------------------------- |
+| `vnetId`    | `string` | VNet resource ID                    |
+| `vnetName`  | `string` | VNet name                           |
+| `snetPeId`  | `string` | PE subnet resource ID (`snet-pe`)   |
+| `snetAppId` | `string` | App subnet resource ID (`snet-app`) |
+
+---
+
+### Task 2: Create `infra/modules/cosmos-private-endpoint.bicep` (NEW)
+
+**Purpose**: Provision a Private Endpoint for Cosmos DB, a Private DNS Zone (`privatelink.documents.azure.com`), and link the DNS zone to the VNet. Required by B7 governance constraint.
+
+**Parameters**:
+
+| Parameter         | Type     | Description           | Source in `main.bicep`            |
+| ----------------- | -------- | --------------------- | --------------------------------- |
+| `name`            | `string` | Private Endpoint name | `var pepCosmosName` (derived)     |
+| `location`        | `string` | Azure region          | `param location`                  |
+| `tags`            | `object` | Governance tags       | `var tags`                        |
+| `subnetId`        | `string` | PE subnet resource ID | `networking.outputs.snetPeId`     |
+| `cosmosAccountId` | `string` | Cosmos DB account ID  | `cosmosAccount.outputs.accountId` |
+| `vnetId`          | `string` | VNet resource ID      | `networking.outputs.vnetId`       |
+
+**AVM Modules**:
+
+- `br/public:avm/res/network/private-endpoint:0.11.1`
+- `br/public:avm/res/network/private-dns-zone:0.8.0`
+
+**Key Configuration**:
+
+```bicep
+module privateDnsZone 'br/public:avm/res/network/private-dns-zone:0.8.0' = {
+  params: {
+    name: 'privatelink.documents.azure.com'
+    tags: tags
+    virtualNetworkLinks: [
+      {
+        virtualNetworkResourceId: vnetId
+        registrationEnabled: false
+      }
+    ]
+  }
+}
+
+module privateEndpoint 'br/public:avm/res/network/private-endpoint:0.11.1' = {
+  params: {
+    name: name
+    location: location
+    tags: tags
+    subnetResourceId: subnetId
+    privateLinkServiceConnections: [
+      {
+        name: '${name}-connection'
+        properties: {
+          privateLinkServiceId: cosmosAccountId
+          groupIds: ['Sql']
+        }
+      }
+    ]
+    privateDnsZoneGroup: {
+      privateDnsZoneGroupConfigs: [
+        {
+          privateDnsZoneResourceId: privateDnsZone.outputs.resourceId
+        }
+      ]
+    }
+  }
+}
+```
+
+**Outputs**:
+
+| Output              | Type     | Description                  |
+| ------------------- | -------- | ---------------------------- |
+| `privateEndpointId` | `string` | Private Endpoint resource ID |
+| `privateDnsZoneId`  | `string` | Private DNS Zone resource ID |
+
+---
+
+### Task 3: Modify `infra/modules/cosmos-account.bicep` (MODIFY)
+
+**Purpose**: Disable public network access on the Cosmos DB account so it is only reachable via the private endpoint.
+
+**Change**: Add `publicNetworkAccess: 'Disabled'` to the Cosmos DB AVM module parameters.
+
+```bicep
+// ADD to existing cosmos-account.bicep module params:
+publicNetworkAccess: 'Disabled'
+```
+
+> [!WARNING]
+> After setting `publicNetworkAccess: 'Disabled'`, the Cosmos DB account will ONLY be reachable via the private endpoint. Ensure the private endpoint and VNet integration are deployed in the same deployment or before this change is applied. The deployment phases handle this ordering.
+
+---
+
+### Task 4: Create `infra/modules/acr.bicep` (NEW)
 
 **Purpose**: Provision an Azure Container Registry (Basic tier) for the HackerBoard container image.
 
@@ -157,14 +303,14 @@ module containerRegistry 'br/public:avm/res/container-registry/registry:0.10.0' 
 
 ---
 
-### Task 2: Create `infra/modules/app-service.bicep` (NEW)
+### Task 5: Create `infra/modules/app-service.bicep` (NEW)
 
-**Purpose**: Provision App Service Plan (B1 Linux) + Web App for Linux Containers with system-assigned managed identity, Easy Auth (GitHub OAuth), app settings, and `acrPull` role assignment.
+**Purpose**: Provision App Service Plan (B1 Linux) + Web App for Linux Containers with system-assigned managed identity, Easy Auth (GitHub OAuth), app settings, `acrPull` role assignment, and **VNet integration** (B7).
 
 **Parameters**:
 
 | Parameter                     | Type               | Description                          | Source in `main.bicep`                  |
-| ----------------------------- | ------------------ | ------------------------------------ | --------------------------------------- |
+| ----------------------------- | ------------------ | ------------------------------------ | --------------------------------------- | --- | -------------- | -------- | -------------------------------------- | ------------------------------ |
 | `planName`                    | `string`           | App Service Plan name                | `var aspName` (derived)                 |
 | `siteName`                    | `string`           | Web App name                         | `var appName` (derived)                 |
 | `location`                    | `string`           | Azure region                         | `param location`                        |
@@ -175,7 +321,7 @@ module containerRegistry 'br/public:avm/res/container-registry/registry:0.10.0' 
 | `cosmosEndpoint`              | `string`           | Cosmos DB HTTPS endpoint             | `cosmosAccount.outputs.accountEndpoint` |
 | `appInsightsConnectionString` | `string`           | App Insights connection string       | `appInsights.outputs.connectionString`  |
 | `gitHubOAuthClientId`         | `@secure() string` | GitHub OAuth App client ID           | `param gitHubOAuthClientId`             |
-| `gitHubOAuthClientSecret`     | `@secure() string` | GitHub OAuth App client secret       | `param gitHubOAuthClientSecret`         |
+| `gitHubOAuthClientSecret`     | `@secure() string` | GitHub OAuth App client secret       | `param gitHubOAuthClientSecret`         |     | `vnetSubnetId` | `string` | App Service VNet integration subnet ID | `networking.outputs.snetAppId` |
 
 **Sub-resources**:
 
@@ -209,6 +355,7 @@ module webApp 'br/public:avm/res/web/site:0.21.0' = {
       systemAssigned: true
     }
     httpsOnly: true
+    virtualNetworkSubnetId: vnetSubnetId
     siteConfig: {
       linuxFxVersion: 'DOCKER|${acrLoginServer}/${containerImage}'
       acrUseManagedIdentityCreds: true
@@ -216,6 +363,7 @@ module webApp 'br/public:avm/res/web/site:0.21.0' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true
+      vnetRouteAllEnabled: true
     }
     appSettingsKeyValuePairs: {
       COSMOS_ENDPOINT: cosmosEndpoint
@@ -289,9 +437,9 @@ resource acrPullRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
 
 ---
 
-### Task 3: Update `infra/main.bicep` (MODIFY)
+### Task 6: Update `infra/main.bicep` (MODIFY)
 
-**Purpose**: Replace SWA module with ACR + App Service modules; update parameter flow and outputs.
+**Purpose**: Replace SWA module with networking + ACR + App Service modules; update parameter flow and outputs.
 
 #### 3a. Parameters — Add
 
@@ -300,6 +448,7 @@ resource acrPullRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-
 | `gitHubOAuthClientId`     | `@secure() string` | _(required)_            | GitHub OAuth App client ID for Easy Auth |
 | `gitHubOAuthClientSecret` | `@secure() string` | _(required)_            | GitHub OAuth App client secret           |
 | `containerImage`          | `string`           | `'hacker-board:latest'` | Container image reference (`repo:tag`)   |
+| `vnetAddressPrefix`       | `string`           | `'10.0.0.0/16'`         | VNet address space (default: /16)        |
 
 #### 3b. Parameters — Remove
 
@@ -325,6 +474,12 @@ var aspName = 'asp-${suffix}'
 
 // Web App: CAF abbreviation 'app'
 var appName = 'app-${suffix}'
+
+// Virtual Network: CAF abbreviation 'vnet'
+var vnetName = 'vnet-${suffix}'
+
+// Private Endpoint for Cosmos DB: CAF abbreviation 'pep'
+var pepCosmosName = 'pep-cosmos-${suffix}'
 ```
 
 #### 3e. Modules — Remove
@@ -337,6 +492,29 @@ module staticWebApp 'modules/static-web-app.bicep' = { ... }
 #### 3f. Modules — Add
 
 ```bicep
+// Phase 2.5: Networking — VNet + subnets (required for Cosmos PE + App Service VNet integration)
+module networking 'modules/networking.bicep' = {
+  name: 'networking-${deploymentTimestamp}'
+  params: {
+    name: vnetName
+    location: location
+    tags: tags
+  }
+}
+
+// Phase 2.5: Cosmos DB Private Endpoint + Private DNS Zone
+module cosmosPrivateEndpoint 'modules/cosmos-private-endpoint.bicep' = {
+  name: 'cosmos-pe-${deploymentTimestamp}'
+  params: {
+    name: pepCosmosName
+    location: location
+    tags: tags
+    subnetId: networking.outputs.snetPeId
+    cosmosAccountId: cosmosAccount.outputs.accountId
+    vnetId: networking.outputs.vnetId
+  }
+}
+
 // Phase 3: Container Registry
 module acr 'modules/acr.bicep' = {
   name: 'acr-${deploymentTimestamp}'
@@ -347,7 +525,7 @@ module acr 'modules/acr.bicep' = {
   }
 }
 
-// Phase 4: Compute — App Service with container + Easy Auth
+// Phase 4: Compute — App Service with container + Easy Auth + VNet integration
 module appService 'modules/app-service.bicep' = {
   name: 'app-service-${deploymentTimestamp}'
   params: {
@@ -362,6 +540,7 @@ module appService 'modules/app-service.bicep' = {
     appInsightsConnectionString: appInsights.outputs.connectionString
     gitHubOAuthClientId: gitHubOAuthClientId
     gitHubOAuthClientSecret: gitHubOAuthClientSecret
+    vnetSubnetId: networking.outputs.snetAppId
   }
 }
 ```
@@ -387,10 +566,12 @@ module cosmosRbac 'modules/cosmos-rbac.bicep' = {
 | `swaPrincipalId` | `appServicePrincipalId` | `string` |
 | —                | `acrLoginServer`        | `string` |
 | —                | `acrName`               | `string` |
+| —                | `vnetName`              | `string` |
+| —                | `privateEndpointId`     | `string` |
 
 ---
 
-### Task 4: Update `infra/main.bicepparam` (MODIFY)
+### Task 7: Update `infra/main.bicepparam` (MODIFY)
 
 **Changes**:
 
@@ -424,7 +605,7 @@ param containerImage = 'hacker-board:latest'
 
 ---
 
-### Task 5: Rebuild `infra/azuredeploy.json`
+### Task 8: Rebuild `infra/azuredeploy.json`
 
 ```bash
 az bicep build --file infra/main.bicep --outfile infra/azuredeploy.json
@@ -437,7 +618,7 @@ az bicep build --file infra/main.bicep --outfile infra/azuredeploy.json
 
 ## Deployment Phases
 
-> Deployment strategy: **Phased** (4 phases — matching existing deployment pattern)
+> Deployment strategy: **Phased** (5 phases — matching existing deployment pattern)
 
 ### Phase 1: Foundation (NO CHANGE — Already Deployed)
 
@@ -448,13 +629,25 @@ az bicep build --file infra/main.bicep --outfile infra/azuredeploy.json
 
 **Status**: ✅ Already deployed — no changes required.
 
-### Phase 2: Data Layer (NO CHANGE — Already Deployed)
+### Phase 2: Data Layer (MODIFIED — Cosmos DB public access disabled)
 
 | Order | Module               | Resources                             | Validation                  |
 | ----- | -------------------- | ------------------------------------- | --------------------------- |
 | 3     | cosmos-account.bicep | Cosmos DB Account + DB + 6 Containers | Account endpoint in outputs |
 
-**Status**: ✅ Already deployed — no changes required.
+**Status**: 🔄 Modified — `publicNetworkAccess: Disabled` added. Deployed alongside Phase 2.5 to ensure PE is ready.
+
+### Phase 2.5: Networking + Private Endpoint (NEW)
+
+| Order | Module                        | Resources                                       | Validation                                       |
+| ----- | ----------------------------- | ----------------------------------------------- | ------------------------------------------------ |
+| 3.1   | networking.bicep              | VNet + snet-pe + snet-app subnets               | `az network vnet show`, subnets listed           |
+| 3.2   | cosmos-private-endpoint.bicep | Private Endpoint + Private DNS Zone + VNet link | `az network private-endpoint show`, DNS resolves |
+
+**Approval Gate**: Verify VNet is created, PE shows `Succeeded` state, and `nslookup cosmos-hacker-board-prod.documents.azure.com` resolves to a `10.0.1.x` private IP from within the VNet.
+
+> [!IMPORTANT]
+> Phase 2 (Cosmos `publicNetworkAccess: Disabled`) and Phase 2.5 (networking + PE) must be deployed together in the same deployment to avoid Cosmos becoming unreachable. The Bicep dependency graph handles ordering automatically.
 
 ### Phase 3: Container Registry (NEW)
 
@@ -466,21 +659,22 @@ az bicep build --file infra/main.bicep --outfile infra/azuredeploy.json
 
 ### Phase 4: Compute + Auth + RBAC (NEW)
 
-| Order | Module            | Resources                                             | Validation                                       |
-| ----- | ----------------- | ----------------------------------------------------- | ------------------------------------------------ |
-| 5     | app-service.bicep | App Service Plan + Web App + MI + Easy Auth + acrPull | `az webapp show`, hostname resolves, MI assigned |
-| 6     | cosmos-rbac.bicep | Cosmos DB Data Contributor → App Service MI           | `az cosmosdb sql role assignment list`           |
+| Order | Module            | Resources                                                           | Validation                                       |
+| ----- | ----------------- | ------------------------------------------------------------------- | ------------------------------------------------ |
+| 5     | app-service.bicep | App Service Plan + Web App + MI + Easy Auth + acrPull + VNet integ. | `az webapp show`, hostname resolves, MI assigned |
+| 6     | cosmos-rbac.bicep | Cosmos DB Data Contributor → App Service MI                         | `az cosmosdb sql role assignment list`           |
 
-**Approval Gate**: Verify App Service is running, Easy Auth responds at `/.auth/me`, and Cosmos RBAC is assigned.
+**Approval Gate**: Verify App Service is running, VNet integration active (`az webapp vnet-integration list`), Easy Auth responds at `/.auth/me`, and Cosmos RBAC is assigned.
 
 ### Phase Summary
 
-| Phase | Resources     | Est. Deploy Time | Approval Gate | Status              |
-| ----- | ------------- | ---------------- | ------------- | ------------------- |
-| 1     | 2 (unchanged) | 0 min (skip)     | ✅ Deployed   | ✅ Already deployed |
-| 2     | 1 (unchanged) | 0 min (skip)     | ✅ Deployed   | ✅ Already deployed |
-| 3     | 1 (new)       | ~3 min           | ✅            | ⬜ Todo             |
-| 4     | 3 (new + mod) | ~5 min           | ✅            | ⬜ Todo             |
+| Phase | Resources          | Est. Deploy Time | Approval Gate | Status              |
+| ----- | ------------------ | ---------------- | ------------- | ------------------- |
+| 1     | 2 (unchanged)      | 0 min (skip)     | ✅ Deployed   | ✅ Already deployed |
+| 2     | 1 (modified)       | ~2 min           | ✅            | 🔄 Modified         |
+| 2.5   | 3 (new networking) | ~5 min           | ✅            | ⬜ New              |
+| 3     | 1 (new)            | ~3 min           | ✅            | ⬜ New              |
+| 4     | 3 (new + mod)      | ~5 min           | ✅            | ⬜ New              |
 
 ---
 
@@ -501,8 +695,19 @@ main.bicep (orchestrator)
 ├─→ appInsights (name, location, tags, workspaceResourceId ← logAnalytics)
 │       └─→ outputs: connectionString
 │
-├─→ cosmosAccount (name, location, tags)
-│       └─→ outputs: accountEndpoint, accountName
+├─→ cosmosAccount (name, location, tags, publicNetworkAccess: Disabled)
+│       └─→ outputs: accountEndpoint, accountName, accountId
+│
+├─→ networking (name, location, tags)
+│       └─→ outputs: vnetId, vnetName, snetPeId, snetAppId
+│
+├─→ cosmosPrivateEndpoint (name, location, tags,
+│                         subnetId ← networking, cosmosAccountId ← cosmosAccount,
+│                         vnetId ← networking)
+│       ├─→ [internal] Private DNS Zone (privatelink.documents.azure.com)
+│       ├─→ [internal] VNet link (DNS zone → VNet)
+│       ├─→ [internal] Private Endpoint (Cosmos DB → snet-pe)
+│       └─→ outputs: privateEndpointId, privateDnsZoneId
 │
 ├─→ acr (name, location, tags)
 │       └─→ outputs: acrLoginServer, acrName, acrResourceId
@@ -511,9 +716,10 @@ main.bicep (orchestrator)
 │               acrLoginServer ← acr, acrName ← acr,
 │               containerImage, cosmosEndpoint ← cosmosAccount,
 │               appInsightsConnectionString ← appInsights,
-│               gitHubOAuthClientId, gitHubOAuthClientSecret)
+│               gitHubOAuthClientId, gitHubOAuthClientSecret,
+│               vnetSubnetId ← networking)
 │       ├─→ [internal] App Service Plan (ASP B1 Linux)
-│       ├─→ [internal] Web App for Containers (MI + Easy Auth + app settings)
+│       ├─→ [internal] Web App for Containers (MI + Easy Auth + VNet integration + app settings)
 │       ├─→ [internal] acrPull role assignment (App Service MI → ACR)
 │       └─→ outputs: appServiceHostname, appServiceName, appServicePrincipalId
 │
@@ -532,18 +738,23 @@ Source: [04-runtime-diagram.py](./04-runtime-diagram.py)
 
 ## Naming Conventions
 
-| Resource               | Pattern                       | Generated Name             | Max Length |
-| ---------------------- | ----------------------------- | -------------------------- | ---------- |
-| Resource Group         | `rg-{project}-{env}`          | `rg-hacker-board-prod`     | 90         |
-| Log Analytics          | `law-{project}-{env}`         | `law-hacker-board-prod`    | 63         |
-| Application Insights   | `appi-{project}-{env}`        | `appi-hacker-board-prod`   | 255        |
-| Cosmos DB Account      | `cosmos-{project}-{env}`      | `cosmos-hacker-board-prod` | 44         |
-| **Container Registry** | `cr{project-no-hyphens}{env}` | `crhackerboardprod`        | 50         |
-| **App Service Plan**   | `asp-{project}-{env}`         | `asp-hacker-board-prod`    | 40         |
-| **Web App**            | `app-{project}-{env}`         | `app-hacker-board-prod`    | 60         |
+| Resource               | Pattern                           | Generated Name                    | Max Length |
+| ---------------------- | --------------------------------- | --------------------------------- | ---------- |
+| Resource Group         | `rg-{project}-{env}`              | `rg-hacker-board-prod`            | 90         |
+| Log Analytics          | `law-{project}-{env}`             | `law-hacker-board-prod`           | 63         |
+| Application Insights   | `appi-{project}-{env}`            | `appi-hacker-board-prod`          | 255        |
+| Cosmos DB Account      | `cosmos-{project}-{env}`          | `cosmos-hacker-board-prod`        | 44         |
+| **Virtual Network**    | `vnet-{project}-{env}`            | `vnet-hacker-board-prod`          | 64         |
+| **PE Subnet**          | `snet-pe`                         | `snet-pe`                         | 80         |
+| **App Subnet**         | `snet-app`                        | `snet-app`                        | 80         |
+| **Private Endpoint**   | `pep-cosmos-{project}-{env}`      | `pep-cosmos-hacker-board-prod`    | 64         |
+| **Private DNS Zone**   | `privatelink.documents.azure.com` | `privatelink.documents.azure.com` | 63         |
+| **Container Registry** | `cr{project-no-hyphens}{env}`     | `crhackerboardprod`               | 50         |
+| **App Service Plan**   | `asp-{project}-{env}`             | `asp-hacker-board-prod`           | 40         |
+| **Web App**            | `app-{project}-{env}`             | `app-hacker-board-prod`           | 60         |
 
 > [!NOTE]
-> ACR names must be **alphanumeric only** (no hyphens). The `cr` prefix follows CAF abbreviation conventions. All names are well within their max length limits.
+> ACR names must be **alphanumeric only** (no hyphens). The `cr` prefix follows CAF abbreviation conventions. All names are well within their max length limits. VNet uses CAF abbreviation `vnet`, Private Endpoint uses `pep`, subnets use `snet`.
 
 ---
 
@@ -551,6 +762,12 @@ Source: [04-runtime-diagram.py](./04-runtime-diagram.py)
 
 | Resource         | Security Setting           | Value                              | Rationale                                  |
 | ---------------- | -------------------------- | ---------------------------------- | ------------------------------------------ |
+| VNet             | Address space              | `10.0.0.0/16`                      | Isolated network for private connectivity  |
+| VNet (snet-pe)   | Subnet                     | `10.0.1.0/24`                      | Dedicated to private endpoints             |
+| VNet (snet-app)  | Subnet delegation          | `Microsoft.Web/serverFarms`        | App Service VNet integration               |
+| Private Endpoint | Target sub-resource        | `Sql` (Cosmos DB)                  | Cosmos DB NoSQL API private link           |
+| Private DNS Zone | Zone name                  | `privatelink.documents.azure.com`  | Resolves Cosmos FQDN to private IP         |
+| Cosmos DB        | Public network access      | `Disabled`                         | B7 — private endpoint only                 |
 | ACR              | Admin user                 | `disabled`                         | MI-based pull, no shared credentials       |
 | ACR              | Anonymous pull             | `disabled`                         | Private images only                        |
 | ACR              | Public network access      | `Enabled`                          | Required for CI/CD push + App Service pull |
@@ -562,6 +779,8 @@ Source: [04-runtime-diagram.py](./04-runtime-diagram.py)
 | Web App          | Always On                  | `true`                             | Prevent cold starts                        |
 | Web App          | System-assigned MI         | `Enabled`                          | For ACR pull + Cosmos RBAC                 |
 | Web App          | ACR MI-based pull          | `acrUseManagedIdentityCreds: true` | No admin credentials                       |
+| Web App          | VNet integration           | `snet-app` subnet                  | Route all traffic through VNet (B7)        |
+| Web App          | `vnetRouteAllEnabled`      | `true`                             | All outbound traffic via VNet              |
 | Web App          | Easy Auth                  | `Enabled` (GitHub provider)        | Same `/.auth/*` contract as SWA            |
 | Web App          | Unauthenticated action     | `RedirectToLoginPage`              | Require auth by default                    |
 | Web App          | Token store                | `Enabled`                          | Required for `/.auth/me` endpoint          |
@@ -578,14 +797,16 @@ Source: [04-runtime-diagram.py](./04-runtime-diagram.py)
 
 ### Governance Compliance
 
-| Constraint                  | Status       | Notes                                                         |
-| --------------------------- | ------------ | ------------------------------------------------------------- |
-| B3 — 9 RG tags              | ✅ Compliant | Already in `main.bicep`, tag inheritance auto-propagates      |
-| B5 — MCAPSGov deny policies | ✅ Compliant | App Service + ACR not in deny list                            |
-| B6 — Storage key auth deny  | ✅ Compliant | ACR uses Azure-managed storage, not customer storage accounts |
-| Cosmos `disableLocalAuth`   | ✅ Compliant | `DefaultAzureCredential` + MI — no connection strings         |
-| MFA on resource write (B1)  | ✅ Compliant | Operational — deployer authenticates with MFA                 |
-| Tag inheritance (Modify)    | ✅ Compliant | Policy auto-copies 9 tags from RG to child resources          |
+| Constraint                       | Status           | Notes                                                         |
+| -------------------------------- | ---------------- | ------------------------------------------------------------- |
+| B3 — 9 RG tags                   | ✅ Compliant     | Already in `main.bicep`, tag inheritance auto-propagates      |
+| B5 — MCAPSGov deny policies      | ✅ Compliant     | App Service + ACR not in deny list                            |
+| B6 — Storage key auth deny       | ✅ Compliant     | ACR uses Azure-managed storage, not customer storage accounts |
+| **B7 — Cosmos private endpoint** | **✅ Compliant** | **VNet + PE + Private DNS + App Service VNet integration**    |
+| Cosmos `disableLocalAuth`        | ✅ Compliant     | `DefaultAzureCredential` + MI — no connection strings         |
+| Cosmos `publicNetworkAccess`     | ✅ Compliant     | Set to `Disabled` — PE-only access (B7)                       |
+| MFA on resource write (B1)       | ✅ Compliant     | Operational — deployer authenticates with MFA                 |
+| Tag inheritance (Modify)         | ✅ Compliant     | Policy auto-copies 9 tags from RG to child resources          |
 
 ---
 
@@ -633,16 +854,19 @@ The AVM `web/site` module may use `appSettingsKeyValuePairs` (key-value object) 
 
 ## Estimated Implementation Time
 
-| Task                              | Estimated Duration |
-| --------------------------------- | ------------------ |
-| `modules/acr.bicep` (new)         | 15 minutes         |
-| `modules/app-service.bicep` (new) | 45 minutes         |
-| `main.bicep` updates              | 30 minutes         |
-| `main.bicepparam` updates         | 10 minutes         |
-| AVM schema validation + lint      | 20 minutes         |
-| `az bicep build` + testing        | 15 minutes         |
-| `what-if` dry run                 | 15 minutes         |
-| **Total**                         | **~2.5 hours**     |
+| Task                                          | Estimated Duration |
+| --------------------------------------------- | ------------------ |
+| `modules/networking.bicep` (new)              | 20 minutes         |
+| `modules/cosmos-private-endpoint.bicep` (new) | 30 minutes         |
+| `modules/cosmos-account.bicep` (modify)       | 10 minutes         |
+| `modules/acr.bicep` (new)                     | 15 minutes         |
+| `modules/app-service.bicep` (new)             | 45 minutes         |
+| `main.bicep` updates                          | 30 minutes         |
+| `main.bicepparam` updates                     | 10 minutes         |
+| AVM schema validation + lint                  | 25 minutes         |
+| `az bicep build` + testing                    | 15 minutes         |
+| `what-if` dry run                             | 20 minutes         |
+| **Total**                                     | **~4 hours**       |
 
 ---
 
@@ -651,20 +875,20 @@ The AVM `web/site` module may use `appSettingsKeyValuePairs` (key-value object) 
 > [!IMPORTANT]
 > **📋 Implementation Plan Ready — Phase 18.4**
 >
-> | Metric                           | Value                                                        |
-> | -------------------------------- | ------------------------------------------------------------ |
-> | Azure resources planned          | 8 (3 new, 1 modified, 4 unchanged)                           |
-> | Bicep modules to create          | 2 (`acr.bicep`, `app-service.bicep`)                         |
-> | Bicep modules to modify          | 1 (`main.bicep`)                                             |
-> | AVM modules used                 | 3 new (`registry:0.10.0`, `serverfarm:0.7.0`, `site:0.21.0`) |
-> | Governance constraints addressed | ✅ All 6 verified                                            |
-> | CAF naming conventions applied   | ✅                                                           |
-> | Deployment strategy              | Phased (4 phases — Phases 1–2 already deployed)              |
-> | Est. Implementation              | ~2.5 hours                                                   |
+> | Metric                           | Value                                                                                                                                      |
+> | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+> | Azure resources planned          | 11 (6 new, 2 modified, 3 unchanged)                                                                                                        |
+> | Bicep modules to create          | 4 (`networking.bicep`, `cosmos-private-endpoint.bicep`, `acr.bicep`, `app-service.bicep`)                                                  |
+> | Bicep modules to modify          | 2 (`cosmos-account.bicep`, `main.bicep`)                                                                                                   |
+> | AVM modules used                 | 6 new (`virtual-network:0.7.2`, `private-dns-zone:0.8.0`, `private-endpoint:0.11.1`, `registry:0.10.0`, `serverfarm:0.7.0`, `site:0.21.0`) |
+> | Governance constraints addressed | ✅ All 7 verified (including B7 — Cosmos private endpoint)                                                                                 |
+> | CAF naming conventions applied   | ✅                                                                                                                                         |
+> | Deployment strategy              | Phased (5 phases — Phases 1 already deployed, Phase 2 modified)                                                                            |
+> | Est. Implementation              | ~4 hours                                                                                                                                   |
 >
 > - [ ] **Approved** — proceed to bicep-code
-> - **Approver**: ******\_\_\_******
-> - **Date**: ******\_\_\_******
+> - **Approver**: **\*\***\_\_\_**\*\***
+> - **Date**: **\*\***\_\_\_**\*\***
 >
 > Reply **"approve"** to proceed to bicep-code, or provide feedback.
 
@@ -675,18 +899,24 @@ The AVM `web/site` module may use `appSettingsKeyValuePairs` (key-value object) 
 > [!NOTE]
 > 📚 The following Microsoft Learn resources inform this implementation.
 
-| Topic                     | Link                                                                                                                                                    |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Azure Verified Modules    | [AVM Index](https://aka.ms/avm/index)                                                                                                                   |
-| Bicep Best Practices      | [Documentation](https://learn.microsoft.com/azure/azure-resource-manager/bicep/best-practices)                                                          |
-| CAF Naming Conventions    | [Naming Rules](https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-naming)                                   |
-| Resource Abbreviations    | [Abbreviations](https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations)                           |
-| App Service Easy Auth     | [Authentication](https://learn.microsoft.com/azure/app-service/overview-authentication-authorization)                                                   |
-| App Service + ACR MI Pull | [ACR Pull with MI](https://learn.microsoft.com/azure/app-service/configure-custom-container#use-managed-identity-to-pull-from-azure-container-registry) |
-| AVM Container Registry    | [AVM ACR Module](https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/container-registry/registry)                                         |
-| AVM Web Serverfarm        | [AVM ASP Module](https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/web/serverfarm)                                                      |
-| AVM Web Site              | [AVM Site Module](https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/web/site)                                                           |
-| Easy Auth GitHub Provider | [GitHub Provider](https://learn.microsoft.com/azure/app-service/configure-authentication-provider-github)                                               |
+| Topic                        | Link                                                                                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Azure Verified Modules       | [AVM Index](https://aka.ms/avm/index)                                                                                                                   |
+| Bicep Best Practices         | [Documentation](https://learn.microsoft.com/azure/azure-resource-manager/bicep/best-practices)                                                          |
+| CAF Naming Conventions       | [Naming Rules](https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-naming)                                   |
+| Resource Abbreviations       | [Abbreviations](https://learn.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/resource-abbreviations)                           |
+| App Service Easy Auth        | [Authentication](https://learn.microsoft.com/azure/app-service/overview-authentication-authorization)                                                   |
+| App Service + ACR MI Pull    | [ACR Pull with MI](https://learn.microsoft.com/azure/app-service/configure-custom-container#use-managed-identity-to-pull-from-azure-container-registry) |
+| App Service VNet Integration | [VNet Integration](https://learn.microsoft.com/azure/app-service/overview-vnet-integration)                                                             |
+| Private Endpoint for Cosmos  | [Cosmos DB PE](https://learn.microsoft.com/azure/cosmos-db/how-to-configure-private-endpoints)                                                          |
+| Private DNS Zones            | [Private DNS](https://learn.microsoft.com/azure/dns/private-dns-overview)                                                                               |
+| AVM Virtual Network          | [AVM VNet Module](https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/network/virtual-network)                                            |
+| AVM Private Endpoint         | [AVM PE Module](https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/network/private-endpoint)                                             |
+| AVM Private DNS Zone         | [AVM DNS Module](https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/network/private-dns-zone)                                            |
+| AVM Container Registry       | [AVM ACR Module](https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/container-registry/registry)                                         |
+| AVM Web Serverfarm           | [AVM ASP Module](https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/web/serverfarm)                                                      |
+| AVM Web Site                 | [AVM Site Module](https://github.com/Azure/bicep-registry-modules/tree/main/avm/res/web/site)                                                           |
+| Easy Auth GitHub Provider    | [GitHub Provider](https://learn.microsoft.com/azure/app-service/configure-authentication-provider-github)                                               |
 
 ---
 

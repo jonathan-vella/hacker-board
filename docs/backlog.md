@@ -1030,7 +1030,7 @@ monitoring shows data, feature flags toggle correctly.
 > Each Copilot session MUST update this section before ending.
 > This ensures the next session has full context.
 >
-> Full session history: [session-history.md](session-history.md)
+> Full session history: archived in `docs/_archive/archived-docs-20260221.zip`
 
 ### Session: 2026-02-20 — Phase 18 App Service Migration (Steps 18.1–18.4)
 
@@ -1326,9 +1326,6 @@ monitoring shows data, feature flags toggle correctly.
 - [Product Requirements (PRD)](./app-prd.md) — F1-F11 feature definitions
 - [API Specification](./api-spec.md) — All endpoint contracts
 - [App Design](./app-design.md) — UI/UX, component model, responsive strategy
-- [Scaffold Guide](./app-scaffold.md) — Folder structure, dependencies, helpers
-- [Handoff Checklist](./app-handoff-checklist.md) — Infra wiring steps
 - [Deployment Guide](./deployment-guide.md) — End-to-end deployment
 - [E2E Validation](./e2e-validation.md) — Deployment test protocol
-- [Session History](./session-history.md) — Archived session notes
 - [Copilot Instructions](../.github/copilot-instructions.md) — Coding standards

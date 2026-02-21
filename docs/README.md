@@ -11,20 +11,16 @@
 
 ## Quick Links
 
-| Area | Link                                          | Description                                                |
-| ---- | --------------------------------------------- | ---------------------------------------------------------- |
-| 📋   | [Product Requirements](app-prd.md)            | Features F1 through F11, user stories, acceptance criteria |
-| 🔌   | [API Specification](api-spec.md)              | All 16 endpoint contracts                                  |
-| 📘   | [OpenAPI / Swagger](swagger-ui.html)          | Interactive API explorer ([YAML](openapi.yaml))            |
-| 🎨   | [App Design](app-design.md)                   | UI/UX, component model, responsive strategy                |
-| 🚀   | [Deployment Guide](deployment-guide.md)       | End-to-end deploy: infra → CI/CD → roles → smoke test      |
-| 🏗️   | [Scaffold Guide](app-scaffold.md)             | Folder structure, dependencies, helpers                    |
-| ✅   | [Handoff Checklist](app-handoff-checklist.md) | Pre-deploy verification steps                              |
-| 📊   | [Backlog](backlog.md)                         | Execution plan, task tracking, decision log                |
-| 👤   | [Admin Procedures](admin-procedures.md)       | Role invitations, data management                          |
-| 🤖   | [Agents & Skills](agents-and-skills.md)       | AI agent inventory, orchestration workflow, prompt guide   |
-| 🧪   | [E2E Validation](e2e-validation.md)           | Deployment validation test protocol                        |
-| 📜   | [Session History](session-history.md)         | Archived Copilot session handoff notes                     |
+| Area | Link                                    | Description                                                |
+| ---- | --------------------------------------- | ---------------------------------------------------------- |
+| 📋   | [Product Requirements](app-prd.md)      | Features F1 through F11, user stories, acceptance criteria |
+| 🔌   | [API Specification](api-spec.md)        | All 16 endpoint contracts                                  |
+| 📘   | [OpenAPI / Swagger](swagger-ui.html)    | Interactive API explorer ([YAML](openapi.yaml))            |
+| 🎨   | [App Design](app-design.md)             | UI/UX, component model, responsive strategy                |
+| 🚀   | [Deployment Guide](deployment-guide.md) | End-to-end deploy: infra → CI/CD → smoke test              |
+| 📊   | [Backlog](backlog.md)                   | Execution plan, task tracking, decision log                |
+| 🤖   | [Agents & Skills](agents-and-skills.md) | AI agent inventory, orchestration workflow, prompt guide   |
+| 🧪   | [E2E Validation](e2e-validation.md)     | Deployment validation test protocol                        |
 
 ## Architecture Overview
 

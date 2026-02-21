@@ -16,7 +16,6 @@
     "vitest.explorer",
     "ms-playwright.playwright",
     "github.vscode-github-actions",
-    "redhat.vscode-yaml",
-    "eamodio.gitlens"
+    "redhat.vscode-yaml"
   ]
 }
