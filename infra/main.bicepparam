@@ -12,7 +12,10 @@ param sla = 'non-production'
 param backupPolicy = 'none'
 param maintWindow = 'any'
 
-// Container image (updated by CI/CD after first push)
+// Fallback used only on first-ever infra deploy before CI/CD has run.
+// Every subsequent deploy, the GitHub Actions workflow calls
+// `az webapp config container set` with the exact commit SHA tag —
+// so this value is immediately overridden and never used in practice.
 param containerImage = 'hacker-board:latest'
 
 // Comma-separated admin identities: "github:username" or "aad:email"
