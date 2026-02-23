@@ -1,5 +1,4 @@
 import { api } from "../services/api.js";
-import { isAdmin } from "../services/auth.js";
 
 export async function renderTeamRoster(container, user) {
   container.innerHTML = `<div class="loading"><div class="spinner"></div> Loading teams...</div>`;
@@ -7,7 +6,7 @@ export async function renderTeamRoster(container, user) {
   try {
     const [teams, attendees] = await Promise.all([
       api.teams.list(),
-      isAdmin(user) ? api.attendees.list() : Promise.resolve([]),
+      api.attendees.list(),
     ]);
 
     const attendeesByTeam = new Map();

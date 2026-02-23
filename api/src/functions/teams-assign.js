@@ -1,21 +1,25 @@
 import { getContainer } from "../../shared/cosmos.js";
+import { requireRole } from "../../shared/auth.js";
 import { errorResponse } from "../../shared/errors.js";
 import { randomInt } from "node:crypto";
 
 export async function assignTeams(request) {
-  const { teamCount } = await request.json();
-
-  if (!teamCount || !Number.isInteger(teamCount) || teamCount < 1) {
-    return errorResponse(
-      "VALIDATION_ERROR",
-      "teamCount must be a positive integer",
-    );
-  }
+  const denied = requireRole(request, "admin");
+  if (denied) return denied;
 
   const attendeesContainer = getContainer("attendees");
-  const { resources: attendees } = await attendeesContainer.items
-    .query("SELECT c.id, c.firstName, c.surname, c.gitHubUsername FROM c")
-    .fetchAll();
+  const teamsContainer = getContainer("teams");
+
+  const [{ resources: attendees }, { resources: teams }] = await Promise.all([
+    attendeesContainer.items
+      .query("SELECT c.id, c.hackerAlias, c.teamId FROM c")
+      .fetchAll(),
+    teamsContainer.items
+      .query(
+        "SELECT c.id, c.teamName, c.teamNumber FROM c ORDER BY c.teamNumber",
+      )
+      .fetchAll(),
+  ]);
 
   if (attendees.length === 0) {
     return errorResponse(
@@ -24,11 +28,8 @@ export async function assignTeams(request) {
     );
   }
 
-  if (teamCount > attendees.length) {
-    return errorResponse(
-      "VALIDATION_ERROR",
-      "teamCount exceeds number of attendees",
-    );
+  if (teams.length === 0) {
+    return errorResponse("VALIDATION_ERROR", "No teams exist to assign to");
   }
 
   // Fisher-Yates shuffle
@@ -37,55 +38,42 @@ export async function assignTeams(request) {
     [attendees[i], attendees[j]] = [attendees[j], attendees[i]];
   }
 
-  const teams = Array.from({ length: teamCount }, (_, t) => ({
-    teamName: `Team ${t + 1}`,
-    members: [],
-  }));
-
+  // Build new assignment map: teamIndex -> member aliases
+  const teamMembersMap = new Map(teams.map((t) => [t.id, []]));
   attendees.forEach((attendee, index) => {
-    teams[index % teamCount].members.push({
-      firstName: attendee.firstName,
-      surname: attendee.surname,
-      gitHubUsername: attendee.gitHubUsername || undefined,
-    });
+    const team = teams[index % teams.length];
+    teamMembersMap.get(team.id).push(attendee.hackerAlias);
   });
 
-  const teamsContainer = getContainer("teams");
+  const now = new Date().toISOString();
 
-  for (let t = 0; t < teamCount; t++) {
-    const teamName = `team-${t + 1}`;
-    const now = new Date().toISOString();
-    const teamMembers = teams[t].members.map(
-      (m) => m.gitHubUsername || `${m.firstName} ${m.surname}`,
-    );
-
-    await teamsContainer.items.upsert({
-      id: teamName,
-      teamName,
-      teamNumber: t + 1,
-      teamMembers,
-      createdAt: now,
-      updatedAt: now,
-    });
+  // Update each team's memberlist
+  for (const team of teams) {
+    const members = teamMembersMap.get(team.id);
+    const { resource } = await teamsContainer.item(team.id, team.id).read();
+    resource.teamMembers = members;
+    resource.updatedAt = now;
+    await teamsContainer.item(team.id, team.id).replace(resource);
   }
 
   // Update each attendee's team assignment
   for (let i = 0; i < attendees.length; i++) {
-    const teamIndex = i % teamCount;
-    const teamName = `team-${teamIndex + 1}`;
+    const team = teams[i % teams.length];
     const attendee = attendees[i];
 
     try {
       const { resource } = await attendeesContainer
-        .item(attendee.id, teamName)
+        .item(attendee.id, attendee.teamId || attendee.id)
         .read();
       if (resource) {
-        resource.teamId = teamName;
-        resource.teamNumber = teamIndex + 1;
-        await attendeesContainer.item(attendee.id, teamName).replace(resource);
+        resource.teamId = team.id;
+        resource.teamName = team.teamName;
+        await attendeesContainer
+          .item(attendee.id, attendee.teamId || attendee.id)
+          .replace(resource);
       }
     } catch {
-      // Attendee partition may differ — read by id cross-partition and update
+      // Cross-partition fallback: query by id, update in place
       const { resources } = await attendeesContainer.items
         .query({
           query: "SELECT * FROM c WHERE c.id = @id",
@@ -95,25 +83,21 @@ export async function assignTeams(request) {
 
       if (resources.length > 0) {
         const doc = resources[0];
-        const oldTeamId = doc.teamId;
-        // Delete from old partition, create in new partition
-        try {
-          await attendeesContainer.item(doc.id, oldTeamId).delete();
-        } catch {
-          /* ignore */
-        }
-        doc.teamId = teamName;
-        doc.teamNumber = teamIndex + 1;
-        await attendeesContainer.items.create(doc);
+        doc.teamId = team.id;
+        doc.teamName = team.teamName;
+        await attendeesContainer.item(doc.id, doc.teamId).replace(doc);
       }
     }
   }
 
   return {
     jsonBody: {
-      teams,
-      totalAttendees: attendees.length,
-      teamCount,
+      teams: teams.map((t) => ({
+        teamName: t.teamName,
+        members: teamMembersMap.get(t.id),
+      })),
+      totalHackers: attendees.length,
+      teamCount: teams.length,
     },
   };
 }
