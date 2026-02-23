@@ -1,5 +1,5 @@
 import { getContainer } from "../../shared/cosmos.js";
-import { getClientPrincipal } from "../../shared/auth.js";
+import { getClientPrincipal, requireRole } from "../../shared/auth.js";
 import { errorResponse } from "../../shared/errors.js";
 
 export async function getScores(request) {
@@ -105,6 +105,9 @@ export function calculateGrade(base, maxBase) {
 }
 
 export async function postScores(request) {
+  const denied = requireRole(request, "admin");
+  if (denied) return denied;
+
   const body = await request.json();
   const { teamName, scores: scoreItems, bonus, overrideReason } = body;
 

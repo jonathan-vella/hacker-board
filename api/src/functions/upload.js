@@ -1,5 +1,5 @@
 import { getContainer } from "../../shared/cosmos.js";
-import { getClientPrincipal } from "../../shared/auth.js";
+import { getClientPrincipal, requireRole } from "../../shared/auth.js";
 import { errorResponse } from "../../shared/errors.js";
 import { getFlags, requireFeature } from "../../shared/featureFlags.js";
 import { createRequestLogger } from "../../shared/logger.js";
@@ -9,6 +9,9 @@ export async function postUpload(request, context) {
   const log = createRequestLogger(request);
   log.info("upload.POST");
 
+  const denied = requireRole(request, "admin");
+  if (denied) return denied;
+
   const flags = await getFlags();
   const disabled = requireFeature(flags, "SUBMISSIONS_ENABLED");
   if (disabled) {
@@ -17,9 +20,6 @@ export async function postUpload(request, context) {
   }
 
   const principal = getClientPrincipal(request);
-  if (!principal) {
-    return errorResponse("UNAUTHORIZED", "Authentication required", 401);
-  }
 
   const body = await request.json();
 
