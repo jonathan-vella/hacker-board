@@ -1,20 +1,27 @@
-# HackerBoard — Requirements
+# HackerBoard — User Guide
 
-![Type](https://img.shields.io/badge/Type-Requirements-blue)
+![Type](https://img.shields.io/badge/Type-User%20Guide-blue)
 ![Status](https://img.shields.io/badge/Status-Final-brightgreen)
 ![Updated](https://img.shields.io/badge/Updated-2026--02--23-lightgrey)
+
+Feature reference and event walkthrough for admins and participants.
 
 ---
 
 ## Table of Contents
 
 - [What HackerBoard Does](#what-hackerboard-does)
-- [Who Uses It](#who-uses-it)
+- [Roles](#roles)
 - [Features](#features)
 - [Non-Functional Requirements](#non-functional-requirements)
 - [Data & Storage](#data--storage)
 - [Security Requirements](#security-requirements)
 - [Infrastructure Requirements](#infrastructure-requirements)
+- [Event Workflow](#event-workflow)
+- [Before the Event — Setup](#before-the-event--setup)
+- [During the Event](#during-the-event)
+- [API Endpoints Reference](#api-endpoints-reference)
+- [Feature Flags](#feature-flags)
 
 ---
 
@@ -34,27 +41,27 @@ HackerBoard is a live, interactive hackathon scoring dashboard designed for Micr
 
 ---
 
-## Who Uses It
+## Roles
 
 | Role          | Description                                                                                 | Typical Count |
 | ------------- | ------------------------------------------------------------------------------------------- | ------------- |
 | **Admin**     | Event facilitator. Manages teams, rubric, attendees, validates submissions, assigns awards. | 1–3           |
 | **Member**    | Hackathon participant. Submits own team's scores, views leaderboard and team roster.        | 20–50         |
-| **Anonymous** | Not supported. All routes require GitHub OAuth login.                                       | 0             |
+| **Anonymous** | Not supported — all routes require GitHub OAuth login.                                      | 0             |
 
-Admins are identified by the `ADMIN_USERS` app setting configured at deploy time (e.g. `github:octocat`). All authenticated users who are not in that list are treated as Members.
+Admins are identified by the `ADMIN_USERS` app setting (e.g. `github:octocat`). All other authenticated users are Members.
 
 ---
 
 ## Features
 
-All 11 features are required for a functioning event. None are optional.
+All 11 features are required for a functioning event.
 
 | #   | Feature                            | Who      | Description                                                                                                                                                                     |
 | --- | ---------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | F1  | Team Score Submission Form         | Member   | Submit scores for own team across all rubric categories (8 base + 4 bonus). Validates totals against maximums. Saves as pending until approved.                                 |
 | F2  | Live Leaderboard                   | Everyone | Ranked table sorted by total score (descending). Auto-refreshes every 30s. Expandable rows show category breakdown. Mobile-responsive.                                          |
-| F3  | Grading Display                    | Everyone | Grade computed as `(baseScore / 105) × 100`. Colour-coded tier badges: Outstanding / Excellent / Good / Satisfactory / Needs Improvement.                                       |
+| F3  | Grading Display                    | Everyone | Grade computed as `(baseScore / rubricMax) × 100`. Colour-coded tier badges: Outstanding / Excellent / Good / Satisfactory / Needs Improvement.                                 |
 | F4  | Award Categories                   | Admin    | Admin assigns one of 5 award types (Best Overall, Security Champion, Cost Optimizer, Best Architecture, Speed Demon) to teams. Badges appear on leaderboard.                    |
 | F5  | GitHub OAuth Authentication        | Everyone | All routes require sign-in. GitHub OAuth via App Service Easy Auth (`/.auth/login/github`). Role determined by `ADMIN_USERS` setting.                                           |
 | F6  | JSON Score Upload                  | Member   | Upload `score-results.json` for own team. Schema validated. Preview before submit. Pending until admin approval.                                                                |
@@ -72,7 +79,7 @@ All 11 features are required for a functioning event. None are optional.
 | ---------------- | ------------------------------------ | --------------------------------------------------------------------- |
 | Availability     | 99.9% during events                  | App Service SLA; single-region accepted for event tool                |
 | Response time    | < 2s p95 for API calls               | Cosmos DB single-digit ms reads; Express adds < 50ms overhead         |
-| Concurrent users | ≤ 50 simultaneous                    | B1/S1 App Service is sufficient; Cosmos Serverless scales linearly    |
+| Concurrent users | ≤ 50 simultaneous                    | S1 App Service is sufficient; Cosmos Serverless scales linearly       |
 | Monthly cost     | < $25/month                          | Actual: ~$18.15/month (S1 + ACR Basic + Cosmos Serverless)            |
 | Data retention   | Event duration + 30 days             | No automated purge — manual cleanup via `scripts/cleanup-app-data.js` |
 | Recovery time    | RTO 4h, RPO 1h                       | Cosmos DB continuous backup (PITR)                                    |
@@ -94,7 +101,7 @@ All data stored in **Azure Cosmos DB NoSQL (Serverless)** — database `hackerbo
 | `rubrics`     | Rubric configurations (one active at a time) | `/id`         |
 | `flags`       | Feature flag settings                        | `/id`         |
 
-Data is stored in Central US only. There is no geo-replication (Serverless mode does not support it).
+Data is stored in Central US only. Serverless mode does not support geo-replication.
 
 ---
 
@@ -126,6 +133,180 @@ Data is stored in Central US only. There is no geo-replication (Serverless mode 
 | PowerShell 7+      | Required to run `infra/deploy.ps1`                                    |
 | GitHub OAuth App   | Required before deploying — provides client ID and secret             |
 | Governance tags    | Resource group must carry 9 mandatory tags (applied by `deploy.ps1`)  |
+
+---
+
+## Event Workflow
+
+```
+Before the event:
+  1. Upload rubric → 2. Create teams → 3. Bulk-add attendees → 4. Assign attendees to teams
+
+During the event:
+  5. Participants sign in and submit scores (form or JSON upload)
+  6. Admin reviews and approves submissions
+  7. Leaderboard updates automatically
+
+End of event:
+  8. Admin assigns award categories → 9. Final leaderboard displayed
+```
+
+---
+
+## Before the Event — Setup
+
+### 1. Upload the Scoring Rubric (F11)
+
+The rubric drives the entire scoring system — categories, maximums, bonus items, grading thresholds, and award types. Set this up first.
+
+1. Open **Admin → Rubric**
+2. Upload a Markdown rubric file (see `templates/scoring-rubric.template.md` for the expected format)
+3. Preview the parsed categories and confirm
+4. Click **Set as Active**
+
+Only one rubric can be active at a time. Activating a new one deactivates the current one. Existing scores are unaffected.
+
+The rubric defines: categories with display names and maximum scores, bonus items, grading thresholds, award categories, and the maximum base score used for grade calculation.
+
+---
+
+### 2. Create Teams
+
+**Option A — Manually**: Open **Admin → Teams**, enter a team name, click **Add Team**. Repeat for each team (typical hackathon: 4–10 teams).
+
+**Option B — Automatically**: Teams can be created implicitly when attendees are randomly assigned.
+
+---
+
+### 3. Bulk-Add Attendees (F9)
+
+1. Open **Admin → Attendees → Bulk Entry**
+2. Paste a list of names (one per line, or comma-separated)
+3. Click **Import**
+
+Attendees who have not yet registered will appear as pending.
+
+---
+
+### 4. Assign Attendees to Teams (F10)
+
+1. Open **Admin → Teams → Assign**
+2. Confirm the number of teams
+3. Click **Shuffle** — Fisher-Yates distributes all registered attendees evenly
+4. Review the preview and click **Confirm** (or **Reshuffle**)
+
+The Team Roster (`/roster`) is visible to all authenticated users.
+
+---
+
+## During the Event
+
+### Participant: Register Profile (F7)
+
+On first sign-in, participants complete a profile with a display alias (anonymised — real name not required). The profile links automatically to their assigned team.
+
+---
+
+### Participant: Submit Scores (F1)
+
+1. Navigate to **Submit Scores**
+2. The active rubric categories are shown with score inputs and maximums
+3. Enter scores and bonus items — total is validated in real time
+4. Click **Submit** — saved as **Pending** until admin approves
+
+Participants can only submit for their own team in multiple times; each creates a new pending submission.
+
+---
+
+### Participant: JSON Upload (F6)
+
+1. Navigate to **Upload Scores**, select `score-results.json`
+2. Schema is validated and a preview is shown
+3. Click **Confirm** — saved as Pending for admin review
+
+---
+
+### Admin: Review Submissions (F8)
+
+1. Open **Admin → Review Queue**
+2. Choose per submission: **Approve** (writes to leaderboard immediately), **Reject** (requires a reason), or **Override** (corrects an already-approved score)
+
+The navigation badge shows the count of pending submissions.
+
+---
+
+### Live Leaderboard (F2, F3)
+
+- Ranked by total approved score — auto-refreshes every 30 seconds
+- Colour-coded grade tier badge per team
+- Award badges shown inline
+- Click a team row to expand the category breakdown
+- Only approved scores appear; rejected submissions are excluded
+
+### Grading Scale
+
+```
+grade = (approvedBaseScore / rubricMaxBaseScore) × 100
+```
+
+| Tier              | Default Range |
+| ----------------- | ------------- |
+| Outstanding       | ≥ 90          |
+| Excellent         | ≥ 75          |
+| Good              | ≥ 60          |
+| Satisfactory      | ≥ 45          |
+| Needs Improvement | < 45          |
+
+Thresholds are configurable in the rubric.
+
+---
+
+### Admin: Assign Awards (F4)
+
+1. Open **Admin → Awards**
+2. For each award, select a team and click **Assign**
+3. The award badge appears on the leaderboard immediately
+
+| Award             | Typical criteria                       |
+| ----------------- | -------------------------------------- |
+| Best Overall      | Highest total score                    |
+| Security Champion | Best security implementation           |
+| Cost Optimizer    | Most cost-efficient Azure architecture |
+| Best Architecture | Best design choices and WAF alignment  |
+| Speed Demon       | Fastest to complete all challenges     |
+
+Awards can be reassigned at any time before the final announcement.
+
+---
+
+## API Endpoints Reference
+
+All API routes require authentication. Write operations require the Admin role.
+
+| Endpoint                    | Methods             | Auth          | Purpose                                 |
+| --------------------------- | ------------------- | ------------- | --------------------------------------- |
+| `/api/health`               | GET                 | None          | Health check (used by CI/CD smoke test) |
+| `/api/teams`                | GET, POST, PUT, DEL | Admin (write) | Manage teams                            |
+| `/api/teams/assign`         | POST                | Admin         | Random team assignment                  |
+| `/api/scores`               | GET, POST           | Admin (write) | Read and write approved scores          |
+| `/api/attendees`            | GET                 | Admin         | List all attendees                      |
+| `/api/attendees/me`         | GET, POST           | Authenticated | Get or update own profile               |
+| `/api/attendees/bulk`       | POST                | Admin         | Bulk import attendee names              |
+| `/api/awards`               | GET, POST, PUT      | Admin (write) | Manage award assignments                |
+| `/api/upload`               | POST                | Member+       | JSON score upload                       |
+| `/api/submissions`          | GET                 | Admin         | List all submissions                    |
+| `/api/submissions/validate` | POST                | Admin         | Approve or reject a submission          |
+| `/api/rubrics`              | GET, POST           | Admin (write) | List or upload rubrics                  |
+| `/api/rubrics/active`       | GET                 | Authenticated | Get the currently active rubric         |
+| `/api/feature-flags`        | GET, POST           | Admin (write) | Read and update feature flag settings   |
+
+Full schemas and request/response bodies: [api-spec.md](api-spec.md)
+
+---
+
+## Feature Flags
+
+Runtime feature flags can be toggled without redeploying via **Admin → Feature Flags** or `GET /api/feature-flags`. Flags are stored in the `flags` Cosmos DB container and take effect on the next request.
 
 ---
 

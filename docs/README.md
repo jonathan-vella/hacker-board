@@ -11,18 +11,12 @@
 
 ## Documentation Index
 
-| Doc                                   | Description                                                                                  |
-| ------------------------------------- | -------------------------------------------------------------------------------------------- |
-| [Requirements](requirements.md)       | What HackerBoard does, who uses it, all 11 features, NFRs, and infrastructure requirements   |
-| [Architecture](architecture.md)       | Diagrams, resource table, networking, security model, CI/CD flow, and cost estimate          |
-| [Functionality](functionality.md)     | Feature walkthroughs for event admins — rubric setup, score submission, review queue, awards |
-| [Deployment Guide](deployment.md)     | End-to-end: GitHub OAuth → `deploy.ps1` → container push → CI/CD activation → smoke test     |
-| [Troubleshooting](troubleshooting.md) | Common issues with deployment, auth, application errors, and CI/CD                           |
-| [FAQ](faq.md)                         | Answers to common questions about cost, operations, admin management, and the app            |
-| [API Specification](api-spec.md)      | All 16 endpoint contracts with request/response schemas                                      |
-| [OpenAPI / Swagger](swagger-ui.html)  | Interactive API explorer ([YAML source](openapi.yaml))                                       |
-| [Project Summary](project-summary.md) | Architecture decisions, governance constraints, WAF assessment, deployment history           |
-| [Backlog](backlog.md)                 | Execution plan, task tracking, decision log                                                  |
+| Doc                              | Description                                                                                                      |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| [Guide](guide.md)                | Features F1–F11, roles, NFRs, event workflow, and admin/participant walkthroughs                                 |
+| [Architecture](architecture.md)  | Diagrams, resource table, networking, security model, CI/CD, cost estimate, ADRs, governance, and WAF assessment |
+| [Operations](operations.md)      | End-to-end deployment, CI/CD setup, ongoing operations, troubleshooting, and FAQ                                 |
+| [API Specification](api-spec.md) | All endpoint contracts with request/response schemas                                                             |
 
 ## Architecture Snapshot
 
