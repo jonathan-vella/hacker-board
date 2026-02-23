@@ -1,3 +1,7 @@
+// NOTE: Must be imported first — Application Insights patches Node.js HTTP/HTTPS
+// modules at startup. Any imports before this will not be auto-instrumented.
+import "./shared/telemetry.js";
+
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";

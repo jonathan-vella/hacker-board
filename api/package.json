@@ -15,6 +15,7 @@
   "dependencies": {
     "@azure/cosmos": "^4.2.0",
     "@azure/identity": "^4.9.0",
+    "applicationinsights": "^3.4.0",
     "express": "^5.2.1"
   },
   "devDependencies": {
