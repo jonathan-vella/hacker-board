@@ -66,7 +66,7 @@ param gitHubOAuthClientId string = ''
 @description('GitHub OAuth App client secret for Easy Auth. Supplied at deploy time — never committed.')
 param gitHubOAuthClientSecret string = ''
 
-@description('Comma-separated admin identities in provider:username format (e.g. "github:octocat"). Required at deploy time — determines who gets the admin role.')
+@description('Comma-separated admin identities in provider:username format. Required — determines who gets the Admin role in the app. Examples: "github:alice" · "github:alice,github:bob" · "aad:admin@company.com"')
 param adminUsers string
 
 @description('VNet address space for private connectivity. Default: 10.0.0.0/16')
@@ -75,14 +75,20 @@ param vnetAddressPrefix string = '10.0.0.0/16'
 @description('UTC timestamp used to generate unique sub-deployment names. Prevents DeploymentActive conflicts on re-deploy.')
 param deploymentTimestamp string = utcNow('yyyyMMddHHmmss')
 
+@description('6-character suffix appended to every resource name for global uniqueness. Defaults to a deterministic hash of the resource group ID — same RG always produces the same suffix, ensuring repeatable re-deploys. Override only when you need a specific value.')
+@minLength(3)
+@maxLength(13)
+param uniqueSuffix string = substring(uniqueString(resourceGroup().id), 0, 6)
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Variables
 // ──────────────────────────────────────────────────────────────────────────────
 
-var suffix = '${projectName}-${environment}'
+var suffix = '${projectName}-${environment}-${uniqueSuffix}'
 
-// ACR: alphanumeric only, 5-50 chars, CAF abbreviation 'cr'
-var acrName = 'cr${replace(projectName, '-', '')}${environment}'
+// ACR: alphanumeric only, 5-50 chars, CAF abbreviation 'cr'.
+// Max length formula: 2 (cr) + len(projectName no dashes) + len(environment) + len(uniqueSuffix) ≤ 50.
+var acrName = 'cr${replace(projectName, '-', '')}${environment}${uniqueSuffix}'
 
 // App Service Plan: CAF abbreviation 'asp'
 var aspName = 'asp-${suffix}'

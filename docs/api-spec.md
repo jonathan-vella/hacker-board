@@ -8,7 +8,7 @@
 ![Auth](https://img.shields.io/badge/Auth-GitHub%20OAuth%20%2B%20Entra%20ID-orange)
 
 > All endpoints are served by the Express adapter behind App Service Easy Auth.
-> Base URL: `https://app-hacker-board-prod.azurewebsites.net/api`
+> Base URL: `https://<YOUR_APP_URL>/api`
 > Machine-readable spec: [openapi.yaml](openapi.yaml) · [Swagger UI](swagger-ui.html)
 
 ---

@@ -48,8 +48,8 @@ az account get-access-token --resource https://management.azure.com/ --output no
 1. Go to **[GitHub → Settings → Developer settings → OAuth Apps → New OAuth App](https://github.com/settings/applications/new)**
 2. Fill in:
    - **Application name**: `HackerBoard`
-   - **Homepage URL**: `https://app-hacker-board-prod.azurewebsites.net`
-   - **Authorization callback URL**: `https://app-hacker-board-prod.azurewebsites.net/.auth/login/github/callback`
+   - **Homepage URL**: `https://<YOUR_APP_URL>`
+   - **Authorization callback URL**: `https://<YOUR_APP_URL>/.auth/login/github/callback`
 3. Click **Register application**, then **Generate a new client secret**
 4. Save both the **Client ID** and **Client secret** for Step 2
 
@@ -62,39 +62,51 @@ az account get-access-token --resource https://management.azure.com/ --output no
 ```powershell
 cd infra
 
+# The script prompts interactively for ResourceGroupName, CostCenter,
+# TechnicalContact, and AdminUsers. Pass them explicitly for CI/CD.
 ./deploy.ps1 `
-  -CostCenter "microhack" `
-  -TechnicalContact "you@contoso.com" `
   -GitHubOAuthClientId "<client-id-from-step-1>" `
-  -GitHubOAuthClientSecret "<client-secret-from-step-1>" `
+  -GitHubOAuthClientSecret "<client-secret-from-step-1>"
+```
+
+CI/CD / non-interactive (all required values as parameters):
+
+```powershell
+./deploy.ps1 `
+  -ResourceGroupName "rg-hacker-board" `
+  -CostCenter "your-cost-center" `
+  -TechnicalContact "you@company.com" `
+  -GitHubOAuthClientId "<id>" `
+  -GitHubOAuthClientSecret "<secret>" `
   -AdminUsers "github:<your-github-username>"
 ```
 
-Multiple admins: `-AdminUsers "github:octocat,github:monalisa"`
+Multiple admins: `-AdminUsers "github:alice,github:bob"`
 
 **What-if preview** (no changes applied):
 
 ```powershell
-./deploy.ps1 -WhatIf -CostCenter "microhack" -TechnicalContact "you@contoso.com" `
-  -GitHubOAuthClientId "<id>" -GitHubOAuthClientSecret "<secret>" `
-  -AdminUsers "github:<username>"
+./deploy.ps1 -WhatIf `
+  -GitHubOAuthClientId "<id>" -GitHubOAuthClientSecret "<secret>"
 ```
 
 ### All deploy.ps1 parameters
 
-| Parameter                 | Default                | Required | Description                                             |
-| ------------------------- | ---------------------- | -------- | ------------------------------------------------------- |
-| `ResourceGroupName`       | `rg-hacker-board-prod` |          | Target resource group name                              |
-| `Location`                | `centralus`            |          | Azure region for all resources                          |
-| `Environment`             | `prod`                 |          | `dev`, `staging`, or `prod`                             |
-| `Owner`                   | `agentic-infraops`     |          | Resource owner tag value                                |
-| `CostCenter`              | —                      | ✅       | Cost center code (required by governance policy)        |
-| `TechnicalContact`        | —                      | ✅       | Technical contact email (required by governance policy) |
-| `GitHubOAuthClientId`     | —                      | ✅       | GitHub OAuth App client ID                              |
-| `GitHubOAuthClientSecret` | —                      | ✅       | GitHub OAuth App client secret                          |
-| `AdminUsers`              | —                      | ✅       | Comma-separated admin identities: `github:username`     |
-| `ContainerImage`          | `hacker-board:latest`  |          | Image tag reference (relative to ACR)                   |
-| `WhatIf`                  | `false`                |          | Preview deployment without applying changes             |
+| Parameter                 | Default                                        | Required | Description                                                                                                           |
+| ------------------------- | ---------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `ResourceGroupName`       | `rg-hacker-board` (prompted)                   |          | Target resource group name — prompted interactively if omitted                                                        |
+| `Location`                | `centralus`                                    |          | Azure region for all resources                                                                                        |
+| `Environment`             | `prod`                                         |          | `dev`, `staging`, or `prod`                                                                                           |
+| `ProjectName`             | `hacker-board`                                 |          | Project name used in resource naming                                                                                  |
+| `Owner`                   | `agentic-infraops`                             |          | Resource owner tag value                                                                                              |
+| `CostCenter`              | (prompted)                                     | ✅       | Cost center code — prompted with guidance if omitted                                                                  |
+| `TechnicalContact`        | (prompted)                                     | ✅       | Technical contact email — prompted with guidance if omitted                                                           |
+| `GitHubOAuthClientId`     | —                                              | ✅       | GitHub OAuth App client ID                                                                                            |
+| `GitHubOAuthClientSecret` | —                                              | ✅       | GitHub OAuth App client secret                                                                                        |
+| `AdminUsers`              | (prompted)                                     | ✅       | Admin identities — prompted with format guidance if omitted. Format: `github:<username>` or `aad:<email>`             |
+| `ContainerImage`          | `hacker-board:latest`                          |          | Image tag reference (relative to ACR)                                                                                 |
+| `UniqueSuffix`            | auto (`uniqueString(resourceGroup().id)[0:6]`) |          | Optional override. Leave empty — Bicep derives a deterministic suffix from the RG ID, ensuring repeatable re-deploys. |
+| `WhatIf`                  | `false`                                        |          | Preview deployment without applying changes                                                                           |
 
 ### What the deployment does
 
@@ -112,7 +124,7 @@ Multiple admins: `-AdminUsers "github:octocat,github:monalisa"`
 
 ```bash
 az acr build \
-  --registry crhackerboardprod \
+  --registry <YOUR_ACR> \
   --image hacker-board:latest \
   .
 ```
@@ -120,16 +132,16 @@ az acr build \
 ### Option B — Local Docker build and push
 
 ```bash
-az acr login --name crhackerboardprod
-docker build -t crhackerboardprod.azurecr.io/hacker-board:latest .
-docker push crhackerboardprod.azurecr.io/hacker-board:latest
+az acr login --name <YOUR_ACR>
+docker build -t <YOUR_ACR>.azurecr.io/hacker-board:latest .
+docker push <YOUR_ACR>.azurecr.io/hacker-board:latest
 ```
 
 ### Verify the image landed
 
 ```bash
 az acr repository show-tags \
-  --name crhackerboardprod \
+  --name <YOUR_ACR> \
   --repository hacker-board \
   --output table
 ```
@@ -138,8 +150,8 @@ App Service pulls `:latest` via the ACR CD webhook within ~30 seconds. Force a r
 
 ```bash
 az webapp restart \
-  --name app-hacker-board-prod \
-  --resource-group rg-hacker-board-prod
+  --name <YOUR_APP_NAME> \
+  --resource-group <YOUR_RESOURCE_GROUP>
 ```
 
 ---
@@ -152,18 +164,18 @@ az webapp restart \
 SP_JSON=$(az ad sp create-for-rbac \
   --name "sp-hacker-board-cicd" \
   --role Contributor \
-  --scopes "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/rg-hacker-board-prod" \
+  --scopes "/subscriptions/$(az account show --query id -o tsv)/resourceGroups/<YOUR_RESOURCE_GROUP>" \
   --sdk-auth)
 
 gh secret set AZURE_CREDENTIALS \
-  --repo jonathan-vella/hacker-board \
+  --repo <YOUR_GITHUB_ORG>/<YOUR_REPO> \
   --body "$SP_JSON"
 
 SP_CLIENT_ID=$(echo "$SP_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin)['clientId'])")
 az role assignment create \
   --assignee "$SP_CLIENT_ID" \
   --role AcrPush \
-  --scope "$(az acr show --name crhackerboardprod -g rg-hacker-board-prod --query id -o tsv)"
+  --scope "$(az acr show --name <YOUR_ACR> -g <YOUR_RESOURCE_GROUP> --query id -o tsv)"
 ```
 
 > If `AZURE_CREDENTIALS` is already set, skip this step.
@@ -187,8 +199,8 @@ graph LR
 ### Trigger a manual run
 
 ```bash
-gh workflow run deploy-app.yml --repo jonathan-vella/hacker-board
-gh run list --workflow=deploy-app.yml --repo jonathan-vella/hacker-board --limit 5
+gh workflow run deploy-app.yml --repo <YOUR_GITHUB_ORG>/<YOUR_REPO>
+gh run list --workflow=deploy-app.yml --repo <YOUR_GITHUB_ORG>/<YOUR_REPO> --limit 5
 ```
 
 ---
@@ -196,7 +208,7 @@ gh run list --workflow=deploy-app.yml --repo jonathan-vella/hacker-board --limit
 ## Step 5 — Smoke Test
 
 ```bash
-APP_URL="https://app-hacker-board-prod.azurewebsites.net"
+APP_URL="https://<YOUR_APP_URL>"
 curl -s "${APP_URL}/api/health" | python3 -m json.tool
 ```
 
@@ -210,8 +222,8 @@ curl -s "${APP_URL}/api/health" | python3 -m json.tool
 
 ```bash
 az webapp log tail \
-  --name app-hacker-board-prod \
-  --resource-group rg-hacker-board-prod
+  --name <YOUR_APP_NAME> \
+  --resource-group <YOUR_RESOURCE_GROUP>
 ```
 
 ---
@@ -225,7 +237,7 @@ az bicep build --file infra/main.bicep --outfile infra/azuredeploy.json
 ```
 
 ```powershell
-cd infra && ./deploy.ps1 -CostCenter "microhack" -TechnicalContact "you@contoso.com" `
+cd infra && ./deploy.ps1 `
   -GitHubOAuthClientId "<id>" -GitHubOAuthClientSecret "<secret>" `
   -AdminUsers "github:<username>"
 ```
@@ -250,7 +262,7 @@ Re-run `deploy.ps1` with `-GitHubOAuthClientId` and `-GitHubOAuthClientSecret` s
 ### Seed demo data (optional)
 
 ```bash
-COSMOS_ENDPOINT=https://cosmos-hacker-board-prod.documents.azure.com:443/ \
+COSMOS_ENDPOINT=https://<YOUR_COSMOS_ACCOUNT>.documents.azure.com:443/ \
   node scripts/seed-demo-data.js --reset
 ```
 
@@ -264,21 +276,23 @@ node scripts/cleanup-app-data.js
 
 ## Quick Reference
 
-| Item               | Value                                                                         |
-| ------------------ | ----------------------------------------------------------------------------- |
-| Resource group     | `rg-hacker-board-prod`                                                        |
-| Region             | `centralus`                                                                   |
-| App URL            | `https://app-hacker-board-prod.azurewebsites.net`                             |
-| App Service        | `app-hacker-board-prod`                                                       |
-| ACR                | `crhackerboardprod.azurecr.io`                                                |
-| Cosmos DB          | `cosmos-hacker-board-prod` (Serverless, public access disabled)               |
-| VNet               | `vnet-hacker-board-prod` (10.0.0.0/16)                                        |
-| Private Endpoint   | `pep-cosmos-hacker-board-prod`                                                |
-| OAuth callback URL | `https://app-hacker-board-prod.azurewebsites.net/.auth/login/github/callback` |
-| CI/CD secret       | `AZURE_CREDENTIALS` (SP: `sp-hacker-board-cicd`)                              |
-| IaC entry point    | `infra/main.bicep`                                                            |
-| Deployment script  | `infra/deploy.ps1`                                                            |
-| CI/CD workflow     | `.github/workflows/deploy-app.yml`                                            |
+> Resource names are dynamic. Exact values are printed by `deploy.ps1` at the end of each run.
+
+| Item               | Value                                                                             |
+| ------------------ | --------------------------------------------------------------------------------- |
+| Resource group     | `<YOUR_RESOURCE_GROUP>` (prompted; default: `rg-hacker-board`)                    |
+| Region             | `centralus` (override with `-Location`)                                           |
+| App URL            | `https://<YOUR_APP_URL>` (shown in deployment output)                             |
+| App Service        | `app-hacker-board-<env>-<suffix>`                                                 |
+| ACR                | `crhackerboard<env><suffix>.azurecr.io`                                           |
+| Cosmos DB          | `cosmos-hacker-board-<env>-<suffix>` (Serverless, public access disabled)         |
+| VNet               | `vnet-hacker-board-<env>-<suffix>` (10.0.0.0/16)                                  |
+| Private Endpoint   | `pep-cosmos-hacker-board-<env>-<suffix>`                                          |
+| OAuth callback URL | `https://<YOUR_APP_URL>/.auth/login/github/callback` (shown in deployment output) |
+| CI/CD secret       | `AZURE_CREDENTIALS` (SP: `sp-hacker-board-cicd`)                                  |
+| IaC entry point    | `infra/main.bicep`                                                                |
+| Deployment script  | `infra/deploy.ps1`                                                                |
+| CI/CD workflow     | `.github/workflows/deploy-app.yml`                                                |
 
 ---
 
@@ -309,8 +323,8 @@ The Bicep template uses S1 (Standard), not P1v3. Verify `infra/modules/app-servi
 No container image exists in ACR yet. Build and push first:
 
 ```bash
-az acr build --registry crhackerboardprod --image hacker-board:latest .
-az webapp restart --name app-hacker-board-prod --resource-group rg-hacker-board-prod
+az acr build --registry <YOUR_ACR> --image hacker-board:latest .
+az webapp restart --name <YOUR_APP_NAME> --resource-group <YOUR_RESOURCE_GROUP>
 ```
 
 ---
@@ -320,7 +334,7 @@ az webapp restart --name app-hacker-board-prod --resource-group rg-hacker-board-
 **GitHub OAuth redirects fail / "Redirect URI mismatch"**
 
 Verify the **Authorization callback URL** in your GitHub OAuth App is exactly:
-`https://app-hacker-board-prod.azurewebsites.net/.auth/login/github/callback`
+`https://<YOUR_APP_URL>/.auth/login/github/callback`
 
 ---
 
@@ -330,8 +344,8 @@ The format must be `github:<username>` (lowercase, exact match). Check the app s
 
 ```bash
 az webapp config appsettings list \
-  --name app-hacker-board-prod \
-  --resource-group rg-hacker-board-prod \
+  --name <YOUR_APP_NAME> \
+  --resource-group <YOUR_RESOURCE_GROUP> \
   --query "[?name=='ADMIN_USERS']"
 ```
 
@@ -345,13 +359,13 @@ The app cannot connect to Cosmos DB. Check RBAC assignments and the `COSMOS_ENDP
 
 ```bash
 az cosmosdb sql role assignment list \
-  --account-name cosmos-hacker-board-prod \
-  --resource-group rg-hacker-board-prod \
+  --account-name <YOUR_COSMOS_ACCOUNT> \
+  --resource-group <YOUR_RESOURCE_GROUP> \
   --query "length(@)"
 
 az webapp config appsettings list \
-  --name app-hacker-board-prod \
-  --resource-group rg-hacker-board-prod \
+  --name <YOUR_APP_NAME> \
+  --resource-group <YOUR_RESOURCE_GROUP> \
   --query "[?name=='COSMOS_ENDPOINT']"
 ```
 
@@ -365,13 +379,13 @@ The Private Endpoint or VNet integration is not routing correctly:
 
 ```bash
 az network private-endpoint show \
-  --name pep-cosmos-hacker-board-prod \
-  --resource-group rg-hacker-board-prod \
+  --name pep-<YOUR_COSMOS_ACCOUNT> \
+  --resource-group <YOUR_RESOURCE_GROUP> \
   --query "provisioningState"
 
 az webapp vnet-integration list \
-  --name app-hacker-board-prod \
-  --resource-group rg-hacker-board-prod
+  --name <YOUR_APP_NAME> \
+  --resource-group <YOUR_RESOURCE_GROUP>
 ```
 
 Both should return `Succeeded`. Re-run `deploy.ps1` to reconcile.
@@ -392,7 +406,7 @@ The service principal is missing the `AcrPush` role:
 
 ```bash
 SP_CLIENT_ID="<service-principal-client-id>"
-ACR_ID=$(az acr show --name crhackerboardprod -g rg-hacker-board-prod --query id -o tsv)
+ACR_ID=$(az acr show --name <YOUR_ACR> -g <YOUR_RESOURCE_GROUP> --query id -o tsv)
 az role assignment create --assignee "$SP_CLIENT_ID" --role AcrPush --scope "$ACR_ID"
 ```
 
@@ -414,36 +428,36 @@ Push the fix to `main` to trigger a new build.
 ```bash
 # App Service state
 az webapp show \
-  --name app-hacker-board-prod \
-  --resource-group rg-hacker-board-prod \
+  --name <YOUR_APP_NAME> \
+  --resource-group <YOUR_RESOURCE_GROUP> \
   --query "{state:state,defaultHostName:defaultHostName}"
 
 # Stream live logs
 az webapp log tail \
-  --name app-hacker-board-prod \
-  --resource-group rg-hacker-board-prod
+  --name <YOUR_APP_NAME> \
+  --resource-group <YOUR_RESOURCE_GROUP>
 
 # Cosmos DB RBAC
 az cosmosdb sql role assignment list \
-  --account-name cosmos-hacker-board-prod \
-  --resource-group rg-hacker-board-prod
+  --account-name <YOUR_COSMOS_ACCOUNT> \
+  --resource-group <YOUR_RESOURCE_GROUP>
 
 # Cosmos DB public access + local auth
 az cosmosdb show \
-  --name cosmos-hacker-board-prod \
-  --resource-group rg-hacker-board-prod \
+  --name <YOUR_COSMOS_ACCOUNT> \
+  --resource-group <YOUR_RESOURCE_GROUP> \
   --query "{disableLocalAuth:disableLocalAuth,publicNetworkAccess:publicNetworkAccess}"
 
 # App settings
 az webapp config appsettings list \
-  --name app-hacker-board-prod \
-  --resource-group rg-hacker-board-prod \
+  --name <YOUR_APP_NAME> \
+  --resource-group <YOUR_RESOURCE_GROUP> \
   --query "[].{name:name}" --output table
 
 # Force restart
 az webapp restart \
-  --name app-hacker-board-prod \
-  --resource-group rg-hacker-board-prod
+  --name <YOUR_APP_NAME> \
+  --resource-group <YOUR_RESOURCE_GROUP>
 ```
 
 ---

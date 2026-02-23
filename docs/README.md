@@ -54,8 +54,8 @@ All 11 features delivered:
 - Open a bug report or feature request in [GitHub Issues][issues]
 - Ask architectural or usage questions in [GitHub Discussions][discussions]
 
-[issues]: https://github.com/jonathan-vella/hacker-board/issues
-[discussions]: https://github.com/jonathan-vella/hacker-board/discussions
+[issues]: https://github.com/<YOUR_GITHUB_ORG>/<YOUR_REPO>/issues
+[discussions]: https://github.com/<YOUR_GITHUB_ORG>/<YOUR_REPO>/discussions
 
 ---
 

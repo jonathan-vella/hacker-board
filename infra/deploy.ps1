@@ -60,19 +60,23 @@
 
 [CmdletBinding()]
 param(
-    [string]$ResourceGroupName = 'rg-hacker-board-prod',
+    # Leave empty to be prompted interactively; pass explicitly in CI/CD.
+    [string]$ResourceGroupName = '',
     [string]$Location = 'centralus',
 
     [ValidateSet('dev', 'staging', 'prod')]
     [string]$Environment = 'prod',
 
+    # Project name used in resource naming. Change only if forking the project.
+    [string]$ProjectName = 'hacker-board',
+
     [string]$Owner = 'agentic-infraops',
 
-    [Parameter(Mandatory)]
-    [string]$CostCenter,
+    # Leave empty to be prompted interactively; required in CI/CD.
+    [string]$CostCenter = '',
 
-    [Parameter(Mandatory)]
-    [string]$TechnicalContact,
+    # Leave empty to be prompted interactively; required in CI/CD.
+    [string]$TechnicalContact = '',
 
     [string]$AdminEmail = '',   # Auto-detected from az account show when not provided
 
@@ -82,10 +86,17 @@ param(
     [Parameter(Mandatory)]
     [string]$GitHubOAuthClientSecret,
 
-    [Parameter(Mandatory)]
-    [string]$AdminUsers,
+    # Leave empty to be prompted interactively; required in CI/CD.
+    # Format: 'github:<username>' or 'aad:<email>'
+    [string]$AdminUsers = '',
 
     [string]$ContainerImage = 'hacker-board:latest',
+
+    # Optional suffix override. Leave empty (default) so Bicep derives a
+    # deterministic suffix from uniqueString(resourceGroup().id) — same RG
+    # always produces the same suffix, ensuring repeatable re-deploys.
+    [string]$UniqueSuffix = '',
+
     [switch]$WhatIf
 )
 
@@ -138,6 +149,77 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 Write-Host "  ✅ Bicep: $bicepVersion" -ForegroundColor Green
+
+# ── Interactive prompts (skipped when values are supplied as parameters) ───────
+
+Write-Host ""
+Write-Host "⚙️  Deployment Configuration" -ForegroundColor Yellow
+
+# Resource group — prompt when empty; default rg-hacker-board
+if ([string]::IsNullOrWhiteSpace($ResourceGroupName)) {
+    if ([Environment]::UserInteractive) {
+        $rgDefault = 'rg-hacker-board'
+        $rgInput = Read-Host "  Resource group name [press Enter for '$rgDefault']"
+        $ResourceGroupName = if ([string]::IsNullOrWhiteSpace($rgInput)) { $rgDefault } else { $rgInput.Trim() }
+    } else {
+        $ResourceGroupName = 'rg-hacker-board'
+        Write-Host "  ℹ️  Non-interactive: ResourceGroupName defaulted to '$ResourceGroupName'" -ForegroundColor Yellow
+    }
+}
+Write-Host "  ✅ Resource group: $ResourceGroupName" -ForegroundColor Green
+
+# CostCenter — required by governance tag policy
+if ([string]::IsNullOrWhiteSpace($CostCenter)) {
+    if ([Environment]::UserInteractive) {
+        Write-Host ""
+        Write-Host "  ℹ️  CostCenter is a governance-required resource tag." -ForegroundColor Cyan
+        Write-Host "     Example values: 'platform-team', 'hackathon-2026', 'microhack'" -ForegroundColor Cyan
+        $CostCenter = ''
+        while ([string]::IsNullOrWhiteSpace($CostCenter)) {
+            $CostCenter = (Read-Host "  Cost center code").Trim()
+        }
+    } else {
+        Write-Host "  ❌ -CostCenter is required. Pass it as a parameter for non-interactive (CI/CD) runs." -ForegroundColor Red
+        exit 1
+    }
+}
+Write-Host "  ✅ CostCenter: $CostCenter" -ForegroundColor Green
+
+# TechnicalContact — required by governance tag policy
+if ([string]::IsNullOrWhiteSpace($TechnicalContact)) {
+    if ([Environment]::UserInteractive) {
+        Write-Host ""
+        Write-Host "  ℹ️  TechnicalContact must be a valid email address — required by the governance tag policy." -ForegroundColor Cyan
+        Write-Host "     Example: 'you@company.com'" -ForegroundColor Cyan
+        $TechnicalContact = ''
+        while ([string]::IsNullOrWhiteSpace($TechnicalContact)) {
+            $TechnicalContact = (Read-Host "  Technical contact email").Trim()
+        }
+    } else {
+        Write-Host "  ❌ -TechnicalContact is required. Pass it as a parameter for non-interactive (CI/CD) runs." -ForegroundColor Red
+        exit 1
+    }
+}
+Write-Host "  ✅ TechnicalContact: $TechnicalContact" -ForegroundColor Green
+
+# AdminUsers — determines who gets the Admin role inside the application
+if ([string]::IsNullOrWhiteSpace($AdminUsers)) {
+    if ([Environment]::UserInteractive) {
+        Write-Host ""
+        Write-Host "  ℹ️  AdminUsers sets who has the Admin role in the app (scores, teams, rubrics)." -ForegroundColor Cyan
+        Write-Host "     Format: 'github:<username>' for GitHub users." -ForegroundColor Cyan
+        Write-Host "     For multiple admins: 'github:alice,github:bob'" -ForegroundColor Cyan
+        Write-Host "     For Entra ID users: 'aad:user@company.com'" -ForegroundColor Cyan
+        $AdminUsers = ''
+        while ([string]::IsNullOrWhiteSpace($AdminUsers)) {
+            $AdminUsers = (Read-Host "  Admin identities").Trim()
+        }
+    } else {
+        Write-Host "  ❌ -AdminUsers is required. Pass it as a parameter for non-interactive (CI/CD) runs." -ForegroundColor Red
+        exit 1
+    }
+}
+Write-Host "  ✅ AdminUsers: $AdminUsers" -ForegroundColor Green
 
 # ── Validate templates ────────────────────────────────────────────────────────
 
@@ -197,7 +279,7 @@ Write-Host "  ✅ Resource group ready with 9 required tags" -ForegroundColor Gr
 $deployParams = @(
     '--resource-group', $ResourceGroupName
     '--template-file', $templateFile
-    '--parameters', "projectName=hacker-board"
+    '--parameters', "projectName=$ProjectName"
     '--parameters', "environment=$Environment"
     '--parameters', "location=$Location"
     '--parameters', "owner=$Owner"
@@ -212,6 +294,14 @@ $deployParams = @(
     '--parameters', "gitHubOAuthClientSecret=$GitHubOAuthClientSecret"
     '--parameters', "adminUsers=$AdminUsers"
 )
+
+# Only pass uniqueSuffix when explicitly overridden. The Bicep default
+# (uniqueString(resourceGroup().id)) produces a deterministic suffix from
+# the RG — same RG = same names = repeatable re-deploys.
+if (-not [string]::IsNullOrWhiteSpace($UniqueSuffix)) {
+    $deployParams += @('--parameters', "uniqueSuffix=$UniqueSuffix")
+    Write-Host "  ℹ️  Using custom uniqueSuffix: $UniqueSuffix" -ForegroundColor Yellow
+}
 
 # ── What-If preview ──────────────────────────────────────────────────────────
 
@@ -418,9 +508,14 @@ if ($deploymentResult.properties.outputs) {
 }
 
 Write-Host ""
-Write-Host "ℹ️  Next steps:" -ForegroundColor Yellow
-Write-Host "  1. Build and push container image to ACR: docker build -t <acr>.azurecr.io/hacker-board:latest . && docker push ..."
-Write-Host "  2. Set AZURE_CREDENTIALS in GitHub repo secrets, then push to main to trigger deploy-app.yml"
-Write-Host "  3. Configure GitHub OAuth App callback: https://app-hacker-board-prod.azurewebsites.net/.auth/login/github/callback"
-Write-Host "  4. Verify: curl https://app-hacker-board-prod.azurewebsites.net/api/health"
+$appUrl      = if ($o.appServiceHostname.value) { "https://$($o.appServiceHostname.value)" } else { '<app-url-from-outputs>' }
+    $acrRegName  = if ($o.acrName.value) { $o.acrName.value } else { '<acr-name-from-outputs>' }
+
+    Write-Host "ℹ️  Next steps:" -ForegroundColor Yellow
+    Write-Host "  1. Build and push container image to ACR:"
+    Write-Host "     az acr build --registry $acrRegName --image hacker-board:latest ."
+    Write-Host "  2. Set AZURE_CREDENTIALS in GitHub repo secrets, then push to main to trigger deploy-app.yml"
+    Write-Host "  3. Configure GitHub OAuth App callback URL in your GitHub OAuth App:"
+    Write-Host "     $appUrl/.auth/login/github/callback"
+    Write-Host "  4. Verify: curl $appUrl/api/health"
 Write-Host ""

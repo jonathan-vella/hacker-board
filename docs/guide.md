@@ -49,7 +49,7 @@ HackerBoard is a live, interactive hackathon scoring dashboard designed for Micr
 | **Member**    | Hackathon participant. Submits own team's scores, views leaderboard and team roster.        | 20–50         |
 | **Anonymous** | Not supported — all routes require GitHub OAuth login.                                      | 0             |
 
-Admins are identified by the `ADMIN_USERS` app setting (e.g. `github:octocat`). All other authenticated users are Members.
+Admins are identified by the `ADMIN_USERS` app setting (e.g. `github:<your-username>`). All other authenticated users are Members.
 
 ---
 

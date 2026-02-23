@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.40.2.10011",
-      "templateHash": "9884251771090331683"
+      "templateHash": "17605968370801783529"
     }
   },
   "parameters": {
@@ -132,7 +132,7 @@
     "adminUsers": {
       "type": "string",
       "metadata": {
-        "description": "Comma-separated admin identities in provider:username format (e.g. \"github:octocat\"). Required at deploy time — determines who gets the admin role."
+        "description": "Comma-separated admin identities in provider:username format. Required — determines who gets the Admin role in the app. Examples: \"github:alice\" · \"github:alice,github:bob\" · \"aad:admin@company.com\""
       }
     },
     "vnetAddressPrefix": {
@@ -148,11 +148,20 @@
       "metadata": {
         "description": "UTC timestamp used to generate unique sub-deployment names. Prevents DeploymentActive conflicts on re-deploy."
       }
+    },
+    "uniqueSuffix": {
+      "type": "string",
+      "defaultValue": "[substring(uniqueString(resourceGroup().id), 0, 6)]",
+      "minLength": 3,
+      "maxLength": 13,
+      "metadata": {
+        "description": "6-character suffix appended to every resource name for global uniqueness. Defaults to a deterministic hash of the resource group ID — same RG always produces the same suffix, ensuring repeatable re-deploys. Override only when you need a specific value."
+      }
     }
   },
   "variables": {
-    "suffix": "[format('{0}-{1}', parameters('projectName'), parameters('environment'))]",
-    "acrName": "[format('cr{0}{1}', replace(parameters('projectName'), '-', ''), parameters('environment'))]",
+    "suffix": "[format('{0}-{1}-{2}', parameters('projectName'), parameters('environment'), parameters('uniqueSuffix'))]",
+    "acrName": "[format('cr{0}{1}{2}', replace(parameters('projectName'), '-', ''), parameters('environment'), parameters('uniqueSuffix'))]",
     "aspName": "[format('asp-{0}', variables('suffix'))]",
     "appName": "[format('app-{0}', variables('suffix'))]",
     "vnetName": "[format('vnet-{0}', variables('suffix'))]",

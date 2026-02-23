@@ -3,9 +3,11 @@ using 'main.bicep'
 param projectName = 'hacker-board'
 param environment = 'prod'
 param location = 'centralus'
-param owner = 'agentic-infraops'
-param costCenter = 'microhack'
-param technicalContact = 'jonathan@lordofthecloud.eu'
+
+// Tag values — update to match your organisation before deploying.
+param owner = 'your-team-name'
+param costCenter = 'your-cost-center'
+// param technicalContact = 'you@company.com'   // REQUIRED — no default; pass via deploy.ps1 or override here
 param application = 'hacker-board'
 param workload = 'web-app'
 param sla = 'non-production'
@@ -18,9 +20,16 @@ param maintWindow = 'any'
 // so this value is immediately overridden and never used in practice.
 param containerImage = 'hacker-board:latest'
 
-// Comma-separated admin identities: "github:username" or "aad:email"
-// Override at deploy time for your environment
-param adminUsers = 'github:jonathan-vella'
+// REQUIRED — no default. Comma-separated admin identities.
+// Format: 'github:<username>' or 'aad:<email>'
+// Examples: 'github:alice'  |  'github:alice,github:bob'  |  'aad:admin@company.com'
+// Supply at deploy time via deploy.ps1 (prompted interactively) or override here.
+// param adminUsers = 'github:<your-github-username>'
+
+// uniqueSuffix — leave commented out to use the auto-derived value
+// uniqueString(resourceGroup().id) → same RG always produces the same suffix → repeatable re-deploys.
+// Override only when you need a specific 3-13 character alphanumeric suffix.
+// param uniqueSuffix = 'abc123'
 
 // gitHubOAuthClientId and gitHubOAuthClientSecret are @secure() —
-// supply at deploy time via --parameters override, never commit secrets
+// supply at deploy time via deploy.ps1 parameters, never commit secrets
