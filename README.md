@@ -11,8 +11,6 @@ Microhack scoring dashboard — App Service for Linux Containers + ACR + Express
 ![DB](https://img.shields.io/badge/DB-Cosmos%20DB%20NoSQL-0078D4)
 ![Docs](https://img.shields.io/badge/Docs-Polished-6f42c1)
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjonathan-vella%2Fhacker-board%2Fmain%2Finfra%2Fazuredeploy.json)
-
 ## What It Does
 
 Teams submit scores through a web form or JSON upload. Admins review and approve
@@ -84,14 +82,8 @@ cd infra
 The deploying user (`az login` identity) is automatically configured as the
 application administrator via Entra ID app roles.
 
-Alternatively, use the **Deploy to Azure** button in this README to deploy
-via the Azure Portal — set `GitHubOAuthClientId` and `GitHubOAuthClientSecret`
-from your GitHub OAuth App.
-
-See [docs/deployment-guide.md](docs/deployment-guide.md) for the full
-end-to-end deployment guide (infra, OIDC, secrets, roles, table creation,
-smoke testing). For the legacy pre-deploy checklist, see
-[docs/app-handoff-checklist.md](docs/app-handoff-checklist.md).
+See [docs/deployment.md](docs/deployment.md) for the full end-to-end deployment
+guide (GitHub OAuth setup, infra provisioning, container push, CI/CD, smoke test).
 
 ## Features
 
@@ -146,25 +138,26 @@ Full schemas in [docs/api-spec.md](docs/api-spec.md).
 
 ## Documentation
 
-| Document                                                       | Purpose                                               |
-| -------------------------------------------------------------- | ----------------------------------------------------- |
-| [docs/app-prd.md](docs/app-prd.md)                             | Product requirements (F1-11)                          |
-| [docs/api-spec.md](docs/api-spec.md)                           | Full API specification                                |
-| [docs/openapi.yaml](docs/openapi.yaml)                         | OpenAPI 3.0 spec ([Swagger UI](docs/swagger-ui.html)) |
-| [docs/app-design.md](docs/app-design.md)                       | UI/UX design + components                             |
-| [docs/app-scaffold.md](docs/app-scaffold.md)                   | Folder structure guide                                |
-| [docs/app-handoff-checklist.md](docs/app-handoff-checklist.md) | Infrastructure wiring                                 |
-| [docs/admin-procedures.md](docs/admin-procedures.md)           | Admin runbook + role management                       |
-| [docs/agents-and-skills.md](docs/agents-and-skills.md)         | AI agents, skills, orchestration                      |
-| [docs/backlog.md](docs/backlog.md)                             | Project backlog + milestones                          |
+| Document                                           | Purpose                                                 |
+| -------------------------------------------------- | ------------------------------------------------------- |
+| [docs/requirements.md](docs/requirements.md)       | Features F1–F11, NFRs, and infrastructure requirements  |
+| [docs/architecture.md](docs/architecture.md)       | Diagrams, resource table, security model, cost estimate |
+| [docs/functionality.md](docs/functionality.md)     | Feature walkthroughs for event admins                   |
+| [docs/deployment.md](docs/deployment.md)           | End-to-end deployment guide                             |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | Common issues and fixes                                 |
+| [docs/faq.md](docs/faq.md)                         | Frequently asked questions                              |
+| [docs/api-spec.md](docs/api-spec.md)               | Full API specification                                  |
+| [docs/openapi.yaml](docs/openapi.yaml)             | OpenAPI 3.0 spec ([Swagger UI](docs/swagger-ui.html))   |
+| [docs/project-summary.md](docs/project-summary.md) | Architecture decisions, governance, deployment history  |
+| [docs/backlog.md](docs/backlog.md)                 | Execution plan and decision log                         |
 
 ## Infrastructure
 
-Estimated cost: **~$15/month** (Central US, assuming low traffic).
+Estimated cost: **~$18.15/month** (Central US, assuming low traffic). See [docs/architecture.md](docs/architecture.md#cost-estimate) for breakdown.
 
 | Resource           | SKU        | Purpose              |
 | ------------------ | ---------- | -------------------- |
-| App Service Plan   | B1 Linux   | Container hosting    |
+| App Service Plan   | S1 Linux   | Container hosting    |
 | Container Registry | Basic      | Docker image storage |
 | Cosmos DB NoSQL    | Serverless | All application data |
 | App Insights       | —          | Telemetry            |

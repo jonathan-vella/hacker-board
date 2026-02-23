@@ -127,6 +127,10 @@ export async function joinEvent(request) {
     return errorResponse("UNAUTHORIZED", "Authentication required", 401);
   }
 
+  if (principal.userRoles?.includes("admin")) {
+    return errorResponse("FORBIDDEN", "Admins cannot register as hackers", 403);
+  }
+
   const gitHubUsername = principal.userDetails;
   const container = getContainer("attendees");
 

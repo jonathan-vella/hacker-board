@@ -9,70 +9,51 @@
 
 > Live, interactive hackathon scoring dashboard — App Service for Linux Containers + ACR + Express + Cosmos DB NoSQL Serverless.
 
-## Quick Links
+## Documentation Index
 
-| Area | Link                                    | Description                                                |
-| ---- | --------------------------------------- | ---------------------------------------------------------- |
-| 📋   | [Product Requirements](app-prd.md)      | Features F1 through F11, user stories, acceptance criteria |
-| 🔌   | [API Specification](api-spec.md)        | All 16 endpoint contracts                                  |
-| 📘   | [OpenAPI / Swagger](swagger-ui.html)    | Interactive API explorer ([YAML](openapi.yaml))            |
-| 🎨   | [App Design](app-design.md)             | UI/UX, component model, responsive strategy                |
-| 🚀   | [Deployment Guide](deployment-guide.md) | End-to-end deploy: infra → CI/CD → smoke test              |
-| 📊   | [Backlog](backlog.md)                   | Execution plan, task tracking, decision log                |
-| 🤖   | [Agents & Skills](agents-and-skills.md) | AI agent inventory, orchestration workflow, prompt guide   |
-| 🧪   | [E2E Validation](e2e-validation.md)     | Deployment validation test protocol                        |
+| Doc                                   | Description                                                                                  |
+| ------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [Requirements](requirements.md)       | What HackerBoard does, who uses it, all 11 features, NFRs, and infrastructure requirements   |
+| [Architecture](architecture.md)       | Diagrams, resource table, networking, security model, CI/CD flow, and cost estimate          |
+| [Functionality](functionality.md)     | Feature walkthroughs for event admins — rubric setup, score submission, review queue, awards |
+| [Deployment Guide](deployment.md)     | End-to-end: GitHub OAuth → `deploy.ps1` → container push → CI/CD activation → smoke test     |
+| [Troubleshooting](troubleshooting.md) | Common issues with deployment, auth, application errors, and CI/CD                           |
+| [FAQ](faq.md)                         | Answers to common questions about cost, operations, admin management, and the app            |
+| [API Specification](api-spec.md)      | All 16 endpoint contracts with request/response schemas                                      |
+| [OpenAPI / Swagger](swagger-ui.html)  | Interactive API explorer ([YAML source](openapi.yaml))                                       |
+| [Project Summary](project-summary.md) | Architecture decisions, governance constraints, WAF assessment, deployment history           |
+| [Backlog](backlog.md)                 | Execution plan, task tracking, decision log                                                  |
 
-## Architecture Overview
+## Architecture Snapshot
 
 ```mermaid
-graph TB
-    Browser[Browser SPA] --> APP[App Service + Easy Auth]
-    APP --> Auth[GitHub OAuth /.auth/*]
-    APP --> API[Express API]
-    API --> COSMOS[Azure Cosmos DB]
-    GH[GitHub Actions] --> ACR[Azure Container Registry]
-    ACR --> APP
+flowchart LR
+    Users --> EasyAuth["Easy Auth\nGitHub OAuth"]
+    EasyAuth --> Express["Express 5.x\nSPA + API\nport 8080"]
+    Express --> Cosmos["Cosmos DB NoSQL\nServerless\nPrivate Endpoint"]
+    ACR["Container Registry"] -->|"acrPull · MI"| AppService["App Service\nLinux Container"]
+    GHA["GitHub Actions"] -->|"docker push :latest"| ACR
+    ACR -->|"CD webhook"| AppService
+    AppService --> Express
 ```
 
-## Feature Inventory
+## Feature Status
 
-| Feature                            | Status       | Primary Components                                                      |
-| ---------------------------------- | ------------ | ----------------------------------------------------------------------- |
-| F1 — Team score submission form    | ✅ Delivered | `src/components/ScoreSubmission.js`, `api/src/functions/upload.js`      |
-| F2 — Live leaderboard              | ✅ Delivered | `src/components/Leaderboard.js`, `api/src/functions/scores.js`          |
-| F3 — Grading display               | ✅ Delivered | `src/components/Leaderboard.js`, `api/src/functions/scores.js`          |
-| F4 — Award categories              | ✅ Delivered | `src/components/Awards.js`, `api/src/functions/awards.js`               |
-| F5 — Authentication (GitHub OAuth) | ✅ Delivered | App Service Easy Auth, `api/shared/auth.js`                             |
-| F6 — JSON score upload             | ✅ Delivered | `src/components/ScoreSubmission.js`, `api/src/functions/upload.js`      |
-| F7 — Attendee registration         | ✅ Delivered | `src/components/Registration.js`, `api/src/functions/attendees.js`      |
-| F8 — Team roster management        | ✅ Delivered | `src/components/TeamRoster.js`, `api/src/functions/teams.js`            |
-| F9 — Self-service join             | ✅ Delivered | `src/components/Registration.js`, `api/src/functions/attendees.js`      |
-| F10 — Team assignment              | ✅ Delivered | `src/components/TeamAssignment.js`, `api/src/functions/teams-assign.js` |
-| F11 — Rubric import + grading      | ✅ Delivered | `src/components/RubricManager.js`, `api/src/functions/rubrics.js`       |
+All 11 features delivered:
 
-## Tech Stack
-
-| Layer    | Technology                           |
-| -------- | ------------------------------------ |
-| Frontend | Vanilla JS SPA (ES2022+)             |
-| API      | Express 5.x adapter, Node.js 20+     |
-| Storage  | Azure Cosmos DB NoSQL Serverless     |
-| Auth     | App Service Easy Auth (GitHub OAuth) |
-| IaC      | Bicep (Azure Verified Modules)       |
-| CI/CD    | GitHub Actions + Docker + ACR        |
-| Testing  | Vitest + happy-dom                   |
-
-## Project Structure
-
-```text
-hacker-board/
-├── api/                  # Azure Functions API and shared helpers
-├── docs/                 # Product, API, design, and operations docs
-├── infra/                # Bicep infrastructure definitions
-├── scripts/              # Utility scripts (seed data, cleanup)
-├── src/                  # SPA application code (components/services/styles)
-└── templates/            # Scoring and rubric templates
-```
+| #   | Feature                       | Role   |
+| --- | ----------------------------- | ------ |
+| F1  | Team Score Submission Form    | Member |
+| F2  | Live Leaderboard              | All    |
+| F3  | Grading Display               | All    |
+| F4  | Award Categories              | Admin  |
+| F5  | GitHub OAuth Authentication   | All    |
+| F6  | JSON Score Upload             | Member |
+| F7  | Attendee Registration         | All    |
+| F8  | Admin Validation & Override   | Admin  |
+| F9  | Attendee Bulk Entry           | Admin  |
+| F10 | Random Team Assignment        | Admin  |
+| F11 | Configurable Rubric Templates | Admin  |
 
 ## Getting Help
 

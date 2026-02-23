@@ -1,8 +1,14 @@
 import { api } from "../services/api.js";
+import { isAdmin } from "../services/auth.js";
 
 export async function renderRegistration(container, user) {
   if (!user) {
     container.innerHTML = `<section class="card text-center" style="padding:3rem"><h2>Sign In Required</h2><p class="text-secondary mt-2">Please sign in with GitHub to register.</p></section>`;
+    return;
+  }
+
+  if (isAdmin(user)) {
+    container.innerHTML = `<section class="card text-center" style="padding:3rem"><h2>Registration Unavailable</h2><p class="text-secondary mt-2">Admins cannot register as event participants.</p></section>`;
     return;
   }
 
