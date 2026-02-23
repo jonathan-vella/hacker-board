@@ -68,7 +68,7 @@ export async function getAttendees() {
   const container = getContainer("attendees");
   const { resources } = await container.items
     .query(
-      "SELECT c.hackerAlias, c.hackerNumber, c.teamId, c.teamName, c.registeredAt FROM c ORDER BY c.hackerNumber",
+      "SELECT c.id, c.hackerAlias, c.hackerNumber, c.teamId, c.teamName, c.gitHubUsername, c.registeredAt FROM c ORDER BY c.hackerNumber",
     )
     .fetchAll();
 
@@ -78,6 +78,7 @@ export async function getAttendees() {
       teamNumber: doc.hackerNumber,
       teamId: doc.teamId,
       teamName: doc.teamName,
+      gitHubUsername: doc.gitHubUsername,
       registeredAt: doc.registeredAt,
     })),
   };

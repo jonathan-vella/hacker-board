@@ -1,8 +1,8 @@
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { normalizePrincipal } from "./shared/auth.js";
 import { adapt } from "./shared/adapter.js";
-
 import { handleHealth } from "./src/functions/health.js";
 import { handleTeams } from "./src/functions/teams.js";
 import { assignTeams } from "./src/functions/teams-assign.js";
@@ -72,32 +72,6 @@ app.post("/api/upload", adapt(postUpload));
 
 app.route("/api/flags").all(adapt(handleFlags));
 
-// Normalize claims-based principal (Linux container Easy Auth) to the
-// flat shape the SPA expects: { identityProvider, userId, userDetails,
-// userRoles, avatarUrl, displayName }.
-function normalizePrincipal(raw) {
-  if (raw.identityProvider) return raw;
-
-  const claims = raw.claims || [];
-  const find = (typ) => claims.find((c) => c.typ === typ)?.val;
-
-  return {
-    identityProvider: raw.auth_typ,
-    userId:
-      find("urn:github:id") ||
-      find(
-        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
-      ),
-    userDetails: find("urn:github:login") || find(raw.name_typ),
-    userRoles: claims
-      .filter((c) => c.typ === raw.role_typ)
-      .map((c) => c.val)
-      .concat(["anonymous", "authenticated"]),
-    avatarUrl: find("urn:github:avatar_url"),
-    displayName: find(raw.name_typ),
-  };
-}
-
 // Returns the Easy Auth principal injected by the App Service proxy layer.
 // Admin role is determined by the ADMIN_USERS env var (comma-separated
 // "provider:username" pairs, e.g. "github:octocat").
@@ -109,24 +83,6 @@ app.get("/api/me", (req, res) => {
   try {
     const raw = JSON.parse(Buffer.from(encoded, "base64").toString("utf8"));
     const principal = normalizePrincipal(raw);
-
-    // Inject "admin" role when the caller matches ADMIN_USERS
-    const adminList = (process.env.ADMIN_USERS || "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter(Boolean);
-    const callerKey =
-      `${principal.identityProvider}:${principal.userDetails}`.toLowerCase();
-    console.log(
-      `[/api/me] callerKey=${callerKey} adminList=${JSON.stringify(adminList)} match=${adminList.includes(callerKey)}`,
-    );
-    if (
-      adminList.includes(callerKey) &&
-      !principal.userRoles?.includes("admin")
-    ) {
-      principal.userRoles = [...(principal.userRoles || []), "admin"];
-    }
-
     return res.json({ clientPrincipal: principal });
   } catch {
     return res.json({ clientPrincipal: null });

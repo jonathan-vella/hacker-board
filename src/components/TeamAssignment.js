@@ -80,7 +80,10 @@ function renderTeamCard(team, members, allTeamNames) {
                 .map(
                   (m) => `
                 <li style="display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0;border-bottom:1px solid var(--color-border)">
-                  <span style="flex:1;font-size:0.875rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.alias)}</span>
+                  <span style="flex:1;min-width:0;font-size:0.875rem;overflow:hidden">
+                    <span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.alias)}</span>
+                    ${m.gitHubUsername ? `<span style="display:block;font-size:0.75rem;color:var(--color-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">@${escapeHtml(m.gitHubUsername)}</span>` : ""}
+                  </span>
                   <select
                     class="form-input"
                     data-action="move-member"
