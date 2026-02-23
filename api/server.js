@@ -7,7 +7,12 @@ import { handleHealth } from "./src/functions/health.js";
 import { handleTeams } from "./src/functions/teams.js";
 import { assignTeams } from "./src/functions/teams-assign.js";
 import { handleScores } from "./src/functions/scores.js";
-import { getAttendees, handleAttendeesMe } from "./src/functions/attendees.js";
+import {
+  getAttendees,
+  handleAttendeesMe,
+  deleteAttendee,
+  moveAttendee,
+} from "./src/functions/attendees.js";
 import { handleAwards } from "./src/functions/awards.js";
 import {
   getSubmissions,
@@ -54,6 +59,8 @@ app.post("/api/teams/assign", adapt(assignTeams));
 app.route("/api/scores").all(adapt(handleScores));
 
 app.get("/api/attendees", adapt(getAttendees));
+app.delete("/api/attendees", adapt(deleteAttendee));
+app.post("/api/attendees/move", adapt(moveAttendee));
 app.route("/api/attendees/me").all(adapt(handleAttendeesMe));
 
 app.route("/api/awards").all(adapt(handleAwards));

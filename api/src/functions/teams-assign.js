@@ -56,37 +56,30 @@ export async function assignTeams(request) {
     await teamsContainer.item(team.id, team.id).replace(resource);
   }
 
-  // Update each attendee's team assignment
+  // Partition key is /teamId — moving an attendee to another team requires
+  // delete + recreate since Cosmos DB does not allow changing partition keys in place.
   for (let i = 0; i < attendees.length; i++) {
     const team = teams[i % teams.length];
     const attendee = attendees[i];
 
+    if (attendee.teamId === team.id) continue;
+
     try {
-      const { resource } = await attendeesContainer
-        .item(attendee.id, attendee.teamId || attendee.id)
+      const { resource: fullDoc } = await attendeesContainer
+        .item(attendee.id, attendee.teamId)
         .read();
-      if (resource) {
-        resource.teamId = team.id;
-        resource.teamName = team.teamName;
-        await attendeesContainer
-          .item(attendee.id, attendee.teamId || attendee.id)
-          .replace(resource);
+
+      if (fullDoc) {
+        await attendeesContainer.item(attendee.id, attendee.teamId).delete();
+        const { _rid, _self, _etag, _attachments, _ts, ...cleanDoc } = fullDoc;
+        await attendeesContainer.items.create({
+          ...cleanDoc,
+          teamId: team.id,
+          teamName: team.teamName,
+        });
       }
     } catch {
-      // Cross-partition fallback: query by id, update in place
-      const { resources } = await attendeesContainer.items
-        .query({
-          query: "SELECT * FROM c WHERE c.id = @id",
-          parameters: [{ name: "@id", value: attendee.id }],
-        })
-        .fetchAll();
-
-      if (resources.length > 0) {
-        const doc = resources[0];
-        doc.teamId = team.id;
-        doc.teamName = team.teamName;
-        await attendeesContainer.item(doc.id, doc.teamId).replace(doc);
-      }
+      // Best effort — skip attendees that can't be relocated
     }
   }
 

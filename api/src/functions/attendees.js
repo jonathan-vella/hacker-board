@@ -1,5 +1,5 @@
 import { getContainer, nextHackerNumber } from "../../shared/cosmos.js";
-import { getClientPrincipal } from "../../shared/auth.js";
+import { getClientPrincipal, requireRole } from "../../shared/auth.js";
 import { errorResponse } from "../../shared/errors.js";
 import { randomUUID } from "node:crypto";
 
@@ -187,4 +187,132 @@ export async function handleAttendeesMe(request, context) {
     return getMyProfile(request, context);
   }
   return joinEvent(request, context);
+}
+
+export async function deleteAttendee(request) {
+  const denied = requireRole(request, "admin");
+  if (denied) return denied;
+
+  const body = await request.json();
+  const { alias } = body;
+
+  if (!alias || typeof alias !== "string") {
+    return errorResponse("VALIDATION_ERROR", "Missing or invalid alias");
+  }
+
+  const container = getContainer("attendees");
+  const { resources } = await container.items
+    .query({
+      query: "SELECT * FROM c WHERE c.hackerAlias = @alias",
+      parameters: [{ name: "@alias", value: alias }],
+    })
+    .fetchAll();
+
+  if (resources.length === 0) {
+    return errorResponse("NOT_FOUND", `Attendee '${alias}' not found`, 404);
+  }
+
+  const doc = resources[0];
+
+  // Remove alias from team's member list
+  const teamsContainer = getContainer("teams");
+  try {
+    const { resource: team } = await teamsContainer
+      .item(doc.teamId, doc.teamId)
+      .read();
+    if (team) {
+      team.teamMembers = (team.teamMembers || []).filter((m) => m !== alias);
+      await teamsContainer.item(doc.teamId, doc.teamId).replace(team);
+    }
+  } catch {
+    // Team may have been deleted — not a blocking error
+  }
+
+  await container.item(doc.id, doc.teamId).delete();
+  return { status: 204 };
+}
+
+export async function moveAttendee(request) {
+  const denied = requireRole(request, "admin");
+  if (denied) return denied;
+
+  const body = await request.json();
+  const { alias, toTeam } = body;
+
+  if (
+    !alias ||
+    typeof alias !== "string" ||
+    !toTeam ||
+    typeof toTeam !== "string"
+  ) {
+    return errorResponse("VALIDATION_ERROR", "Missing alias or toTeam");
+  }
+
+  const container = getContainer("attendees");
+  const teamsContainer = getContainer("teams");
+
+  const { resources } = await container.items
+    .query({
+      query: "SELECT * FROM c WHERE c.hackerAlias = @alias",
+      parameters: [{ name: "@alias", value: alias }],
+    })
+    .fetchAll();
+
+  if (resources.length === 0) {
+    return errorResponse("NOT_FOUND", `Attendee '${alias}' not found`, 404);
+  }
+
+  const doc = resources[0];
+  const fromTeamId = doc.teamId;
+
+  if (fromTeamId === toTeam) {
+    return { jsonBody: { alias, teamId: toTeam, teamName: doc.teamName } };
+  }
+
+  // Verify destination team exists
+  let destTeam;
+  try {
+    const { resource } = await teamsContainer.item(toTeam, toTeam).read();
+    if (!resource) throw { code: 404 };
+    destTeam = resource;
+  } catch (err) {
+    if (err.code === 404) {
+      return errorResponse(
+        "TEAM_NOT_FOUND",
+        `Team '${toTeam}' does not exist`,
+        404,
+      );
+    }
+    throw err;
+  }
+
+  // Remove alias from old team's member list
+  try {
+    const { resource: oldTeam } = await teamsContainer
+      .item(fromTeamId, fromTeamId)
+      .read();
+    if (oldTeam) {
+      oldTeam.teamMembers = (oldTeam.teamMembers || []).filter(
+        (m) => m !== alias,
+      );
+      await teamsContainer.item(fromTeamId, fromTeamId).replace(oldTeam);
+    }
+  } catch {
+    // Old team may have been deleted — not a blocking error
+  }
+
+  // Add alias to new team's member list
+  destTeam.teamMembers = [...(destTeam.teamMembers || []), alias];
+  await teamsContainer.item(toTeam, toTeam).replace(destTeam);
+
+  // Partition key is /teamId — must delete + recreate to change teams
+  await container.item(doc.id, fromTeamId).delete();
+  const { _rid, _self, _etag, _attachments, _ts, ...cleanDoc } = doc;
+  await container.items.create({
+    ...cleanDoc,
+    teamId: toTeam,
+    teamName: destTeam.teamName,
+  });
+
+  return { jsonBody: { alias, teamId: toTeam, teamName: destTeam.teamName } };
 }

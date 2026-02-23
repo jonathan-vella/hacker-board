@@ -70,6 +70,16 @@ export const api = {
     list: () => apiFetch("/attendees"),
     me: () => apiFetch("/attendees/me"),
     join: () => apiFetch("/attendees/me", { method: "POST" }),
+    remove: (alias) =>
+      apiFetch("/attendees", {
+        method: "DELETE",
+        body: JSON.stringify({ alias }),
+      }),
+    move: (alias, toTeam) =>
+      apiFetch("/attendees/move", {
+        method: "POST",
+        body: JSON.stringify({ alias, toTeam }),
+      }),
   },
 
   awards: {

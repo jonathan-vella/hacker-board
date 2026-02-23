@@ -1,4 +1,5 @@
 import { getContainer } from "../../shared/cosmos.js";
+import { requireRole } from "../../shared/auth.js";
 import { errorResponse } from "../../shared/errors.js";
 import { createRequestLogger } from "../../shared/logger.js";
 
@@ -47,6 +48,9 @@ export async function getTeams() {
 }
 
 export async function createTeam(request) {
+  const denied = requireRole(request, "admin");
+  if (denied) return denied;
+
   const body = await request.json();
   const { teamName, teamMembers = [] } = body;
 
@@ -96,6 +100,9 @@ export async function createTeam(request) {
 }
 
 export async function updateTeam(request) {
+  const denied = requireRole(request, "admin");
+  if (denied) return denied;
+
   const body = await request.json();
   const { teamName, teamMembers } = body;
 
@@ -133,6 +140,9 @@ export async function updateTeam(request) {
 }
 
 export async function deleteTeam(request) {
+  const denied = requireRole(request, "admin");
+  if (denied) return denied;
+
   const body = await request.json();
   const { teamName } = body;
 
@@ -153,6 +163,23 @@ export async function deleteTeam(request) {
       );
     }
     throw err;
+  }
+
+  // Prevent deletion if attendees are still registered to this team
+  const attendeesContainer = getContainer("attendees");
+  const { resources: memberCount } = await attendeesContainer.items
+    .query({
+      query: "SELECT VALUE COUNT(1) FROM c WHERE c.teamId = @teamId",
+      parameters: [{ name: "@teamId", value: teamName }],
+    })
+    .fetchAll();
+
+  if ((memberCount[0] || 0) > 0) {
+    return errorResponse(
+      "TEAM_HAS_MEMBERS",
+      `Team '${teamName}' has registered attendees. Move or remove them first.`,
+      409,
+    );
   }
 
   // Delete child scores for this team

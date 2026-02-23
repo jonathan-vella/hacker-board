@@ -44,6 +44,7 @@ export async function renderNavigation(container, user) {
               <li role="none"><a href="#/review" role="menuitem">Review Queue <span id="pending-count-badge" class="pending-badge" style="display:none" aria-live="polite"></span></a></li>
               <li role="none"><a href="#/quickscore" role="menuitem">Quick Score</a></li>
               <li role="none"><a href="#/rubrics" role="menuitem">Rubrics</a></li>
+              <li role="none"><a href="#/assign" role="menuitem">Team Management</a></li>
               <li role="none"><a href="#/flags" role="menuitem">Feature Flags</a></li>
             </ul>
           </li>`
