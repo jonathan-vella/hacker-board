@@ -49,6 +49,7 @@ export async function renderNavigation(container, user) {
               <li role="none" class="admin-dropdown__divider" aria-hidden="true"></li>
               <li role="none" class="admin-dropdown__group-label">Manage</li>
               <li role="none"><a href="#/assign" role="menuitem">Teams</a></li>
+              <li role="none"><a href="#/hackers" role="menuitem">Hackers</a></li>
               <li role="none"><a href="#/rubrics" role="menuitem">Rubrics</a></li>
               <li role="none"><a href="#/flags" role="menuitem">Feature Flags</a></li>
             </ul>

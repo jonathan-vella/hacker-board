@@ -18,6 +18,7 @@ import { renderTeamAssignment } from "./components/TeamAssignment.js";
 import { renderRubricManager } from "./components/RubricManager.js";
 import { renderFeatureFlags } from "./components/FeatureFlags.js";
 import { renderQuickScore } from "./components/QuickScore.js";
+import { renderHackerManagement } from "./components/HackerManagement.js";
 import { renderLogin } from "./components/Login.js";
 import { renderLogout } from "./components/Logout.js";
 
@@ -34,6 +35,7 @@ const routes = {
   assign: renderTeamAssignment,
   rubrics: renderRubricManager,
   quickscore: renderQuickScore,
+  hackers: renderHackerManagement,
   flags: renderFeatureFlags,
   logout: renderLogout,
 };
@@ -47,6 +49,7 @@ const adminOnlyRoutes = new Set([
   "upload",
   "submit",
   "assign",
+  "hackers",
 ]);
 
 let currentUser;

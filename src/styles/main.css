@@ -647,6 +647,57 @@ main {
   color: #ff7b72;
 }
 
+.badge--team {
+  background: var(--color-accent-subtle, #dbeafe);
+  color: var(--color-accent, #1d4ed8);
+}
+
+[data-theme="dark"] .badge--team {
+  background: #172554;
+  color: #93c5fd;
+}
+
+/* Data table */
+.data-table {
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.625rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.data-table th {
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-2, var(--color-surface));
+  position: sticky;
+  top: 0;
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-surface-2, rgba(0, 0, 0, 0.03));
+}
+
+[data-theme="dark"] .data-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.text-link {
+  color: var(--color-accent, #1d4ed8);
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
 /* Forms */
 .form-group {
   margin-bottom: 1rem;
