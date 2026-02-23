@@ -4,6 +4,7 @@ import {
   loginUrl,
   logoutUrl,
 } from "./services/auth.js";
+import { api } from "./services/api.js";
 import { initTelemetry, trackPageView } from "./services/telemetry.js";
 import { renderNavigation } from "./components/Navigation.js";
 import { renderLeaderboard } from "./components/Leaderboard.js";
@@ -76,6 +77,13 @@ async function init() {
   document.getElementById("app-nav").style.display = "";
   document.querySelector("footer").style.display = "";
   renderNavigation(document.getElementById("app-nav"), currentUser);
+
+  // Auto-register the user on every login — idempotent (200 if already
+  // registered, 201 for new). Runs in the background so it never blocks
+  // the initial page render. When a new user logs in they appear in the
+  // attendees list and get a team assignment without manual action.
+  api.attendees.join().catch(() => {});
+
   handleRoute();
   window.addEventListener("hashchange", handleRoute);
 
