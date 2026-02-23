@@ -38,7 +38,10 @@ describe("Navigation", () => {
     );
     expect(container.querySelector('[href="#/leaderboard"]')).toBeTruthy();
     expect(container.querySelector('[href="#/awards"]')).toBeTruthy();
-    expect(container.querySelector('[href="#/submit"]')).toBeTruthy();
+    expect(container.querySelector('[href="#/teams"]')).toBeTruthy();
+    // Submit and Upload are admin-only, not in the main nav
+    expect(container.querySelector('[href="#/submit"]')).toBeNull();
+    expect(container.querySelector('[href="#/upload"]')).toBeNull();
   });
 
   it("shows alias instead of GitHub username", async () => {
@@ -57,6 +60,8 @@ describe("Navigation", () => {
     };
     await renderNavigation(container, user);
 
+    expect(container.querySelector('[href="#/submit"]')).toBeTruthy();
+    expect(container.querySelector('[href="#/upload"]')).toBeTruthy();
     expect(container.querySelector('[href="#/review"]')).toBeTruthy();
     expect(container.querySelector('[href="#/rubrics"]')).toBeTruthy();
     expect(container.querySelector('[href="#/flags"]')).toBeTruthy();

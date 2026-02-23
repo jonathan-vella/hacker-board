@@ -22,8 +22,6 @@ export async function renderNavigation(container, user) {
       <nav aria-label="Main navigation">
         <ul class="nav-links" id="main-nav-list">
           <li><a href="#/leaderboard">Leaderboard</a></li>
-          ${user ? `<li><a href="#/submit">Submit Score</a></li>` : ""}
-          ${user ? `<li><a href="#/upload">Upload</a></li>` : ""}
           ${user ? `<li><a href="#/teams">Teams</a></li>` : ""}
           <li><a href="#/awards">Awards</a></li>
           ${
@@ -41,10 +39,17 @@ export async function renderNavigation(container, user) {
               </svg>
             </button>
             <ul class="admin-dropdown__menu" id="admin-menu" role="menu">
+              <li role="none" class="admin-dropdown__group-label">Scoring</li>
+              <li role="none"><a href="#/submit" role="menuitem">Submit Score</a></li>
+              <li role="none"><a href="#/upload" role="menuitem">Upload Scores</a></li>
+              <li role="none" class="admin-dropdown__divider" aria-hidden="true"></li>
+              <li role="none" class="admin-dropdown__group-label">Review</li>
               <li role="none"><a href="#/review" role="menuitem">Review Queue <span id="pending-count-badge" class="pending-badge" style="display:none" aria-live="polite"></span></a></li>
               <li role="none"><a href="#/quickscore" role="menuitem">Quick Score</a></li>
+              <li role="none" class="admin-dropdown__divider" aria-hidden="true"></li>
+              <li role="none" class="admin-dropdown__group-label">Manage</li>
+              <li role="none"><a href="#/assign" role="menuitem">Teams</a></li>
               <li role="none"><a href="#/rubrics" role="menuitem">Rubrics</a></li>
-              <li role="none"><a href="#/assign" role="menuitem">Team Management</a></li>
               <li role="none"><a href="#/flags" role="menuitem">Feature Flags</a></li>
             </ul>
           </li>`

@@ -45,6 +45,7 @@ const adminOnlyRoutes = new Set([
   "quickscore",
   "flags",
   "upload",
+  "submit",
   "assign",
 ]);
 
