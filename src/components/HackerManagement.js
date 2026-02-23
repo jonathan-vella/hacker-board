@@ -9,6 +9,10 @@ export async function renderHackerManagement(container, user) {
   await loadAndRender(container);
 }
 
+// ---------------------------------------------------------------------------
+// Data loading
+// ---------------------------------------------------------------------------
+
 async function loadAndRender(container) {
   if (container._hackerAbort) container._hackerAbort.abort();
   const abort = new AbortController();
@@ -22,34 +26,49 @@ async function loadAndRender(container) {
       api.teams.list(),
     ]);
 
-    const teamMap = new Map(teams.map((t) => [t.teamName, t]));
+    // Shared mutable state for this render cycle
+    const state = {
+      attendees,
+      teams,
+      selected: new Set(),
+      filter: { search: "", team: "" },
+    };
 
-    // Derive a stable sorted list of unique team names for the filter dropdown
-    const teamNames = [...new Set(attendees.map((a) => a.teamName).filter(Boolean))].sort();
-
-    render(container, attendees, teamMap, teamNames, abort.signal);
+    renderShell(container, state, abort.signal);
   } catch (err) {
     container.innerHTML = `<div class="card text-center"><p class="text-secondary">Failed to load: ${escapeHtml(err.message)}</p></div>`;
   }
 }
 
-function render(container, attendees, teamMap, teamNames, signal) {
+// ---------------------------------------------------------------------------
+// Shell (filters, bulk bar, table container) — rendered once
+// ---------------------------------------------------------------------------
+
+function renderShell(container, state, signal) {
+  const teamOptions = state.teams
+    .map(
+      (t) =>
+        `<option value="${escapeAttr(t.teamName)}">${escapeHtml(t.teamName)}</option>`,
+    )
+    .join("");
+
   container.innerHTML = `
     <section>
       <div class="section-header">
-        <h2>Hacker Management</h2>
-        <p class="text-secondary" style="margin:0.25rem 0 0">
-          ${attendees.length} hacker${attendees.length !== 1 ? "s" : ""} registered across ${teamMap.size} team${teamMap.size !== 1 ? "s" : ""}
-        </p>
+        <div>
+          <h2>Hacker Management</h2>
+          <p class="text-secondary" id="hm-subtitle" style="margin:0.25rem 0 0"></p>
+        </div>
       </div>
 
-      <div class="card" style="margin-bottom:1.5rem">
+      <!-- Filters -->
+      <div class="card" style="margin-bottom:1rem">
         <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end">
           <div style="flex:1;min-width:200px">
-            <label for="hacker-search" style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.375rem">Search</label>
+            <label for="hm-search" style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.375rem">Search</label>
             <input
               type="search"
-              id="hacker-search"
+              id="hm-search"
               class="form-input"
               placeholder="Filter by alias or GitHub username…"
               aria-label="Search hackers"
@@ -57,106 +76,213 @@ function render(container, attendees, teamMap, teamNames, signal) {
             />
           </div>
           <div style="min-width:160px">
-            <label for="team-filter" style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.375rem">Team</label>
-            <select id="team-filter" class="form-input" aria-label="Filter by team">
+            <label for="hm-team-filter" style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.375rem">Team</label>
+            <select id="hm-team-filter" class="form-input" aria-label="Filter by team">
               <option value="">All teams</option>
               <option value="__unassigned__">Unassigned</option>
-              ${teamNames.map((n) => `<option value="${escapeAttr(n)}">${escapeHtml(n)}</option>`).join("")}
-            </select>
-          </div>
-          <div style="min-width:140px">
-            <label for="view-mode" style="display:block;font-size:0.875rem;font-weight:500;margin-bottom:0.375rem">View</label>
-            <select id="view-mode" class="form-input" aria-label="Switch view mode">
-              <option value="table">Table</option>
-              <option value="by-team">By Team</option>
+              ${teamOptions}
             </select>
           </div>
         </div>
       </div>
 
-      <div id="hacker-content"></div>
+      <!-- Bulk action bar (hidden until rows are selected) -->
+      <div id="hm-bulk-bar" class="hm-bulk-bar" style="display:none" role="region" aria-label="Bulk actions">
+        <span id="hm-bulk-label" class="hm-bulk-label"></span>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+          <select id="hm-bulk-team" class="form-input form-input--sm" aria-label="Move selected to team">
+            <option value="">Move to team…</option>
+            ${teamOptions}
+          </select>
+          <button id="hm-bulk-move" class="btn btn-sm btn-primary" type="button" disabled>Move</button>
+          <button id="hm-bulk-delete" class="btn btn-sm btn-danger" type="button">Delete selected</button>
+        </div>
+      </div>
+
+      <!-- Feedback -->
+      <div id="hm-feedback" class="hm-feedback" role="alert" aria-live="polite" style="min-height:1.5rem;margin-bottom:0.5rem"></div>
+
+      <!-- Table -->
+      <div id="hm-table-wrap"></div>
     </section>
   `;
 
-  const searchEl = container.querySelector("#hacker-search");
-  const teamFilterEl = container.querySelector("#team-filter");
-  const viewModeEl = container.querySelector("#view-mode");
-  const contentEl = container.querySelector("#hacker-content");
+  const searchEl = container.querySelector("#hm-search");
+  const teamFilterEl = container.querySelector("#hm-team-filter");
+  const feedbackEl = container.querySelector("#hm-feedback");
 
-  function filtered() {
-    const q = searchEl.value.trim().toLowerCase();
-    const team = teamFilterEl.value;
-    return attendees.filter((a) => {
-      const matchesSearch =
-        !q ||
-        (a.alias || "").toLowerCase().includes(q) ||
-        (a.gitHubUsername || "").toLowerCase().includes(q);
-      const matchesTeam =
-        !team ||
-        (team === "__unassigned__" ? !a.teamName : a.teamName === team);
-      return matchesSearch && matchesTeam;
-    });
-  }
+  // Kick off initial table render
+  refreshTable(container, state);
 
-  function updateContent() {
-    const rows = filtered();
-    const mode = viewModeEl.value;
-    if (mode === "by-team") {
-      contentEl.innerHTML = renderByTeam(rows);
-    } else {
-      contentEl.innerHTML = renderTable(rows);
-    }
-  }
+  searchEl.addEventListener(
+    "input",
+    () => {
+      state.filter.search = searchEl.value.trim().toLowerCase();
+      state.selected.clear();
+      refreshTable(container, state);
+    },
+    { signal },
+  );
 
-  searchEl.addEventListener("input", updateContent, { signal });
-  teamFilterEl.addEventListener("change", updateContent, { signal });
-  viewModeEl.addEventListener("change", updateContent, { signal });
+  teamFilterEl.addEventListener(
+    "change",
+    () => {
+      state.filter.team = teamFilterEl.value;
+      state.selected.clear();
+      refreshTable(container, state);
+    },
+    { signal },
+  );
 
-  updateContent();
+  // Enable move button only when a destination team is chosen
+  container.querySelector("#hm-bulk-team").addEventListener(
+    "change",
+    (e) => {
+      container.querySelector("#hm-bulk-move").disabled = !e.target.value;
+    },
+    { signal },
+  );
+
+  container.querySelector("#hm-bulk-move").addEventListener(
+    "click",
+    async () => {
+      const toTeam = container.querySelector("#hm-bulk-team").value;
+      if (!toTeam || state.selected.size === 0) return;
+      await bulkMove(container, state, [...state.selected], toTeam, feedbackEl);
+    },
+    { signal },
+  );
+
+  container.querySelector("#hm-bulk-delete").addEventListener(
+    "click",
+    async () => {
+      if (state.selected.size === 0) return;
+      const aliases = [...state.selected];
+      const noun =
+        aliases.length === 1 ? "1 hacker" : `${aliases.length} hackers`;
+      if (!confirm(`Delete ${noun}? This cannot be undone.`)) return;
+      await bulkDelete(container, state, aliases, feedbackEl);
+    },
+    { signal },
+  );
 }
 
-function renderTable(attendees) {
-  if (attendees.length === 0) {
-    return `<div class="card text-center" style="padding:2rem"><p class="text-secondary">No hackers match your filter.</p></div>`;
+// ---------------------------------------------------------------------------
+// Table rendering — re-runs on every state change
+// ---------------------------------------------------------------------------
+
+function filteredAttendees(state) {
+  const { search, team } = state.filter;
+  return state.attendees.filter((a) => {
+    const matchesSearch =
+      !search ||
+      (a.alias || "").toLowerCase().includes(search) ||
+      (a.gitHubUsername || "").toLowerCase().includes(search);
+    const matchesTeam =
+      !team || (team === "__unassigned__" ? !a.teamName : a.teamName === team);
+    return matchesSearch && matchesTeam;
+  });
+}
+
+function refreshTable(container, state) {
+  const visible = filteredAttendees(state);
+  const allSelected =
+    visible.length > 0 && visible.every((a) => state.selected.has(a.alias));
+
+  // Subtitle
+  const subtitle = container.querySelector("#hm-subtitle");
+  if (subtitle) {
+    subtitle.textContent = `${state.attendees.length} hacker${state.attendees.length !== 1 ? "s" : ""} registered across ${state.teams.length} team${state.teams.length !== 1 ? "s" : ""}`;
   }
 
-  const rows = attendees
-    .map(
-      (a) => `
-    <tr>
-      <td>${escapeHtml(a.alias || "—")}</td>
-      <td>
-        ${
-          a.gitHubUsername
-            ? `<a href="https://github.com/${escapeAttr(a.gitHubUsername)}" target="_blank" rel="noopener noreferrer" class="text-link">
-                ${escapeHtml(a.gitHubUsername)}
-               </a>`
-            : `<span class="text-secondary">—</span>`
-        }
-      </td>
-      <td>
-        ${
-          a.teamName
-            ? `<span class="badge badge--team">${escapeHtml(a.teamName)}</span>`
-            : `<span class="text-secondary text-sm">Unassigned</span>`
-        }
-      </td>
-      <td class="text-secondary text-sm">${formatDate(a.registeredAt)}</td>
-    </tr>
-  `,
-    )
+  // Bulk bar visibility
+  const bulkBar = container.querySelector("#hm-bulk-bar");
+  const bulkLabel = container.querySelector("#hm-bulk-label");
+  if (state.selected.size > 0) {
+    bulkBar.style.display = "";
+    bulkLabel.textContent = `${state.selected.size} selected`;
+  } else {
+    bulkBar.style.display = "none";
+    const bulkTeam = container.querySelector("#hm-bulk-team");
+    const bulkMove = container.querySelector("#hm-bulk-move");
+    if (bulkTeam) bulkTeam.value = "";
+    if (bulkMove) bulkMove.disabled = true;
+  }
+
+  const wrap = container.querySelector("#hm-table-wrap");
+
+  if (visible.length === 0) {
+    wrap.innerHTML = `<div class="card text-center" style="padding:2rem"><p class="text-secondary">No hackers match your filter.</p></div>`;
+    return;
+  }
+
+  const rows = visible
+    .map((a) => {
+      const checked = state.selected.has(a.alias) ? "checked" : "";
+      const alias = escapeAttr(a.alias || "");
+
+      return `
+      <tr data-alias="${alias}">
+        <td class="hm-col-check">
+          <input
+            type="checkbox"
+            class="hm-row-check"
+            data-alias="${alias}"
+            ${checked}
+            aria-label="Select ${escapeAttr(a.alias || "hacker")}"
+          />
+        </td>
+        <td>${escapeHtml(a.alias || "—")}</td>
+        <td>
+          ${
+            a.gitHubUsername
+              ? `<a href="https://github.com/${escapeAttr(a.gitHubUsername)}" target="_blank" rel="noopener noreferrer" class="text-link">@${escapeHtml(a.gitHubUsername)}</a>`
+              : `<span class="text-secondary">—</span>`
+          }
+        </td>
+        <td class="text-secondary text-sm">${formatDate(a.registeredAt)}</td>
+        <td class="hm-col-team">
+          <select
+            class="form-input form-input--sm hm-team-select"
+            data-alias="${alias}"
+            aria-label="Assign ${escapeAttr(a.alias || "hacker")} to team"
+          >
+            <option value="">Unassigned</option>
+            ${state.teams.map((t) => `<option value="${escapeAttr(t.teamName)}"${t.teamName === a.teamName ? " selected" : ""}>${escapeHtml(t.teamName)}</option>`).join("")}
+          </select>
+        </td>
+        <td class="hm-col-actions">
+          <button
+            class="btn btn-sm btn-danger hm-delete-btn"
+            data-alias="${alias}"
+            type="button"
+            aria-label="Delete ${escapeAttr(a.alias || "hacker")}"
+          >Delete</button>
+        </td>
+      </tr>
+    `;
+    })
     .join("");
 
-  return `
+  wrap.innerHTML = `
     <div class="card" style="padding:0;overflow:hidden">
       <div style="overflow-x:auto">
         <table class="data-table" style="width:100%">
           <thead>
             <tr>
+              <th scope="col" class="hm-col-check">
+                <input
+                  type="checkbox"
+                  id="hm-select-all"
+                  ${allSelected ? "checked" : ""}
+                  aria-label="Select all visible hackers"
+                />
+              </th>
               <th scope="col">Alias</th>
-              <th scope="col">GitHub Username</th>
-              <th scope="col">Team</th>
+              <th scope="col">GitHub</th>
               <th scope="col">Registered</th>
+              <th scope="col">Team</th>
+              <th scope="col" class="hm-col-actions">Actions</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
@@ -164,65 +290,214 @@ function renderTable(attendees) {
       </div>
     </div>
   `;
-}
 
-function renderByTeam(attendees) {
-  if (attendees.length === 0) {
-    return `<div class="card text-center" style="padding:2rem"><p class="text-secondary">No hackers match your filter.</p></div>`;
-  }
-
-  const grouped = new Map();
-  const unassigned = [];
-
-  attendees.forEach((a) => {
-    if (!a.teamName) {
-      unassigned.push(a);
+  // Select-all header checkbox
+  wrap.querySelector("#hm-select-all").addEventListener("change", (e) => {
+    const vis = filteredAttendees(state);
+    if (e.target.checked) {
+      vis.forEach((a) => state.selected.add(a.alias));
     } else {
-      if (!grouped.has(a.teamName)) grouped.set(a.teamName, []);
-      grouped.get(a.teamName).push(a);
+      vis.forEach((a) => state.selected.delete(a.alias));
     }
+    refreshTable(container, state);
   });
 
-  const sortedTeams = [...grouped.keys()].sort();
+  // Row checkboxes — update selection without full re-render to preserve focus
+  wrap.querySelectorAll(".hm-row-check").forEach((cb) => {
+    cb.addEventListener("change", (e) => {
+      const { alias } = e.target.dataset;
+      if (e.target.checked) {
+        state.selected.add(alias);
+      } else {
+        state.selected.delete(alias);
+      }
+      refreshBulkBar(container, state);
+      const vis = filteredAttendees(state);
+      const allSel =
+        vis.length > 0 && vis.every((a) => state.selected.has(a.alias));
+      const selAll = wrap.querySelector("#hm-select-all");
+      if (selAll) selAll.checked = allSel;
+    });
+  });
 
-  const cards = sortedTeams
-    .map((teamName) => {
-      const members = grouped.get(teamName);
-      return renderTeamGroup(teamName, members);
-    })
-    .join("");
+  // Inline team dropdowns — move on change
+  wrap.querySelectorAll(".hm-team-select").forEach((sel) => {
+    sel.addEventListener("change", async (e) => {
+      const { alias } = e.target.dataset;
+      const toTeam = e.target.value || null;
+      const feedbackEl = container.querySelector("#hm-feedback");
+      await moveOne(container, state, alias, toTeam, feedbackEl, e.target);
+    });
+  });
 
-  const unassignedCard =
-    unassigned.length > 0 ? renderTeamGroup("Unassigned", unassigned, true) : "";
-
-  return `<div class="grid-3">${cards}${unassignedCard}</div>`;
+  // Per-row delete buttons
+  wrap.querySelectorAll(".hm-delete-btn").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      const { alias } = e.target.dataset;
+      if (!confirm(`Delete hacker "${alias}"? This cannot be undone.`)) return;
+      const feedbackEl = container.querySelector("#hm-feedback");
+      await deleteOne(container, state, alias, feedbackEl, e.target);
+    });
+  });
 }
 
-function renderTeamGroup(teamName, members, isUnassigned = false) {
-  const memberRows = members
-    .map(
-      (m) => `
-    <li style="display:flex;align-items:center;gap:0.5rem;padding:0.375rem 0;border-bottom:1px solid var(--color-border)">
-      <span style="flex:1;font-size:0.875rem">${escapeHtml(m.alias || "Unknown")}</span>
-      ${
-        m.gitHubUsername
-          ? `<a href="https://github.com/${escapeAttr(m.gitHubUsername)}" target="_blank" rel="noopener noreferrer" class="text-secondary text-sm" aria-label="${escapeAttr(m.alias)} on GitHub">@${escapeHtml(m.gitHubUsername)}</a>`
-          : ""
-      }
-    </li>
-  `,
-    )
-    .join("");
+// Refresh only the bulk action bar without re-rendering the table (preserves focus on checkboxes)
+function refreshBulkBar(container, state) {
+  const bulkBar = container.querySelector("#hm-bulk-bar");
+  const bulkLabel = container.querySelector("#hm-bulk-label");
+  if (!bulkBar) return;
+  if (state.selected.size > 0) {
+    bulkBar.style.display = "";
+    bulkLabel.textContent = `${state.selected.size} selected`;
+  } else {
+    bulkBar.style.display = "none";
+    const bulkTeam = container.querySelector("#hm-bulk-team");
+    const bulkMove = container.querySelector("#hm-bulk-move");
+    if (bulkTeam) bulkTeam.value = "";
+    if (bulkMove) bulkMove.disabled = true;
+  }
+}
 
-  return `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-        <h3 style="margin:0${isUnassigned ? ";color:var(--color-text-secondary)" : ""}">${escapeHtml(teamName)}</h3>
-        <span class="badge${isUnassigned ? "" : " badge--team"}">${members.length} hacker${members.length !== 1 ? "s" : ""}</span>
-      </div>
-      <ul style="list-style:none;padding:0;margin:0" role="list">${memberRows}</ul>
-    </div>
-  `;
+// ---------------------------------------------------------------------------
+// Mutations
+// ---------------------------------------------------------------------------
+
+async function moveOne(container, state, alias, toTeam, feedbackEl, selectEl) {
+  setFeedback(feedbackEl, "");
+  selectEl.disabled = true;
+  try {
+    await api.attendees.move(alias, toTeam);
+    const a = state.attendees.find((x) => x.alias === alias);
+    if (a) {
+      a.teamName = toTeam || undefined;
+      a.teamId = toTeam || undefined;
+    }
+    setFeedback(
+      feedbackEl,
+      `Moved ${alias} → ${toTeam || "Unassigned"}`,
+      "success",
+    );
+  } catch (err) {
+    setFeedback(feedbackEl, `Failed to move ${alias}: ${err.message}`, "error");
+    // Revert dropdown to previous value
+    const prev = state.attendees.find((x) => x.alias === alias)?.teamName || "";
+    selectEl.value = prev;
+  } finally {
+    selectEl.disabled = false;
+  }
+}
+
+async function deleteOne(container, state, alias, feedbackEl, btn) {
+  setFeedback(feedbackEl, "");
+  btn.disabled = true;
+  try {
+    await api.attendees.remove(alias);
+    state.attendees = state.attendees.filter((a) => a.alias !== alias);
+    state.selected.delete(alias);
+    setFeedback(feedbackEl, `Deleted ${alias}`, "success");
+    refreshTable(container, state);
+  } catch (err) {
+    setFeedback(
+      feedbackEl,
+      `Failed to delete ${alias}: ${err.message}`,
+      "error",
+    );
+    btn.disabled = false;
+  }
+}
+
+async function bulkMove(container, state, aliases, toTeam, feedbackEl) {
+  setFeedback(feedbackEl, "");
+  disableBulkBar(container, true);
+  const errors = [];
+
+  for (const alias of aliases) {
+    try {
+      await api.attendees.move(alias, toTeam);
+      const a = state.attendees.find((x) => x.alias === alias);
+      if (a) {
+        a.teamName = toTeam;
+        a.teamId = toTeam;
+      }
+    } catch {
+      errors.push(alias);
+    }
+  }
+
+  state.selected.clear();
+  disableBulkBar(container, false);
+
+  if (errors.length === 0) {
+    setFeedback(
+      feedbackEl,
+      `Moved ${aliases.length} hacker${aliases.length !== 1 ? "s" : ""} to ${toTeam}`,
+      "success",
+    );
+  } else {
+    setFeedback(
+      feedbackEl,
+      `Moved ${aliases.length - errors.length} of ${aliases.length}. Failed: ${errors.join(", ")}`,
+      "error",
+    );
+  }
+  refreshTable(container, state);
+}
+
+async function bulkDelete(container, state, aliases, feedbackEl) {
+  setFeedback(feedbackEl, "");
+  disableBulkBar(container, true);
+  const errors = [];
+
+  for (const alias of aliases) {
+    try {
+      await api.attendees.remove(alias);
+      state.attendees = state.attendees.filter((a) => a.alias !== alias);
+    } catch {
+      errors.push(alias);
+    }
+  }
+
+  state.selected.clear();
+  disableBulkBar(container, false);
+
+  if (errors.length === 0) {
+    setFeedback(
+      feedbackEl,
+      `Deleted ${aliases.length} hacker${aliases.length !== 1 ? "s" : ""}`,
+      "success",
+    );
+  } else {
+    setFeedback(
+      feedbackEl,
+      `Deleted ${aliases.length - errors.length} of ${aliases.length}. Failed: ${errors.join(", ")}`,
+      "error",
+    );
+  }
+  refreshTable(container, state);
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function disableBulkBar(container, disabled) {
+  ["#hm-bulk-move", "#hm-bulk-delete", "#hm-bulk-team"].forEach((sel) => {
+    const el = container.querySelector(sel);
+    if (el) el.disabled = disabled;
+  });
+}
+
+function setFeedback(el, message, type = "") {
+  if (!el) return;
+  el.textContent = message;
+  el.className = "hm-feedback";
+  if (type === "success") el.classList.add("hm-feedback--success");
+  if (type === "error") el.classList.add("hm-feedback--error");
+  if (message && type === "success") {
+    setTimeout(() => {
+      if (el.textContent === message) el.textContent = "";
+    }, 4000);
+  }
 }
 
 function formatDate(iso) {

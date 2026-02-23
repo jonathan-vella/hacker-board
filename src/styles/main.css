@@ -698,6 +698,70 @@ main {
   text-decoration: underline;
 }
 
+/* Hacker Management page */
+.hm-bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  margin-bottom: 0.75rem;
+  background: var(--color-accent-subtle, #dbeafe);
+  border: 1px solid var(--color-accent, #93c5fd);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+
+[data-theme="dark"] .hm-bulk-bar {
+  background: #172554;
+  border-color: #1d4ed8;
+}
+
+.hm-bulk-label {
+  font-weight: 600;
+}
+
+.hm-feedback {
+  font-size: 0.875rem;
+  min-height: 1.25rem;
+}
+
+.hm-feedback--success {
+  color: #116329;
+}
+
+[data-theme="dark"] .hm-feedback--success {
+  color: #56d364;
+}
+
+.hm-feedback--error {
+  color: #82071e;
+}
+
+[data-theme="dark"] .hm-feedback--error {
+  color: #ff7b72;
+}
+
+.hm-col-check {
+  width: 2.5rem;
+  text-align: center;
+}
+
+.hm-col-team {
+  min-width: 140px;
+}
+
+.hm-col-actions {
+  width: 6rem;
+  text-align: right;
+}
+
+.form-input--sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+}
+
 /* Forms */
 .form-group {
   margin-bottom: 1rem;
