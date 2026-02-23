@@ -28,9 +28,7 @@ describe("Registration", () => {
   });
 
   it("renders Join Event button for new user", async () => {
-    const notFound = new Error("Not found");
-    notFound.status = 404;
-    api.attendees.me.mockRejectedValue(notFound);
+    api.attendees.me.mockResolvedValue({ registered: false });
 
     await renderRegistration(container, { userRoles: ["authenticated"] });
 
@@ -44,6 +42,7 @@ describe("Registration", () => {
 
   it("shows alias for already-registered user", async () => {
     api.attendees.me.mockResolvedValue({
+      registered: true,
       alias: "Team03-Hacker07",
       teamName: "Team03",
       teamNumber: 3,

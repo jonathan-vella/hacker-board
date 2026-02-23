@@ -101,12 +101,13 @@ export async function getMyProfile(request) {
     .fetchAll();
 
   if (resources.length === 0) {
-    return errorResponse("NOT_FOUND", "User has not registered yet", 404);
+    return { jsonBody: { registered: false } };
   }
 
   const doc = resources[0];
   return {
     jsonBody: {
+      registered: true,
       alias: doc.hackerAlias,
       teamNumber: doc.hackerNumber,
       teamId: doc.teamId,
@@ -139,6 +140,7 @@ export async function joinEvent(request) {
     return {
       status: 200,
       jsonBody: {
+        registered: true,
         alias: doc.hackerAlias,
         teamNumber: doc.hackerNumber,
         teamId: doc.teamId,
@@ -174,6 +176,7 @@ export async function joinEvent(request) {
   return {
     status: 201,
     jsonBody: {
+      registered: true,
       alias: fullAlias,
       teamNumber: assignedTeam.teamNumber,
       teamId: assignedTeam.id,

@@ -110,6 +110,13 @@ jobs:
           # Our app packages (app/api/node_modules/) scan clean.
           skip-dirs: "usr/local/lib/node_modules/npm"
 
+      - name: Deploy to App Service
+        run: |
+          az webapp config container set \
+            --name "${{ env.APP_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --container-image-name "${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}"
+
   smoke-test:
     name: Post-Deploy Smoke Test
     needs: docker-build-push
@@ -117,7 +124,10 @@ jobs:
     steps:
       # ACR CD webhook triggers App Service to pull the new :latest image.
       # Wait for the pull-and-restart cycle to complete before probing.
-      - name: Wait for ACR CD to pull and restart
+      - name: Wait for App Service to pull and restart
+        # App Service pulls the new container image asynchronously after
+        # az webapp config container set triggers the restart. 60s is enough
+        # for the pull-and-start cycle on the S1 plan.
         run: sleep 60
 
       - name: Health check

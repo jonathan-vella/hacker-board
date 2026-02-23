@@ -9,15 +9,9 @@ export async function renderRegistration(container, user) {
   container.innerHTML = `<div class="loading"><div class="spinner"></div> Loading...</div>`;
 
   try {
-    let profile;
-    try {
-      profile = await api.attendees.me();
-    } catch (err) {
-      if (err.status === 404) profile = undefined;
-      else throw err;
-    }
+    const profile = await api.attendees.me();
 
-    if (profile) {
+    if (profile.registered) {
       container.innerHTML = `
         <section>
           <div class="section-header"><h2>Registration</h2></div>
