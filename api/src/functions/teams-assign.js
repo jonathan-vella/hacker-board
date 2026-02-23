@@ -39,8 +39,12 @@ export async function assignTeams(request) {
   }
 
   // Build new assignment map: teamIndex -> member aliases
+  // Filter out attendees with no alias (legacy data without hackerAlias) to
+  // avoid populating teamMembers with undefined values.
+  const assignableAttendees = attendees.filter((a) => a.hackerAlias);
+
   const teamMembersMap = new Map(teams.map((t) => [t.id, []]));
-  attendees.forEach((attendee, index) => {
+  assignableAttendees.forEach((attendee, index) => {
     const team = teams[index % teams.length];
     teamMembersMap.get(team.id).push(attendee.hackerAlias);
   });
@@ -58,9 +62,9 @@ export async function assignTeams(request) {
 
   // Partition key is /teamId — moving an attendee to another team requires
   // delete + recreate since Cosmos DB does not allow changing partition keys in place.
-  for (let i = 0; i < attendees.length; i++) {
+  for (let i = 0; i < assignableAttendees.length; i++) {
     const team = teams[i % teams.length];
-    const attendee = attendees[i];
+    const attendee = assignableAttendees[i];
 
     if (attendee.teamId === team.id) continue;
 
@@ -79,7 +83,30 @@ export async function assignTeams(request) {
         });
       }
     } catch {
-      // Best effort — skip attendees that can't be relocated
+      // Cross-partition fallback: the attendee's teamId in the query result may
+      // be stale or from legacy data (e.g. old format "team-1" vs "Team01").
+      // Locate the document by id, then delete+recreate in the correct partition.
+      try {
+        const { resources: found } = await attendeesContainer.items
+          .query({
+            query: "SELECT * FROM c WHERE c.id = @id",
+            parameters: [{ name: "@id", value: attendee.id }],
+          })
+          .fetchAll();
+
+        if (found.length > 0) {
+          const doc = found[0];
+          const { _rid, _self, _etag, _attachments, _ts, ...cleanDoc } = doc;
+          await attendeesContainer.item(doc.id, doc.teamId).delete();
+          await attendeesContainer.items.create({
+            ...cleanDoc,
+            teamId: team.id,
+            teamName: team.teamName,
+          });
+        }
+      } catch {
+        // If the fallback also fails, skip this attendee — data may be corrupted
+      }
     }
   }
 
@@ -89,7 +116,7 @@ export async function assignTeams(request) {
         teamName: t.teamName,
         members: teamMembersMap.get(t.id),
       })),
-      totalHackers: attendees.length,
+      totalHackers: assignableAttendees.length,
       teamCount: teams.length,
     },
   };

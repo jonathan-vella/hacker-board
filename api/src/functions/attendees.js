@@ -21,11 +21,15 @@ async function getTeamsSortedBySize() {
   const attendeesContainer = getContainer("attendees");
   const enriched = [];
   for (const team of teams) {
+    // Pass partitionKey so Cosmos executes a single-partition query instead of
+    // a cross-partition fan-out, which improves reliability and reduces RU cost.
     const { resources } = await attendeesContainer.items
-      .query({
-        query: "SELECT VALUE COUNT(1) FROM c WHERE c.teamId = @teamId",
-        parameters: [{ name: "@teamId", value: team.id }],
-      })
+      .query(
+        {
+          query: "SELECT VALUE COUNT(1) FROM c",
+        },
+        { partitionKey: team.id },
+      )
       .fetchAll();
     enriched.push({ ...team, memberCount: resources[0] || 0 });
   }
