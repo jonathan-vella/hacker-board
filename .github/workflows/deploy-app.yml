@@ -122,8 +122,6 @@ jobs:
     needs: docker-build-push
     runs-on: ubuntu-latest
     steps:
-      # ACR CD webhook triggers App Service to pull the new :latest image.
-      # Wait for the pull-and-restart cycle to complete before probing.
       - name: Wait for App Service to pull and restart
         # App Service pulls the new container image asynchronously after
         # az webapp config container set triggers the restart. 60s is enough
