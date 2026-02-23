@@ -12,6 +12,11 @@ COPY templates/ ./templates/
 RUN chown -R appuser:appgroup /app
 USER appuser
 
+# Injected by the CI workflow at build time (git commit SHA short form).
+# Falls back to 'dev' for local builds.
+ARG BUILD_SHA=dev
+ENV BUILD_SHA=${BUILD_SHA}
+
 EXPOSE 8080
 ENV PORT=8080
 CMD ["node", "api/server.js"]

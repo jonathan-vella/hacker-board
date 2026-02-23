@@ -45,6 +45,7 @@ export async function handleHealth(request) {
       duration: Date.now() - started,
       cosmosEndpoint: process.env.COSMOS_ENDPOINT ?? "(unset)",
       nodeVersion: process.version,
+      buildSha: process.env.BUILD_SHA ?? "dev",
     },
   };
 }

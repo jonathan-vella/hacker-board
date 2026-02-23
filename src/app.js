@@ -76,6 +76,15 @@ async function init() {
   handleRoute();
   window.addEventListener("hashchange", handleRoute);
 
+  // Populate build version in footer — fire-and-forget, never blocks the UI
+  fetch("/api/health")
+    .then((r) => r.json())
+    .then((h) => {
+      const el = document.getElementById("app-version");
+      if (el && h.buildSha) el.textContent = `v${h.buildSha}`;
+    })
+    .catch(() => {});
+
   // Auto-refresh leaderboard every 30s
   setInterval(() => {
     const hash = getHash();
