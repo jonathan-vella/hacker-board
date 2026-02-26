@@ -1,6 +1,7 @@
 import express from "express";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import rateLimit from "express-rate-limit";
 import { normalizePrincipal } from "./shared/auth.js";
 import { adapt } from "./shared/adapter.js";
 import { handleHealth } from "./src/functions/health.js";
@@ -33,6 +34,14 @@ export function createApp() {
 
   // Trust App Service reverse proxy (reflects X-Forwarded-Proto as https)
   app.set("trust proxy", 1);
+
+  // Rate limiter for SPA fallback route to mitigate DoS against sendFile
+  const spaLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 300, // limit each IP to 300 SPA fallback requests per windowMs
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
 
   app.use(express.json({ limit: "512kb" }));
 
@@ -94,7 +103,7 @@ export function createApp() {
 
   // Static files and SPA fallback
   app.use(express.static(join(__dirname, "..", "src")));
-  app.get("/*splat", (_req, res) => {
+  app.get("/*splat", spaLimiter, (_req, res) => {
     res.sendFile(join(__dirname, "..", "src", "index.html"));
   });
 
